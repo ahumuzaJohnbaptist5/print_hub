@@ -16,7 +16,7 @@ export default function OrderTracking() {
 
     try {
       // Fetch orders (In a real app, you'd have a specific endpoint for this)
-      const res = await axios.get(getApiUrl('/api/orders/admin/'));
+      const res = await axios.get(getApiUrl('orders/admin/'));
       const found = res.data.find(o => o.id === parseInt(orderId));
       
       if (found) {

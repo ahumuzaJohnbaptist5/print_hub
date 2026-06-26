@@ -18,7 +18,7 @@ export default function AgentDashboard() {
 
     try {
       // Fetch orders to find the specific one
-      const res = await axios.get(getApiUrl('/api/orders/admin/'));
+      const res = await axios.get(getApiUrl('orders/admin/'));
       const found = res.data.find(o => o.id === parseInt(orderId));
       
       if (found) {
@@ -43,7 +43,7 @@ export default function AgentDashboard() {
     setLoading(true);
     try {
       // Update status to 'collected'
-      await axios.patch(getApiUrl(`/api/orders/${order.id}/status/`), { 
+      await axios.patch(getApiUrl(`orders/${order.id}/status/`), { 
         status: 'collected' 
       });
       

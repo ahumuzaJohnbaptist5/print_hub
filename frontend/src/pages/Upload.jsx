@@ -59,12 +59,13 @@ export default function Upload() {
 
   const handlePaymentSuccess = async (transactionId) => {
     try {
-      await axios.post('getApiUrl()/api/orders/verify/', {
+      await axios.post(getApiUrl('orders/verify/'), {
         transaction_id: transactionId,
         order_id: orderId
       });
       alert("Payment Successful! Your order is now being printed.");
-    } catch{
+    } catch (error) {
+      console.error(error);
       alert("Payment verification failed. Please contact support.");
     }
   };

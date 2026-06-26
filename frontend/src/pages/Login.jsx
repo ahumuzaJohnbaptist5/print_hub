@@ -15,7 +15,7 @@ export default function Login() {
     setLoading(true);
 
     try {
-      const response = await axios.post(getApiUrl('/api/auth/login/'), {
+      const response = await axios.post(getApiUrl('auth/login/'), {
         username: email, 
         password: password
       });

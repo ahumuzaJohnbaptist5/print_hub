@@ -31,7 +31,7 @@ export default function Register() {
     }
 
     try {
-      await axios.post(getApiUrl('/api/auth/register/'), formData);
+      await axios.post(getApiUrl('auth/register/'), formData);
       alert('Registration successful! Please login.');
       navigate('/login');
     } catch (err) {

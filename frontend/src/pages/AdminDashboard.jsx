@@ -26,8 +26,8 @@ export default function AdminDashboard() {
       
       try {
         const [ordersRes, usersRes] = await Promise.all([
-          axios.get(getApiUrl('/api/orders/admin/'), { headers }),
-          axios.get(getApiUrl('/api/auth/users/'), { headers })
+          axios.get(getApiUrl('orders/admin/'), { headers }),
+          axios.get(getApiUrl('auth/users/'), { headers })
         ]);
         setOrders(ordersRes.data);
         setUsers(usersRes.data);
@@ -57,7 +57,7 @@ export default function AdminDashboard() {
     console.log(`Updating order ${id} to status: ${newStatus}`);
     
     const response = await axios.patch(
-      getApiUrl(`/api/orders/${id}/status/`),
+      getApiUrl(`orders/${id}/status/`),
       { status: newStatus }
     );
     
@@ -65,7 +65,7 @@ export default function AdminDashboard() {
     alert(`Order #${id} status updated to: ${response.data.status}`);
     
     // Refresh the orders list
-    const res = await axios.get(getApiUrl('/api/orders/admin/'));
+    const res = await axios.get(getApiUrl('orders/admin/'));
     setOrders(res.data);
     
   } catch (err) {
