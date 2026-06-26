@@ -1,43 +1,60 @@
-from rest_framework import generics, status
-from rest_framework.response import Response
-from rest_framework.views import APIView
+from django.shortcuts import render, redirect, get_object_or_404
+from django.contrib.auth.decorators import login_required
+from django.contrib import messages
 from django.conf import settings
 import requests
 from .models import Order
-from .serializers import OrderSerializer
 from stations.models import Station
 
-# 1. Create Order (Client uploads file)
-class OrderCreateView(generics.CreateAPIView):
-    serializer_class = OrderSerializer
-    permission_classes = []  # For MVP, allow anyone (we'll add auth later)
+# 1. User Dashboard (View own orders)
+@login_required
+def dashboard_view(request):
+    orders = Order.objects.filter(client=request.user).order_by('-created_at')
+    return render(request, 'orders/dashboard.html', {'orders': orders})
 
-    def perform_create(self, serializer):
-        from django.contrib.auth import get_user_model
-        User = get_user_model()
+# 2. Upload Order (Client uploads file)
+@login_required
+def upload_view(request):
+    if request.method == 'POST':
+        file = request.FILES.get('file')
+        page_count = request.POST.get('page_count', 1)
+        is_color = request.POST.get('is_color', 'False') == 'True'
+        is_double_sided = request.POST.get('is_double_sided') == 'on'
         
-        # Option 1: For MVP - get user from request data if provided
-        client_id = self.request.data.get('client_id')
-        if client_id:
-            try:
-                client = User.objects.get(id=client_id)
-            except User.DoesNotExist:
-                client = User.objects.first()
-        else:
-            # Fallback to first user
-            client = User.objects.first()
+        if not file:
+            messages.error(request, 'Please select a file.')
+            return redirect('upload')
         
-        serializer.save(client=client)
+        try:
+            # Create order (price will be auto-calculated in model's save method)
+            order = Order.objects.create(
+                client=request.user,
+                file=file,
+                file_name=file.name,
+                page_count=int(page_count),
+                is_color=is_color,
+                is_double_sided=is_double_sided,
+                status='pending'
+            )
+            messages.success(request, f'Order submitted successfully! Total: {order.total_price:,} UGX')
+            return redirect('dashboard')
+        except Exception as e:
+            messages.error(request, f'Error creating order: {str(e)}')
+    
+    return render(request, 'orders/upload.html')
 
-# 2. Verify Payment (Called by frontend after Flutterwave success)
-class VerifyPaymentView(APIView):
-    def post(self, request):
-        transaction_id = request.data.get('transaction_id')
-        order_id = request.data.get('order_id')
+# 3. Verify Payment (Called after Flutterwave success)
+@login_required
+def verify_payment_view(request, order_id):
+    order = get_object_or_404(Order, id=order_id, client=request.user)
+    
+    if request.method == 'POST':
+        transaction_id = request.POST.get('transaction_id')
         
-        if not transaction_id or not order_id:
-            return Response({"error": "Missing data"}, status=status.HTTP_400_BAD_REQUEST)
-
+        if not transaction_id:
+            messages.error(request, 'Missing transaction ID.')
+            return redirect('dashboard')
+        
         url = f"https://api.flutterwave.com/v3/transactions/{transaction_id}/verify"
         headers = {
             "Authorization": f"Bearer {settings.FLUTTERWAVE_SECRET_KEY}",
@@ -49,45 +66,72 @@ class VerifyPaymentView(APIView):
             data = response.json()
             
             if data.get('status') == 'success' and data['data']['status'] == 'successful':
-                order = Order.objects.get(id=order_id)
                 order.status = 'paid'
                 order.save()
-                return Response({"message": "Payment verified", "order_status": order.status})
+                messages.success(request, 'Payment verified successfully!')
             else:
-                return Response({"error": "Payment verification failed"}, status=status.HTTP_400_BAD_REQUEST)
+                messages.error(request, 'Payment verification failed.')
         except Exception as e:
-            return Response({"error": str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+            messages.error(request, f'Error verifying payment: {str(e)}')
+        
+        return redirect('dashboard')
+    
+    return render(request, 'orders/verify_payment.html', {'order': order})
 
-# 3. Admin Dashboard (View all orders)
-class AdminOrderListView(generics.ListAPIView):
-    serializer_class = OrderSerializer
-    queryset = Order.objects.all().order_by('-created_at')
+# 4. Admin Dashboard (View all orders)
+@login_required
+def admin_dashboard_view(request):
+    # Check if user is admin
+    if not hasattr(request.user, 'role') or request.user.role != 'admin':
+        messages.error(request, 'Access denied. Admin only.')
+        return redirect('dashboard')
+    
+    orders = Order.objects.all().order_by('-created_at')
+    return render(request, 'orders/admin_dashboard.html', {'orders': orders})
 
-# 4. Agent Dashboard (View orders for a specific station)
-class AgentOrderListView(generics.ListAPIView):
-    serializer_class = OrderSerializer
+# 5. Agent Dashboard (View orders for a specific station)
+@login_required
+def agent_dashboard_view(request, station_id):
+    # Check if user is agent
+    if not hasattr(request.user, 'role') or request.user.role != 'agent':
+        messages.error(request, 'Access denied. Agent only.')
+        return redirect('dashboard')
+    
+    station = get_object_or_404(Station, id=station_id)
+    orders = Order.objects.filter(
+        station=station, 
+        status__in=['paid', 'printing', 'ready']
+    ).order_by('-created_at')
+    
+    return render(request, 'orders/agent_dashboard.html', {
+        'orders': orders,
+        'station': station
+    })
 
-    def get_queryset(self):
-        station_id = self.kwargs['station_id']
-        return Order.objects.filter(station_id=station_id, status__in=['paid', 'printing', 'ready']).order_by('-created_at')
-
-# 5. Update Order Status (NEW - for Week 3)
-class OrderStatusUpdateView(generics.UpdateAPIView):
-    serializer_class = OrderSerializer
-    permission_classes = []
-
-    def get_object(self):
-        return Order.objects.get(pk=self.kwargs['pk'])
-
-    def patch(self, request, *args, **kwargs):
-        order = self.get_object()
-        new_status = request.data.get('status')
+# 6. Update Order Status (For admin/agent)
+@login_required
+def update_order_status_view(request, order_id):
+    order = get_object_or_404(Order, id=order_id)
+    
+    if request.method == 'POST':
+        new_status = request.POST.get('status')
         
         valid_statuses = ['pending', 'paid', 'printing', 'ready', 'collected']
         if new_status not in valid_statuses:
-            return Response({"error": "Invalid status"}, status=status.HTTP_400_BAD_REQUEST)
-            
+            messages.error(request, 'Invalid status.')
+            return redirect('dashboard')
+        
         order.status = new_status
         order.save()
+        messages.success(request, f'Order status updated to {new_status}.')
         
-        return Response(OrderSerializer(order).data)
+        # Redirect based on user role
+        if hasattr(request.user, 'role'):
+            if request.user.role == 'admin':
+                return redirect('admin_dashboard')
+            elif request.user.role == 'agent' and order.station:
+                return redirect('agent_dashboard', station_id=order.station.id)
+        
+        return redirect('dashboard')
+    
+    return render(request, 'orders/update_status.html', {'order': order})

@@ -1,0 +1,80 @@
+{% extends 'base.html' %}
+
+{% block title %}My Orders - PrintHub{% endblock %}
+
+{% block content %}
+<div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
+    <div class="flex justify-between items-center mb-8">
+        <h1 class="text-4xl font-bold text-white">My Orders</h1>
+        <a href="{% url 'upload' %}" class="bg-gradient-to-r from-blue-600 to-purple-600 text-white font-bold px-6 py-3 rounded-xl hover:shadow-lg transition-all">
+            + New Order
+        </a>
+    </div>
+    
+    {% if orders %}
+    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+        {% for order in orders %}
+        <div class="bg-white/5 border border-white/10 backdrop-blur-md rounded-2xl p-6 hover:bg-white/10 transition-all">
+            <div class="flex justify-between items-start mb-4">
+                <h3 class="text-xl font-bold text-white">Order #{{ order.id }}</h3>
+                <span class="px-3 py-1 rounded-full text-sm font-semibold
+                    {% if order.status == 'pending' %}bg-yellow-500/20 text-yellow-300
+                    {% elif order.status == 'paid' %}bg-blue-500/20 text-blue-300
+                    {% elif order.status == 'printing' %}bg-purple-500/20 text-purple-300
+                    {% elif order.status == 'ready' %}bg-green-500/20 text-green-300
+                    {% elif order.status == 'collected' %}bg-gray-500/20 text-gray-300
+                    {% endif %}">
+                    {{ order.get_status_display }}
+                </span>
+            </div>
+            
+            <div class="space-y-2 text-gray-300 mb-4">
+                <p class="flex justify-between">
+                    <span class="text-gray-400">File:</span>
+                    <span class="truncate ml-2 max-w-[200px]">{{ order.file_name }}</span>
+                </p>
+                <p class="flex justify-between">
+                    <span class="text-gray-400">Pages:</span>
+                    <span>{{ order.page_count }}</span>
+                </p>
+                <p class="flex justify-between">
+                    <span class="text-gray-400">Color:</span>
+                    <span>{% if order.is_color %}Yes{% else %}B&W{% endif %}</span>
+                </p>
+                <p class="flex justify-between">
+                    <span class="text-gray-400">Double-sided:</span>
+                    <span>{% if order.is_double_sided %}Yes{% else %}No{% endif %}</span>
+                </p>
+                <p class="flex justify-between font-bold text-white mt-2 pt-2 border-t border-white/10">
+                    <span>Total:</span>
+                    <span>{{ order.total_price|default:0|floatformat:0 }} UGX</span>
+                </p>
+                <p class="flex justify-between text-sm text-gray-400">
+                    <span>Created:</span>
+                    <span>{{ order.created_at|date:"M d, Y H:i" }}</span>
+                </p>
+            </div>
+            
+            {% if order.status == 'pending' %}
+            <a href="#" class="block w-full text-center bg-gradient-to-r from-green-600 to-blue-600 text-white font-bold py-2 rounded-lg hover:shadow-lg transition-all">
+                Pay Now
+            </a>
+            {% elif order.status == 'ready' %}
+            <p class="text-center text-green-400 text-sm">✓ Ready for pickup!</p>
+            {% endif %}
+        </div>
+        {% endfor %}
+    </div>
+    {% else %}
+    <div class="bg-white/5 border border-white/10 backdrop-blur-md rounded-2xl p-12 text-center">
+        <svg class="w-16 h-16 text-gray-400 mx-auto mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
+        </svg>
+        <p class="text-gray-400 text-lg mb-4">You haven't placed any orders yet.</p>
+        <a href="{% url 'upload' %}" class="inline-block bg-gradient-to-r from-blue-600 to-purple-600 text-white font-bold px-6 py-3 rounded-xl hover:shadow-lg transition-all">
+            Place Your First Order
+        </a>
+    </div>
+    {% endif %}
+</div>
+{% endblock %}

@@ -1,2 +1,39 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+venv/
+env/
+ENV/
+*.egg-info/
+dist/
+build/
 
+# Django
+*.sqlite3
+db.sqlite3
+media/
+staticfiles/
+*.log
+
+# Environment
 .env
+.env.local
+.env.*.local
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Node (if you still have frontend folder)
+node_modules/
+frontend/dist/

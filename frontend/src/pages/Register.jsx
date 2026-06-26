@@ -5,57 +5,44 @@ import { getApiUrl } from '../utils/api';
 
 export default function Register() {
   const navigate = useNavigate();
-    const [formData, setFormData] = useState({
+  const [formData, setFormData] = useState({
     username: '',
     email: '',
     password: '',
-    password2: '',
-    first_name: '',
-    last_name: '',
-    phone_number: '',
-    role: 'student' // <-- Add this default value
   });
   const [error, setError] = useState('');
+  const [loading, setLoading] = useState(false);
 
   const handleChange = (e) => {
     setFormData({ ...formData, [e.target.name]: e.target.value });
   };
 
-    const handleSubmit = async (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
+    setLoading(true);
     setError('');
 
-    if (formData.password !== formData.password2) {
-      setError('Passwords do not match');
-      return;
-    }
-
     try {
-      await axios.post(getApiUrl('auth/register/'), formData);
-      alert('Registration successful! Please login.');
-      navigate('/login');
-    } catch (err) {
-      console.error(err);
-      
-      // Extract specific error messages from Django
-      const errorData = err.response?.data;
-      let errorMsg = 'Registration failed';
-      
-      if (errorData) {
-        const errors = [];
-        if (errorData.email) errors.push(...errorData.email);
-        if (errorData.phone_number) errors.push(...errorData.phone_number);
-        if (errorData.username) errors.push(...errorData.username);
-        if (errorData.password) errors.push(...errorData.password);
+        console.log('Submitting payload to backend...');
+        const response = await axios.post(getApiUrl('auth/register/'), formData);
         
-        if (errors.length > 0) {
-          errorMsg = errors.join(' ');
+        console.log('Registration Success:', response.data);
+        alert('Registration successful! Please login.');
+        navigate('/login');
+    } catch (err) {
+        console.log('Network/Server raw error:', err);
+        
+        // Simplified fallback display that cannot break syntax
+        if (err.response && err.response.data) {
+            setError(JSON.stringify(err.response.data));
+        } else {
+            setError(err.message || 'Registration failed');
         }
-      }
-      
-      setError(errorMsg);
+    } finally {
+        setLoading(false);
     }
-  };
+};
+
   return (
     <div className="min-h-screen bg-slate-900 flex items-center justify-center p-4 relative overflow-hidden">
       <div className="absolute top-0 left-0 w-96 h-96 bg-blue-600 rounded-full mix-blend-multiply filter blur-3xl opacity-20 animate-blob"></div>
@@ -77,31 +64,41 @@ export default function Register() {
         )}
 
         <form onSubmit={handleSubmit} className="space-y-4">
-          <div className="grid grid-cols-2 gap-4">
-            <input name="first_name" placeholder="First Name" onChange={handleChange} className="w-full bg-white/10 border border-white/10 rounded-xl px-4 py-3 text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-blue-500" required />
-            <input name="last_name" placeholder="Last Name" onChange={handleChange} className="w-full bg-white/10 border border-white/10 rounded-xl px-4 py-3 text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-blue-500" required />
-          </div>
-          <input name="username" placeholder="Username" onChange={handleChange} className="w-full bg-white/10 border border-white/10 rounded-xl px-4 py-3 text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-blue-500" required />
-          <input name="email" type="email" placeholder="Email" onChange={handleChange} className="w-full bg-white/10 border border-white/10 rounded-xl px-4 py-3 text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-blue-500" required />
-          <input name="phone_number" placeholder="Phone Number" onChange={handleChange} className="w-full bg-white/10 border border-white/10 rounded-xl px-4 py-3 text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-blue-500" />
-                    <div>
-            <label className="block text-sm font-medium text-gray-300 mb-2">Account Type</label>
-            <select 
-              name="role" 
-              value={formData.role} 
-              onChange={handleChange}
-              className="w-full bg-white/10 border border-white/10 rounded-xl px-4 py-3 text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
-            >
-              <option value="student" className="bg-slate-800">Student (Client)</option>
-              <option value="admin" className="bg-slate-800">Administrator</option>
-              <option value="agent" className="bg-slate-800">Station Agent</option>
-            </select>
-          </div>
-          <input name="password" type="password" placeholder="Password" onChange={handleChange} className="w-full bg-white/10 border border-white/10 rounded-xl px-4 py-3 text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-blue-500" required />
-          <input name="password2" type="password" placeholder="Confirm Password" onChange={handleChange} className="w-full bg-white/10 border border-white/10 rounded-xl px-4 py-3 text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-blue-500" required />
+          <input 
+            name="username" 
+            placeholder="Username" 
+            value={formData.username}
+            onChange={handleChange} 
+            className="w-full bg-white/10 border border-white/10 rounded-xl px-4 py-3 text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-blue-500" 
+            required 
+          />
+          
+          <input 
+            name="email" 
+            type="email" 
+            placeholder="Email" 
+            value={formData.email}
+            onChange={handleChange} 
+            className="w-full bg-white/10 border border-white/10 rounded-xl px-4 py-3 text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-blue-500" 
+            required 
+          />
+          
+          <input 
+            name="password" 
+            type="password" 
+            placeholder="Password" 
+            value={formData.password}
+            onChange={handleChange} 
+            className="w-full bg-white/10 border border-white/10 rounded-xl px-4 py-3 text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-blue-500" 
+            required 
+          />
 
-          <button type="submit" className="w-full bg-gradient-to-r from-blue-600 to-purple-600 text-white font-bold py-3 rounded-xl hover:shadow-lg hover:shadow-blue-500/30 transition-all duration-300 hover:-translate-y-1">
-            Create Account
+          <button 
+            type="submit" 
+            disabled={loading}
+            className="w-full bg-gradient-to-r from-blue-600 to-purple-600 text-white font-bold py-3 rounded-xl hover:shadow-lg hover:shadow-blue-500/30 transition-all duration-300 hover:-translate-y-1 disabled:opacity-50 disabled:cursor-not-allowed"
+          >
+            {loading ? 'Creating Account...' : 'Create Account'}
           </button>
         </form>
 
