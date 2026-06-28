@@ -1,0 +1,75 @@
+{% extends 'base.html' %}
+
+{% block title %}Track Order - PrintHub{% endblock %}
+
+{% block content %}
+<div class="max-w-3xl mx-auto px-4 py-12">
+    <h1 class="text-4xl font-bold text-white mb-4">Track Your Order</h1>
+    <p class="text-gray-400 mb-8">Enter your order ID or the email used when placing the order.</p>
+
+    {% if lookup_error %}
+    <div class="bg-red-500/20 border border-red-500/50 text-red-300 px-4 py-3 rounded-xl mb-6">
+        {{ lookup_error }}
+    </div>
+    {% endif %}
+
+    <div class="bg-white/5 border border-white/10 backdrop-blur-md rounded-3xl p-8 mb-8">
+        <form method="POST" class="space-y-6">
+            {% csrf_token %}
+            <div>
+                <label class="block text-sm font-medium text-gray-300 mb-2">Order ID</label>
+                <input
+                    type="number"
+                    name="order_id"
+                    placeholder="e.g. 1"
+                    class="w-full bg-white/10 border border-white/10 rounded-xl px-4 py-3 text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
+                />
+            </div>
+            <p class="text-center text-gray-500 text-sm">— or —</p>
+            <div>
+                <label class="block text-sm font-medium text-gray-300 mb-2">Email Address</label>
+                <input
+                    type="email"
+                    name="email"
+                    placeholder="your.email@kab.ac.ug"
+                    class="w-full bg-white/10 border border-white/10 rounded-xl px-4 py-3 text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
+                />
+            </div>
+            <button
+                type="submit"
+                class="w-full bg-gradient-to-r from-blue-600 to-purple-600 text-white font-bold py-3 rounded-xl hover:shadow-lg transition-all"
+            >
+                Track Order
+            </button>
+        </form>
+    </div>
+
+    {% if orders %}
+    <div class="space-y-4">
+        {% for order in orders %}
+        <div class="bg-white/5 border border-white/10 backdrop-blur-md rounded-2xl p-6">
+            <div class="flex justify-between items-start mb-4">
+                <h3 class="text-xl font-bold text-white">Order #{{ order.id }}</h3>
+                <span class="px-3 py-1 rounded-full text-sm font-semibold
+                    {% if order.status == 'pending' %}bg-yellow-500/20 text-yellow-300
+                    {% elif order.status == 'paid' %}bg-blue-500/20 text-blue-300
+                    {% elif order.status == 'printing' %}bg-purple-500/20 text-purple-300
+                    {% elif order.status == 'ready' %}bg-green-500/20 text-green-300
+                    {% elif order.status == 'collected' %}bg-gray-500/20 text-gray-300
+                    {% endif %}">
+                    {{ order.get_status_display }}
+                </span>
+            </div>
+            <div class="grid grid-cols-2 gap-4 text-gray-300 text-sm">
+                <p><span class="text-gray-400">File:</span> {{ order.file_name }}</p>
+                <p><span class="text-gray-400">Pages:</span> {{ order.page_count }}</p>
+                <p><span class="text-gray-400">Total:</span> {{ order.total_price|floatformat:0 }} UGX</p>
+                <p><span class="text-gray-400">Station:</span> {{ order.station.name|default:"—" }}</p>
+                <p class="col-span-2"><span class="text-gray-400">Created:</span> {{ order.created_at|date:"M d, Y H:i" }}</p>
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+    {% endif %}
+</div>
+{% endblock %}

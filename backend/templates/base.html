@@ -32,11 +32,19 @@
                         <span class="text-gray-300">Welcome, {{ user.username }}</span>
                         <a href="{% url 'dashboard' %}" class="text-gray-300 hover:text-white">Dashboard</a>
                         <a href="{% url 'upload' %}" class="text-gray-300 hover:text-white">Upload</a>
+                        <a href="{% url 'track_order' %}" class="text-gray-300 hover:text-white">Track Order</a>
+                        {% if user.role == 'admin' %}
+                        <a href="{% url 'admin_dashboard' %}" class="text-gray-300 hover:text-white">Admin Dashboard</a>
+                        {% endif %}
+                        {% if user.role == 'agent' %}
+                        <a href="{% url 'agent_dashboard' %}" class="text-gray-300 hover:text-white">Agent Dashboard</a>
+                        {% endif %}
                         <form method="POST" action="{% url 'logout' %}" class="inline">
                             {% csrf_token %}
                             <button type="submit" class="text-gray-300 hover:text-white">Logout</button>
                         </form>
                     {% else %}
+                        <a href="{% url 'track_order' %}" class="text-gray-300 hover:text-white">Track Order</a>
                         <a href="{% url 'login' %}" class="text-gray-300 hover:text-white">Login</a>
                         <a href="{% url 'register' %}" class="bg-gradient-to-r from-blue-600 to-purple-600 text-white px-4 py-2 rounded-lg hover:shadow-lg transition-all">Register</a>
                     {% endif %}

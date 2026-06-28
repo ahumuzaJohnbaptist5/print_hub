@@ -5,24 +5,44 @@
 {% block content %}
 <div class="max-w-2xl mx-auto px-4 py-12">
     <h1 class="text-4xl font-bold text-white mb-8">Upload Document</h1>
+
+    {% if upload_error %}
+    <div class="bg-red-500/20 border border-red-500/50 text-red-300 px-4 py-3 rounded-xl mb-6">
+        {{ upload_error }}
+    </div>
+    {% endif %}
     
     <div class="bg-white/5 border border-white/10 backdrop-blur-md rounded-3xl p-8">
         <form method="POST" enctype="multipart/form-data" class="space-y-6">
             {% csrf_token %}
             
-            <!-- File Upload -->
             <div>
-                <label class="block text-sm font-medium text-gray-300 mb-2">Select File (PDF, DOC, DOCX)</label>
+                <label class="block text-sm font-medium text-gray-300 mb-2">Select File (PDF, DOC, DOCX, TXT, PNG, JPG)</label>
                 <input 
                     type="file" 
                     name="file" 
-                    accept=".pdf,.doc,.docx"
+                    accept=".pdf,.doc,.docx,.txt,.png,.jpg,.jpeg"
                     class="w-full bg-white/10 border border-white/10 rounded-xl px-4 py-3 text-white file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-sm file:font-semibold file:bg-blue-500 file:text-white hover:file:bg-blue-600"
                     required
                 />
+                <p class="text-gray-400 text-sm mt-1">Maximum file size: 10MB</p>
             </div>
             
-            <!-- Page Count -->
+            <div>
+                <label class="block text-sm font-medium text-gray-300 mb-2">Pickup Station</label>
+                <select 
+                    name="station" 
+                    class="w-full bg-white/10 border border-white/10 rounded-xl px-4 py-3 text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    required
+                >
+                    {% for station in stations %}
+                    <option value="{{ station.id }}" class="bg-slate-800">{{ station.name }}</option>
+                    {% empty %}
+                    <option value="" disabled class="bg-slate-800">No stations available</option>
+                    {% endfor %}
+                </select>
+            </div>
+            
             <div>
                 <label class="block text-sm font-medium text-gray-300 mb-2">Number of Pages</label>
                 <input 
@@ -36,19 +56,17 @@
                 <p class="text-gray-400 text-sm mt-1">Enter the total number of pages in your document</p>
             </div>
             
-            <!-- Color Option -->
             <div>
                 <label class="block text-sm font-medium text-gray-300 mb-2">Print Type</label>
                 <select 
                     name="is_color" 
                     class="w-full bg-white/10 border border-white/10 rounded-xl px-4 py-3 text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
                 >
-                    <option value="False" class="bg-slate-800">Black & White (200 UGX/page)</option>
+                    <option value="False" class="bg-slate-800">Black &amp; White (200 UGX/page)</option>
                     <option value="True" class="bg-slate-800">Color (300 UGX/page)</option>
                 </select>
             </div>
             
-            <!-- Double Sided -->
             <div class="flex items-center">
                 <input 
                     type="checkbox" 
@@ -56,12 +74,11 @@
                     id="is_double_sided"
                     class="w-5 h-5 bg-white/10 border border-white/10 rounded text-blue-500 focus:ring-2 focus:ring-blue-500"
                 />
-                <label for="is_double_sided" class="ml-3 text-gray-300">Print double-sided (both sides of paper)</label>
+                <label for="is_double_sided" class="ml-3 text-gray-300">Print double-sided (half the page count for pricing)</label>
             </div>
             
-            <!-- Price Preview -->
             <div class="bg-blue-500/10 border border-blue-500/30 rounded-xl p-4">
-                <p class="text-blue-300 text-sm">💡 Price will be calculated automatically based on your selections</p>
+                <p class="text-blue-300 text-sm">Price is calculated automatically based on your selections.</p>
             </div>
             
             <button 

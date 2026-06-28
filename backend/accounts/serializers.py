@@ -4,32 +4,29 @@ from django.contrib.auth.password_validation import validate_password
 
 User = get_user_model()
 
-# 1. User Serializer (Used by Admin Dashboard to list users)
+
 class UserSerializer(serializers.ModelSerializer):
     class Meta:
         model = User
         fields = ['id', 'username', 'email', 'first_name', 'last_name', 'role', 'phone_number', 'date_joined']
         read_only_fields = ['date_joined']
 
-# 2. Register Serializer (Used for creating new accounts)
+
 class RegisterSerializer(serializers.ModelSerializer):
     password = serializers.CharField(write_only=True, required=True, validators=[validate_password])
     password2 = serializers.CharField(write_only=True, required=True)
-    role = serializers.ChoiceField(choices=['student', 'admin', 'agent'], default='student')
 
     class Meta:
         model = User
-        fields = ['username', 'email', 'password', 'password2', 'first_name', 'last_name', 'phone_number', 'role']
+        fields = ['username', 'email', 'password', 'password2', 'first_name', 'last_name', 'phone_number']
 
-    # Prevent duplicate emails
     def validate_email(self, value):
         if User.objects.filter(email=value).exists():
             raise serializers.ValidationError("A user with this email address already exists.")
         return value
 
-    # Prevent duplicate phone numbers
     def validate_phone_number(self, value):
-        if User.objects.filter(phone_number=value).exists():
+        if value and User.objects.filter(phone_number=value).exists():
             raise serializers.ValidationError("A user with this phone number already exists.")
         return value
 
@@ -40,5 +37,6 @@ class RegisterSerializer(serializers.ModelSerializer):
 
     def create(self, validated_data):
         validated_data.pop('password2')
+        validated_data['role'] = 'client'
         user = User.objects.create_user(**validated_data)
         return user
