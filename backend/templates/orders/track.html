@@ -2,74 +2,105 @@
 
 {% block title %}Track Order - PrintHub{% endblock %}
 
+{% block extra_head %}
+<style>
+.timeline { display: flex; justify-content: space-between; position: relative; margin: 2rem 0; padding-top: 4px; }
+.timeline::before {
+    content: ''; position: absolute; top: 20px; left: 5%; right: 5%; height: 3px;
+    background: #374151; z-index: 0;
+}
+.timeline-progress {
+    position: absolute; top: 20px; left: 5%; height: 3px;
+    background: linear-gradient(to right, #3b82f6, #a855f7); z-index: 1; transition: width 0.5s;
+}
+.timeline-step { display: flex; flex-direction: column; align-items: center; position: relative; z-index: 2; flex: 1; }
+.timeline-circle {
+    width: 40px; height: 40px; border-radius: 50%; display: flex; align-items: center;
+    justify-content: center; font-weight: bold; font-size: 14px; border: 4px solid;
+}
+.timeline-circle.completed { background: #2563eb; border-color: #60a5fa; color: white; }
+.timeline-circle.current { background: #2563eb; border-color: #93c5fd; color: white; animation: pulse 2s infinite; }
+.timeline-circle.future { background: #1e293b; border-color: #4b5563; color: #6b7280; }
+.timeline-label { margin-top: 12px; font-size: 10px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.04em; text-align: center; max-width: 80px; }
+.timeline-label.completed, .timeline-label.current { color: #e2e8f0; }
+.timeline-label.current { color: #60a5fa; }
+.timeline-label.future { color: #6b7280; }
+.timeline-time { font-size: 10px; color: #9ca3af; margin-top: 4px; text-align: center; }
+@keyframes pulse { 0%, 100% { box-shadow: 0 0 0 0 rgba(59,130,246,0.4); } 50% { box-shadow: 0 0 0 10px rgba(59,130,246,0); } }
+</style>
+{% endblock %}
+
 {% block content %}
-<div class="max-w-3xl mx-auto px-4 py-12">
+<div class="max-w-4xl mx-auto px-4 py-12">
     <h1 class="text-4xl font-bold text-white mb-4">Track Your Order</h1>
     <p class="text-gray-400 mb-8">Enter your order ID or the email used when placing the order.</p>
 
     {% if lookup_error %}
-    <div class="bg-red-500/20 border border-red-500/50 text-red-300 px-4 py-3 rounded-xl mb-6">
-        {{ lookup_error }}
-    </div>
+    <div class="bg-red-500/20 border border-red-500/50 text-red-300 px-4 py-3 rounded-xl mb-6">{{ lookup_error }}</div>
     {% endif %}
 
     <div class="bg-white/5 border border-white/10 backdrop-blur-md rounded-3xl p-8 mb-8">
-        <form method="POST" class="space-y-6">
-            {% csrf_token %}
+        <form method="GET" class="space-y-6">
             <div>
                 <label class="block text-sm font-medium text-gray-300 mb-2">Order ID</label>
-                <input
-                    type="number"
-                    name="order_id"
-                    placeholder="e.g. 1"
-                    class="w-full bg-white/10 border border-white/10 rounded-xl px-4 py-3 text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
-                />
+                <input type="number" name="order_id" value="{{ query_order_id }}"
+                    placeholder="e.g. 1" class="w-full bg-white/10 border border-white/10 rounded-xl px-4 py-3 text-white focus:outline-none focus:ring-2 focus:ring-blue-500" />
             </div>
             <p class="text-center text-gray-500 text-sm">— or —</p>
             <div>
                 <label class="block text-sm font-medium text-gray-300 mb-2">Email Address</label>
-                <input
-                    type="email"
-                    name="email"
-                    placeholder="your.email@kab.ac.ug"
-                    class="w-full bg-white/10 border border-white/10 rounded-xl px-4 py-3 text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
-                />
+                <input type="email" name="email" value="{{ query_email }}"
+                    placeholder="your.email@kab.ac.ug" class="w-full bg-white/10 border border-white/10 rounded-xl px-4 py-3 text-white focus:outline-none focus:ring-2 focus:ring-blue-500" />
             </div>
-            <button
-                type="submit"
-                class="w-full bg-gradient-to-r from-blue-600 to-purple-600 text-white font-bold py-3 rounded-xl hover:shadow-lg transition-all"
-            >
+            <button type="submit" class="w-full bg-gradient-to-r from-blue-600 to-purple-600 text-white font-bold py-3 rounded-xl hover:shadow-lg transition-all">
                 Track Order
             </button>
         </form>
     </div>
 
-    {% if orders %}
-    <div class="space-y-4">
-        {% for order in orders %}
-        <div class="bg-white/5 border border-white/10 backdrop-blur-md rounded-2xl p-6">
-            <div class="flex justify-between items-start mb-4">
-                <h3 class="text-xl font-bold text-white">Order #{{ order.id }}</h3>
-                <span class="px-3 py-1 rounded-full text-sm font-semibold
-                    {% if order.status == 'pending' %}bg-yellow-500/20 text-yellow-300
-                    {% elif order.status == 'paid' %}bg-blue-500/20 text-blue-300
-                    {% elif order.status == 'printing' %}bg-purple-500/20 text-purple-300
-                    {% elif order.status == 'ready' %}bg-green-500/20 text-green-300
-                    {% elif order.status == 'collected' %}bg-gray-500/20 text-gray-300
-                    {% endif %}">
-                    {{ order.get_status_display }}
-                </span>
-            </div>
-            <div class="grid grid-cols-2 gap-4 text-gray-300 text-sm">
-                <p><span class="text-gray-400">File:</span> {{ order.file_name }}</p>
-                <p><span class="text-gray-400">Pages:</span> {{ order.page_count }}</p>
-                <p><span class="text-gray-400">Total:</span> {{ order.total_price|floatformat:0 }} UGX</p>
-                <p><span class="text-gray-400">Station:</span> {{ order.station.name|default:"—" }}</p>
-                <p class="col-span-2"><span class="text-gray-400">Created:</span> {{ order.created_at|date:"M d, Y H:i" }}</p>
-            </div>
+    {% for item in order_timelines %}
+    {% with order=item.order %}
+    <div class="bg-white/5 border border-white/10 backdrop-blur-md rounded-2xl p-6 mb-8">
+        <div class="flex justify-between items-start mb-6">
+            <h3 class="text-2xl font-bold text-white">Order #{{ order.id }}</h3>
+            <span class="px-3 py-1 rounded-full text-sm font-semibold
+                {% if order.status == 'pending' %}bg-yellow-500/20 text-yellow-300
+                {% elif order.status == 'paid' %}bg-blue-500/20 text-blue-300
+                {% elif order.status == 'printing' %}bg-purple-500/20 text-purple-300
+                {% elif order.status == 'ready' %}bg-green-500/20 text-green-300
+                {% else %}bg-gray-500/20 text-gray-300{% endif %}">
+                {{ order.get_status_display }}
+            </span>
         </div>
-        {% endfor %}
+
+        <div class="grid grid-cols-2 gap-4 text-gray-300 text-sm mb-8">
+            <p><span class="text-gray-400">File:</span> {{ order.file_name }}</p>
+            <p><span class="text-gray-400">Pages:</span> {{ order.page_count }}</p>
+            <p><span class="text-gray-400">Total:</span> {{ order.total_price|floatformat:0 }} UGX</p>
+            <p><span class="text-gray-400">Station:</span> {{ order.station.name|default:"—" }}</p>
+            {% if item.estimated_ready %}
+            <p class="col-span-2"><span class="text-gray-400">Est. Ready:</span> {{ item.estimated_ready|date:"M d, Y H:i" }}</p>
+            {% endif %}
+        </div>
+
+        <div class="timeline">
+            <div class="timeline-progress" style="width: calc({{ item.progress_width }}% * 0.9 + 5%)"></div>
+            {% for step in item.steps %}
+            <div class="timeline-step">
+                <div class="timeline-circle {{ step.state }}">
+                    {% if step.state == 'completed' %}
+                    OK
+                    {% else %}{{ forloop.counter }}{% endif %}
+                </div>
+                <span class="timeline-label {{ step.state }}">{{ step.label }}</span>
+                {% if step.timestamp %}
+                <span class="timeline-time">{{ step.timestamp|date:"M d, H:i" }}</span>
+                {% endif %}
+            </div>
+            {% endfor %}
+        </div>
     </div>
-    {% endif %}
+    {% endwith %}
+    {% endfor %}
 </div>
 {% endblock %}

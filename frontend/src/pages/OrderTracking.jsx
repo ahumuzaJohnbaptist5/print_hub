@@ -129,7 +129,7 @@ export default function OrderTracking() {
                           ? 'bg-blue-600 border-blue-400 text-white shadow-lg shadow-blue-500/50' 
                           : 'bg-slate-800 border-gray-600 text-gray-500'
                       }`}>
-                        {isCompleted ? '✓' : index + 1}
+                        {isCompleted ? 'Done' : index + 1}
                       </div>
                       {/* Label */}
                       <span className={`mt-3 text-xs font-semibold uppercase tracking-wider ${

@@ -1,13 +1,11 @@
-import os
-import tempfile
-from io import BytesIO
-
 from django.contrib.auth import get_user_model
 from django.core.files.uploadedfile import SimpleUploadedFile
 from django.test import Client, TestCase
 from django.urls import reverse
+from django.utils import timezone
 
 from orders.models import Order
+from orders.utils import apply_order_status_change
 from stations.models import Station
 
 User = get_user_model()
@@ -20,6 +18,7 @@ class OrderPriceTests(TestCase):
             email='price@example.com',
             password='testpass123',
             role='client',
+            email_verified=True,
         )
         self.station = Station.objects.create(name='Test Station')
 
@@ -51,8 +50,14 @@ class OrderPriceTests(TestCase):
         self.assertEqual(order.total_price, 600)
 
     def test_color_double_sided_price(self):
-        order = self._make_order(page_count=5, is_color=True, is_double_sided=True)
-        self.assertEqual(order.total_price, 900)
+        order = self._make_order(page_count=20, is_color=True, is_double_sided=True)
+        self.assertEqual(order.total_price, 3000)
+
+    def test_calculate_price_class_method(self):
+        total, effective, per_page = Order.compute_price(20, True, True)
+        self.assertEqual(effective, 10)
+        self.assertEqual(per_page, 300)
+        self.assertEqual(total, 3000)
 
 
 class UploadViewTests(TestCase):
@@ -63,6 +68,7 @@ class UploadViewTests(TestCase):
             email='upload@example.com',
             password='testpass123',
             role='client',
+            email_verified=True,
         )
         self.station = Station.objects.create(name='Upload Station')
         self.client.login(username='uploaduser', password='testpass123')
@@ -99,12 +105,14 @@ class UpdateOrderStatusTests(TestCase):
             email='student@example.com',
             password='testpass123',
             role='client',
+            email_verified=True,
         )
         self.admin_user = User.objects.create_user(
             username='admin1',
             email='admin@example.com',
             password='testpass123',
             role='admin',
+            email_verified=True,
         )
         self.station = Station.objects.create(name='Status Station')
         self.order = Order.objects.create(
@@ -135,3 +143,105 @@ class UpdateOrderStatusTests(TestCase):
         self.assertEqual(response.status_code, 302)
         self.order.refresh_from_db()
         self.assertEqual(self.order.status, 'printing')
+        self.assertIsNotNone(self.order.printing_at)
+
+
+class ReceiptViewTests(TestCase):
+    def setUp(self):
+        self.client = Client()
+        self.owner = User.objects.create_user(
+            username='owner', email='owner@example.com', password='pass123',
+            role='client', email_verified=True,
+        )
+        self.other = User.objects.create_user(
+            username='other', email='other@example.com', password='pass123',
+            role='client', email_verified=True,
+        )
+        self.station = Station.objects.create(name='Receipt Station')
+        self.order = Order.objects.create(
+            client=self.owner,
+            station=self.station,
+            file=SimpleUploadedFile('f.pdf', b'pdf'),
+            file_name='f.pdf',
+            page_count=1,
+            status='paid',
+            paid_at=timezone.now(),
+        )
+
+    def test_owner_can_view_receipt(self):
+        self.client.login(username='owner', password='pass123')
+        response = self.client.get(reverse('order_receipt', args=[self.order.id]))
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, f'#{self.order.id}')
+
+    def test_other_user_cannot_view_receipt(self):
+        self.client.login(username='other', password='pass123')
+        response = self.client.get(reverse('order_receipt', args=[self.order.id]))
+        self.assertEqual(response.status_code, 403)
+
+
+class AgentDashboardTests(TestCase):
+    def setUp(self):
+        self.client = Client()
+        self.station_a = Station.objects.create(name='Station A')
+        self.station_b = Station.objects.create(name='Station B')
+        self.agent = User.objects.create_user(
+            username='agent1', email='agent@example.com', password='pass123',
+            role='agent', email_verified=True, station=self.station_a,
+        )
+        self.owner = User.objects.create_user(
+            username='cust', email='cust@example.com', password='pass123',
+            role='client', email_verified=True,
+        )
+        self.order_a = Order.objects.create(
+            client=self.owner, station=self.station_a,
+            file=SimpleUploadedFile('a.pdf', b'pdf'), file_name='a.pdf',
+            page_count=1, status='paid',
+        )
+        self.order_b = Order.objects.create(
+            client=self.owner, station=self.station_b,
+            file=SimpleUploadedFile('b.pdf', b'pdf'), file_name='b.pdf',
+            page_count=1, status='paid',
+        )
+
+    def test_agent_only_sees_their_station_orders(self):
+        self.client.login(username='agent1', password='pass123')
+        response = self.client.get(reverse('agent_dashboard'))
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, 'Station A')
+        self.assertContains(response, 'a.pdf')
+        self.assertNotContains(response, 'b.pdf')
+
+    def test_agent_without_station_sees_message(self):
+        self.agent.station = None
+        self.agent.save()
+        self.client.login(username='agent1', password='pass123')
+        response = self.client.get(reverse('agent_dashboard'))
+        self.assertContains(response, 'not been assigned to a station')
+
+
+class StatusTimestampTests(TestCase):
+    def setUp(self):
+        self.user = User.objects.create_user(
+            username='tsuser', email='ts@example.com', password='pass123',
+            role='client', email_verified=True,
+        )
+        self.station = Station.objects.create(name='TS Station')
+        self.order = Order.objects.create(
+            client=self.user, station=self.station,
+            file=SimpleUploadedFile('f.pdf', b'pdf'), file_name='f.pdf',
+            page_count=1, status='paid', paid_at=timezone.now(),
+        )
+
+    def test_status_timestamps_set_correctly(self):
+        apply_order_status_change(self.order, 'printing')
+        self.order.refresh_from_db()
+        self.assertIsNotNone(self.order.printing_at)
+
+        apply_order_status_change(self.order, 'ready')
+        self.order.refresh_from_db()
+        self.assertIsNotNone(self.order.ready_at)
+
+        apply_order_status_change(self.order, 'collected')
+        self.order.refresh_from_db()
+        self.assertIsNotNone(self.order.collected_at)

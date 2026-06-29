@@ -1,10 +1,12 @@
 import os
 import mimetypes
+from datetime import timedelta
 
-import requests
-from django.conf import settings
 from django.contrib import messages
 from django.contrib.auth.decorators import login_required
+from django.contrib.auth import get_user_model
+from django.core.paginator import Paginator
+from django.db.models import Q
 from django.http import FileResponse, HttpResponseForbidden
 from django.shortcuts import get_object_or_404, redirect, render
 from django.utils import timezone
@@ -12,6 +14,9 @@ from django.utils import timezone
 from stations.models import Station
 
 from .models import Order
+from .utils import apply_order_status_change
+
+User = get_user_model()
 
 ALLOWED_EXTENSIONS = {'.pdf', '.docx', '.doc', '.txt', '.png', '.jpg', '.jpeg'}
 MAX_UPLOAD_SIZE = 10 * 1024 * 1024
@@ -33,6 +38,12 @@ def validate_upload_file(file):
     if file.size > MAX_UPLOAD_SIZE:
         return 'File size exceeds 10MB limit.'
     return None
+
+
+def _can_view_order(user, order):
+    if _user_role(user) in ('admin', 'agent'):
+        return True
+    return order.client == user
 
 
 @login_required
@@ -64,9 +75,7 @@ def upload_view(request):
                 'upload_error': upload_error,
             })
 
-        station = None
-        if station_id:
-            station = Station.objects.filter(id=station_id).first()
+        station = Station.objects.filter(id=station_id).first() if station_id else None
 
         try:
             order = Order.objects.create(
@@ -81,7 +90,7 @@ def upload_view(request):
             )
             messages.success(
                 request,
-                f'Order submitted successfully! Total: {order.total_price:,} UGX',
+                f'Order submitted! Pay at the pickup station after reviewing your prints. Total: {order.total_price:,} UGX',
             )
             return redirect('dashboard')
         except Exception as e:
@@ -95,62 +104,66 @@ def upload_view(request):
 
 
 @login_required
-def verify_payment_view(request):
-    order_id = request.GET.get('order_id') or request.POST.get('order_id')
-    if not order_id:
-        messages.error(request, 'Missing order ID.')
-        return redirect('dashboard')
+def order_receipt_view(request, order_id):
+    order = get_object_or_404(Order, id=order_id)
 
-    order = get_object_or_404(Order, id=order_id, client=request.user)
+    if not _can_view_order(request.user, order):
+        return HttpResponseForbidden('You do not have permission to view this receipt.')
 
-    if request.method == 'POST':
-        transaction_id = request.POST.get('transaction_id')
-        tx_ref = request.POST.get('tx_ref', '')
+    estimated_ready = order.estimated_ready_at()
 
-        if not transaction_id:
-            messages.error(request, 'Missing transaction ID.')
-            return redirect('dashboard')
-
-        if not settings.FLUTTERWAVE_SECRET_KEY:
-            messages.error(request, 'Payment verification is not configured.')
-            return redirect('dashboard')
-
-        url = f'https://api.flutterwave.com/v3/transactions/{transaction_id}/verify'
-        headers = {
-            'Authorization': f'Bearer {settings.FLUTTERWAVE_SECRET_KEY}',
-            'Content-Type': 'application/json',
-        }
-
-        try:
-            response = requests.get(url, headers=headers, timeout=30)
-            data = response.json()
-
-            if (
-                data.get('status') == 'success'
-                and data.get('data', {}).get('status') == 'successful'
-            ):
-                paid_amount = int(float(data['data'].get('amount', 0)))
-                if paid_amount != order.total_price:
-                    messages.error(request, 'Payment amount does not match order total.')
-                    return redirect('dashboard')
-
-                order.status = 'paid'
-                order.transaction_id = str(transaction_id)
-                order.tx_ref = tx_ref or data['data'].get('tx_ref', '')
-                order.paid_at = timezone.now()
-                order.save()
-                messages.success(request, 'Payment verified successfully!')
-            else:
-                messages.error(request, 'Payment verification failed.')
-        except Exception as e:
-            messages.error(request, f'Error verifying payment: {str(e)}')
-
-        return redirect('dashboard')
-
-    return render(request, 'orders/verify_payment.html', {
+    return render(request, 'orders/receipt.html', {
         'order': order,
-        'flutterwave_public_key': settings.FLUTTERWAVE_PUBLIC_KEY,
+        'estimated_ready': estimated_ready,
     })
+
+
+def _build_order_queryset(request):
+    qs = Order.objects.select_related('client', 'station').order_by('-created_at')
+
+    status = request.GET.get('status', '').strip()
+    if status:
+        qs = qs.filter(status=status)
+
+    station_id = request.GET.get('station', '').strip()
+    if station_id:
+        qs = qs.filter(station_id=station_id)
+
+    date_filter = request.GET.get('date', '').strip()
+    now = timezone.now()
+    if date_filter == 'today':
+        qs = qs.filter(created_at__date=now.date())
+    elif date_filter == 'week':
+        qs = qs.filter(created_at__gte=now - timedelta(days=7))
+    elif date_filter == 'month':
+        qs = qs.filter(created_at__gte=now - timedelta(days=30))
+
+    search = request.GET.get('search', '').strip()
+    if search:
+        if search.isdigit():
+            qs = qs.filter(Q(id=int(search)) | Q(client__email__icontains=search))
+        else:
+            qs = qs.filter(
+                Q(client__email__icontains=search)
+                | Q(client__username__icontains=search)
+                | Q(file_name__icontains=search)
+            )
+
+    return qs
+
+
+def _order_summary_counts():
+    now = timezone.now()
+    today_start = now.replace(hour=0, minute=0, second=0, microsecond=0)
+    return {
+        'total': Order.objects.count(),
+        'pending': Order.objects.filter(status='pending').count(),
+        'printing': Order.objects.filter(status='printing').count(),
+        'ready': Order.objects.filter(status='ready').count(),
+        'collected_today': Order.objects.filter(
+            status='collected', collected_at__gte=today_start
+        ).count(),
+    }
 
 
 @login_required
@@ -159,8 +172,64 @@ def admin_dashboard_view(request):
         messages.error(request, 'Access denied. Admin only.')
         return redirect('dashboard')
 
-    orders = Order.objects.all().order_by('-created_at')
-    return render(request, 'orders/admin_dashboard.html', {'orders': orders})
+    if request.method == 'POST':
+        action = request.POST.get('action')
+
+        if action == 'assign_agent':
+            agent_id = request.POST.get('agent_id')
+            station_id = request.POST.get('agent_station_id') or None
+            agent = get_object_or_404(User, id=agent_id, role='agent')
+            agent.station_id = station_id
+            agent.save(update_fields=['station'])
+            messages.success(request, f'Station updated for agent {agent.username}.')
+            return redirect('admin_dashboard')
+
+        if action == 'bulk_status':
+            new_status = request.POST.get('bulk_status')
+            order_ids = request.POST.getlist('order_ids')
+            valid = ['printing', 'ready', 'collected']
+            if new_status in valid and order_ids:
+                for oid in order_ids:
+                    order = Order.objects.filter(id=oid).first()
+                    if order:
+                        apply_order_status_change(order, new_status)
+                messages.success(request, f'Updated {len(order_ids)} order(s) to {new_status}.')
+            return redirect(request.get_full_path() or 'admin_dashboard')
+
+    orders_qs = _build_order_queryset(request)
+    summary = _order_summary_counts()
+    paginator = Paginator(orders_qs, 20)
+    page_number = request.GET.get('page')
+    page_obj = paginator.get_page(page_number)
+
+    agents = User.objects.filter(role='agent').select_related('station')
+    stations = Station.objects.all()
+
+    active_filters = []
+    for key, label in [
+        ('status', 'Status'),
+        ('station', 'Station'),
+        ('date', 'Date'),
+        ('search', 'Search'),
+    ]:
+        val = request.GET.get(key, '').strip()
+        if val:
+            active_filters.append({'key': key, 'value': val, 'label': label})
+
+    return render(request, 'orders/admin_dashboard.html', {
+        'page_obj': page_obj,
+        'orders': page_obj.object_list,
+        'summary': summary,
+        'agents': agents,
+        'stations': stations,
+        'status_choices': Order.STATUS_CHOICES,
+        'active_filters': active_filters,
+        'filter_status': request.GET.get('status', ''),
+        'filter_station': request.GET.get('station', ''),
+        'filter_date': request.GET.get('date', ''),
+        'filter_search': request.GET.get('search', ''),
+        'total_filtered': orders_qs.count(),
+    })
 
 
 @login_required
@@ -169,11 +238,24 @@ def agent_dashboard_view(request):
         messages.error(request, 'Access denied. Agent only.')
         return redirect('dashboard')
 
-    orders = Order.objects.filter(
-        status__in=['paid', 'printing', 'ready'],
-    ).order_by('-created_at')
+    agent_station = request.user.station
+    if not agent_station:
+        return render(request, 'orders/agent_dashboard.html', {
+            'no_station': True,
+            'orders': [],
+            'station': None,
+        })
 
-    return render(request, 'orders/agent_dashboard.html', {'orders': orders})
+    orders = Order.objects.filter(
+        station=agent_station,
+        status__in=['paid', 'printing', 'ready'],
+    ).select_related('client').order_by('-created_at')
+
+    return render(request, 'orders/agent_dashboard.html', {
+        'orders': orders,
+        'station': agent_station,
+        'no_station': False,
+    })
 
 
 @login_required
@@ -183,23 +265,24 @@ def update_order_status_view(request, order_id):
 
     order = get_object_or_404(Order, id=order_id)
 
+    if _user_role(request.user) == 'agent':
+        if not request.user.station or order.station_id != request.user.station_id:
+            return HttpResponseForbidden('You can only update orders for your assigned station.')
+
     if request.method == 'POST':
         new_status = request.POST.get('status')
-
         valid_statuses = ['pending', 'paid', 'printing', 'ready', 'collected']
         if new_status not in valid_statuses:
             messages.error(request, 'Invalid status.')
             return redirect('dashboard')
 
-        order.status = new_status
-        order.save()
+        apply_order_status_change(order, new_status)
         messages.success(request, f'Order status updated to {new_status}.')
 
         if _user_role(request.user) == 'admin':
             return redirect('admin_dashboard')
         if _user_role(request.user) == 'agent':
             return redirect('agent_dashboard')
-
         return redirect('dashboard')
 
     return render(request, 'orders/update_status.html', {'order': order})
@@ -218,33 +301,81 @@ def download_order_file_view(request, order_id):
         return redirect('dashboard')
 
     content_type, _ = mimetypes.guess_type(order.file_name)
-    response = FileResponse(order.file.open('rb'), content_type=content_type or 'application/octet-stream')
+    response = FileResponse(
+        order.file.open('rb'),
+        content_type=content_type or 'application/octet-stream',
+    )
     response['Content-Disposition'] = f'attachment; filename="{order.file_name}"'
     return response
+
+
+def _get_tracked_orders(order_id=None, email=None):
+    if order_id:
+        return Order.objects.filter(id=order_id).select_related('station', 'client')
+    if email:
+        return Order.objects.filter(
+            client__email__iexact=email
+        ).select_related('station', 'client').order_by('-created_at')
+    return None
 
 
 def order_track_view(request):
     orders = None
     lookup_error = None
+    order_id = request.GET.get('order_id', '').strip() or request.POST.get('order_id', '').strip()
+    email = request.GET.get('email', '').strip() or request.POST.get('email', '').strip()
 
-    if request.method == 'POST':
-        order_id = request.POST.get('order_id', '').strip()
-        email = request.POST.get('email', '').strip()
-
+    if order_id or email:
         if order_id:
-            orders = Order.objects.filter(id=order_id)
+            orders = _get_tracked_orders(order_id=order_id)
             if not orders.exists():
                 lookup_error = 'No order found with that order ID.'
                 orders = None
         elif email:
-            orders = Order.objects.filter(client__email__iexact=email).order_by('-created_at')
+            orders = _get_tracked_orders(email=email)
             if not orders.exists():
                 lookup_error = 'No orders found for that email address.'
                 orders = None
-        else:
-            lookup_error = 'Please enter an order ID or email address.'
+
+    timeline_steps = [
+        ('submitted', 'Submitted', 'created_at'),
+        ('paid', 'Paid', 'paid_at'),
+        ('printing', 'Printing', 'printing_at'),
+        ('ready', 'Ready for Pickup', 'ready_at'),
+        ('collected', 'Collected', 'collected_at'),
+    ]
+
+    order_timelines = []
+    if orders:
+        status_step_map = {'pending': 0, 'paid': 1, 'printing': 2, 'ready': 3, 'collected': 4}
+        for order in orders:
+            current_step = status_step_map.get(order.status, 0)
+            steps = []
+            for i, (key, label, ts_field) in enumerate(timeline_steps):
+                ts = getattr(order, ts_field, None)
+                if i < current_step:
+                    state = 'completed'
+                elif i == current_step:
+                    state = 'current'
+                else:
+                    state = 'future'
+                steps.append({
+                    'key': key,
+                    'label': label,
+                    'timestamp': ts,
+                    'state': state,
+                })
+            order_timelines.append({
+                'order': order,
+                'steps': steps,
+                'estimated_ready': order.estimated_ready_at(),
+                'progress_width': int(current_step / (len(timeline_steps) - 1) * 100) if len(timeline_steps) > 1 else 0,
+            })
 
     return render(request, 'orders/track.html', {
         'orders': orders,
+        'order_timelines': order_timelines,
         'lookup_error': lookup_error,
+        'query_order_id': order_id,
+        'query_email': email,
     })

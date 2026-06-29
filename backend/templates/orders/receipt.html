@@ -1,0 +1,115 @@
+{% extends 'base.html' %}
+
+{% block title %}Order Receipt #{{ order.id }} - PrintHub{% endblock %}
+
+{% block extra_head %}
+<style>
+@media print {
+    nav, footer, .no-print { display: none !important; }
+    body { background: white !important; color: black !important; }
+    .receipt-card {
+        background: white !important;
+        border: 1px solid #ccc !important;
+        color: black !important;
+        box-shadow: none !important;
+    }
+    .receipt-card * { color: black !important; }
+}
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="max-w-2xl mx-auto px-4 py-12">
+    <div class="receipt-card bg-white/5 border border-white/10 backdrop-blur-md rounded-3xl p-8">
+        <div class="text-center mb-8 pb-6 border-b border-white/10">
+            <div class="w-12 h-12 bg-gradient-to-tr from-blue-500 to-purple-600 rounded-lg flex items-center justify-center font-bold text-white text-xl mx-auto mb-3">P</div>
+            <h1 class="text-2xl font-bold text-white">PrintHub</h1>
+            <p class="text-gray-400 text-sm">Kabale University</p>
+        </div>
+
+        <div class="text-center mb-8">
+            <p class="text-gray-400 text-sm uppercase tracking-wider">Order ID</p>
+            <p class="text-5xl font-black text-white">#{{ order.id }}</p>
+            <span class="inline-block mt-3 px-4 py-1 rounded-full text-sm font-semibold
+                {% if order.status == 'paid' %}bg-blue-500/20 text-blue-300
+                {% elif order.status == 'printing' %}bg-purple-500/20 text-purple-300
+                {% elif order.status == 'ready' %}bg-green-500/20 text-green-300
+                {% else %}bg-gray-500/20 text-gray-300{% endif %}">
+                {{ order.get_status_display }}
+            </span>
+        </div>
+
+        <div class="space-y-4 text-gray-300 mb-8">
+            <div class="flex justify-between py-2 border-b border-white/10">
+                <span class="text-gray-400">Student</span>
+                <span class="text-white">{{ order.client.get_full_name|default:order.client.username }}</span>
+            </div>
+            <div class="flex justify-between py-2 border-b border-white/10">
+                <span class="text-gray-400">Email</span>
+                <span>{{ order.client.email }}</span>
+            </div>
+            <div class="flex justify-between py-2 border-b border-white/10">
+                <span class="text-gray-400">Document</span>
+                <span class="truncate max-w-[200px]">{{ order.file_name }}</span>
+            </div>
+            <div class="flex justify-between py-2 border-b border-white/10">
+                <span class="text-gray-400">Pages</span>
+                <span>{{ order.page_count }}</span>
+            </div>
+            <div class="flex justify-between py-2 border-b border-white/10">
+                <span class="text-gray-400">Print Mode</span>
+                <span>{% if order.is_color %}Color{% else %}Black &amp; White{% endif %}</span>
+            </div>
+            <div class="flex justify-between py-2 border-b border-white/10">
+                <span class="text-gray-400">Double-sided</span>
+                <span>{% if order.is_double_sided %}Yes{% else %}No{% endif %}</span>
+            </div>
+            <div class="flex justify-between py-2 border-b border-white/10">
+                <span class="text-gray-400">Pickup Station</span>
+                <span>{{ order.station.name|default:"—" }}</span>
+            </div>
+            {% if order.station.location_description %}
+            <div class="flex justify-between py-2 border-b border-white/10">
+                <span class="text-gray-400">Station Address</span>
+                <span class="text-right max-w-[200px]">{{ order.station.location_description }}</span>
+            </div>
+            {% endif %}
+            <div class="flex justify-between py-2 border-b border-white/10">
+                <span class="text-gray-400">Payment</span>
+                <span>{% if order.transaction_id %}Online{% else %}Cash at pickup{% endif %}</span>
+            </div>
+            <div class="flex justify-between py-2 border-b border-white/10">
+                <span class="text-gray-400">Amount Paid</span>
+                <span class="text-green-400 font-bold text-lg">{{ order.total_price|floatformat:0 }} UGX</span>
+            </div>
+            {% if order.transaction_id %}
+            <div class="flex justify-between py-2 border-b border-white/10">
+                <span class="text-gray-400">Transaction ID</span>
+                <span class="font-mono text-sm">{{ order.transaction_id }}</span>
+            </div>
+            {% endif %}
+            {% if order.paid_at %}
+            <div class="flex justify-between py-2 border-b border-white/10">
+                <span class="text-gray-400">Paid At</span>
+                <span>{{ order.paid_at|date:"M d, Y H:i" }}</span>
+            </div>
+            {% endif %}
+            {% if estimated_ready %}
+            <div class="flex justify-between py-2">
+                <span class="text-gray-400">Est. Ready By</span>
+                <span class="text-blue-300">{{ estimated_ready|date:"M d, Y H:i" }}</span>
+            </div>
+            {% endif %}
+        </div>
+
+        <div class="flex flex-col sm:flex-row gap-3 no-print">
+            <button onclick="window.print()" class="flex-1 bg-gradient-to-r from-blue-600 to-purple-600 text-white font-bold py-3 rounded-xl hover:shadow-lg transition-all">
+                Print Receipt
+            </button>
+            <a href="{% url 'dashboard' %}" class="flex-1 text-center bg-white/10 border border-white/20 text-white font-bold py-3 rounded-xl hover:bg-white/20 transition-all">
+                Back to Dashboard
+            </a>
+        </div>
+    </div>
+</div>
+{% endblock %}

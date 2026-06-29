@@ -1,7 +1,9 @@
 import math
+from datetime import timedelta
 
 from django.db import models
 from django.conf import settings
+from django.utils import timezone
 
 
 class Order(models.Model):
@@ -26,17 +28,33 @@ class Order(models.Model):
     transaction_id = models.CharField(max_length=100, blank=True, null=True)
     tx_ref = models.CharField(max_length=100, blank=True, null=True)
     paid_at = models.DateTimeField(blank=True, null=True)
+    printing_at = models.DateTimeField(blank=True, null=True)
+    ready_at = models.DateTimeField(blank=True, null=True)
+    collected_at = models.DateTimeField(blank=True, null=True)
     created_at = models.DateTimeField(auto_now_add=True)
 
+    BASE_PRICE_BW = 200
+    COLOR_SURCHARGE = 100
+
+    @classmethod
+    def compute_price(cls, page_count, is_color=False, is_double_sided=False):
+        price_per_page = cls.BASE_PRICE_BW + (cls.COLOR_SURCHARGE if is_color else 0)
+        effective_pages = page_count
+        if is_double_sided:
+            effective_pages = math.ceil(page_count / 2)
+        return price_per_page * effective_pages, effective_pages, price_per_page
+
     def calculate_price(self):
-        base_price = 200
-        if self.is_color:
-            base_price += 100
-        effective_pages = self.page_count
-        if self.is_double_sided:
-            effective_pages = math.ceil(self.page_count / 2)
-        self.total_price = base_price * effective_pages
+        total, _, _ = self.compute_price(
+            self.page_count, self.is_color, self.is_double_sided
+        )
+        self.total_price = total
         return self.total_price
+
+    def estimated_ready_at(self):
+        if self.paid_at:
+            return self.paid_at + timedelta(hours=2)
+        return None
 
     def save(self, *args, **kwargs):
         self.calculate_price()

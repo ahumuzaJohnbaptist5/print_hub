@@ -4,8 +4,15 @@
 
 {% block content %}
 <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
-    <h1 class="text-4xl font-bold text-white mb-8">Agent Dashboard</h1>
-    <p class="text-gray-400 mb-8">Manage orders ready for printing and pickup.</p>
+    {% if no_station %}
+    <div class="bg-yellow-500/20 border border-yellow-500/50 text-yellow-300 px-6 py-8 rounded-2xl text-center">
+        <h1 class="text-2xl font-bold mb-2">No Station Assigned</h1>
+        <p>You have not been assigned to a station yet. Contact admin.</p>
+    </div>
+    {% else %}
+    <h1 class="text-4xl font-bold text-white mb-2">Agent Dashboard</h1>
+    <p class="text-blue-300 text-lg mb-2">{{ station.name }}{% if station.location_description %} — {{ station.location_description }}{% endif %}</p>
+    <p class="text-gray-400 text-sm mb-8">When a client pays in person after reviewing their prints, mark the order as <strong class="text-white">Paid</strong>, then <strong class="text-white">Collected</strong> when they leave.</p>
 
     {% if orders %}
     <div class="bg-white/5 border border-white/10 backdrop-blur-md rounded-2xl overflow-hidden">
@@ -15,7 +22,6 @@
                     <th class="px-6 py-3 text-left text-xs font-medium text-gray-300 uppercase">Order ID</th>
                     <th class="px-6 py-3 text-left text-xs font-medium text-gray-300 uppercase">Client</th>
                     <th class="px-6 py-3 text-left text-xs font-medium text-gray-300 uppercase">File</th>
-                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-300 uppercase">Station</th>
                     <th class="px-6 py-3 text-left text-xs font-medium text-gray-300 uppercase">Status</th>
                     <th class="px-6 py-3 text-left text-xs font-medium text-gray-300 uppercase">Actions</th>
                 </tr>
@@ -28,7 +34,6 @@
                     <td class="px-6 py-4 text-gray-300 truncate max-w-[200px]">
                         <a href="{% url 'download_order_file' order.id %}" class="text-blue-400 hover:text-blue-300">{{ order.file_name }}</a>
                     </td>
-                    <td class="px-6 py-4 text-gray-300">{{ order.station.name|default:"—" }}</td>
                     <td class="px-6 py-4">
                         <span class="px-3 py-1 rounded-full text-xs font-semibold
                             {% if order.status == 'paid' %}bg-blue-500/20 text-blue-300
@@ -42,9 +47,10 @@
                         <form method="POST" action="{% url 'update_order_status' order.id %}" class="inline">
                             {% csrf_token %}
                             <select name="status" onchange="this.form.submit()" class="bg-white/10 border border-white/20 rounded px-2 py-1 text-white text-sm">
-                                <option value="paid" {% if order.status == 'paid' %}selected{% endif %}>Paid</option>
+                                <option value="pending" {% if order.status == 'pending' %}selected{% endif %}>Pending</option>
                                 <option value="printing" {% if order.status == 'printing' %}selected{% endif %}>Printing</option>
                                 <option value="ready" {% if order.status == 'ready' %}selected{% endif %}>Ready</option>
+                                <option value="paid" {% if order.status == 'paid' %}selected{% endif %}>Paid</option>
                                 <option value="collected" {% if order.status == 'collected' %}selected{% endif %}>Collected</option>
                             </select>
                         </form>
@@ -56,8 +62,9 @@
     </div>
     {% else %}
     <div class="bg-white/5 border border-white/10 backdrop-blur-md rounded-2xl p-12 text-center">
-        <p class="text-gray-400 text-lg">No active orders at this time.</p>
+        <p class="text-gray-400 text-lg">No active orders at this station.</p>
     </div>
+    {% endif %}
     {% endif %}
 </div>
 {% endblock %}

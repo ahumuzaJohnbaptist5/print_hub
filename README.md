@@ -1,6 +1,6 @@
 # PrintHub
 
-PrintHub is a campus print ordering platform for Kabale University students. Students upload documents, pay via MTN/Airtel Mobile Money (Flutterwave), and pick up prints at a campus station.
+PrintHub is a campus print ordering platform for Kabale University students. Students upload documents online, pick them up at a campus station, and pay in person after reviewing their prints.
 
 ## Stack
 
@@ -41,10 +41,10 @@ pip install -r requirements.txt
 
 ```bash
 cp ../.env.example ../.env
-# Edit ../.env with your values (SECRET_KEY, Flutterwave keys, etc.)
+# Edit ../.env with your values
 ```
 
-For local development, set at minimum:
+For local development:
 
 ```
 SECRET_KEY=dev-secret-key-change-me
@@ -52,7 +52,10 @@ DEBUG=True
 ALLOWED_HOSTS=localhost,127.0.0.1
 CSRF_TRUSTED_ORIGINS=http://localhost:8000
 CORS_ALLOWED_ORIGINS=http://localhost:5173
+EMAIL_BACKEND=django.core.mail.backends.console.EmailBackend
 ```
+
+In development, verification emails print to the console.
 
 ### 5. Run migrations
 
@@ -60,7 +63,7 @@ CORS_ALLOWED_ORIGINS=http://localhost:5173
 python3 manage.py migrate
 ```
 
-This also seeds the three pickup stations: Main Campus, Engineering Faculty, and In Town.
+This seeds three pickup stations: Main Campus, Engineering Faculty, and In Town.
 
 ### 6. Create a superuser (optional)
 
@@ -68,7 +71,7 @@ This also seeds the three pickup stations: Main Campus, Engineering Faculty, and
 python3 manage.py createsuperuser
 ```
 
-To grant admin or agent roles, set the `role` field on the user in Django admin (`client`, `admin`, or `agent`).
+Set `role` to `admin` in Django admin. Agents are assigned to stations via the Admin Dashboard.
 
 ### 7. Run the development server
 
@@ -78,57 +81,94 @@ python3 manage.py runserver
 
 Open [http://localhost:8000](http://localhost:8000).
 
-## Django-only user flow
+## Email verification flow
 
-1. **Register** at `/auth/register/` — all new users are created as `client`
-2. **Upload** a document at `/upload/` — select station, pages, color, double-sided
-3. **Pay** from the dashboard via "Pay Now" → Flutterwave Mobile Money
-4. **Track** order status at `/track/` using order ID or email
-5. **Admin/Agent** dashboards at `/admin-dashboard/` and `/orders/agent/`
+1. User registers at `/auth/register/`
+2. A verification email is sent with a link to `/auth/verify-email/<token>/`
+3. User clicks the link — account is activated (`email_verified=True`)
+4. User logs in at `/auth/login/` — unverified accounts are blocked
 
-Uploaded files are **not** served publicly. Downloads require authentication via `/orders/<id>/file/`.
+For production, configure SMTP in `.env`:
 
-## Deployment split
+| Variable | Description |
+|----------|-------------|
+| `EMAIL_BACKEND` | `django.core.mail.backends.smtp.EmailBackend` |
+| `EMAIL_HOST` | e.g. `smtp.gmail.com` |
+| `EMAIL_PORT` | e.g. `587` |
+| `EMAIL_USE_TLS` | `True` |
+| `EMAIL_HOST_USER` | SMTP username |
+| `EMAIL_HOST_PASSWORD` | SMTP password or app password |
+| `DEFAULT_FROM_EMAIL` | Sender address |
 
-| Component | Platform | Notes |
-|-----------|----------|-------|
-| Django backend | PythonAnywhere | WSGI via Gunicorn (`Procfile`), SQLite or external DB via `DATABASE_URL` |
-| React frontend | Vercel | Legacy SPA; requires a REST API that is not wired in this Django-only path |
+## Assigning agents to stations
 
-**Going Django-only:** Point your domain to PythonAnywhere, set production env vars, run `collectstatic`, and configure media file storage on the PA filesystem.
+1. Log in as an **admin** user
+2. Go to `/admin-dashboard/`
+3. Scroll to **Manage Agents**
+4. Select a station from the dropdown next to each agent and click **Assign**
 
-**Keeping Vercel React:** You would need to restore REST API endpoints and set `CORS_ALLOWED_ORIGINS` to your Vercel URL.
+Agents without a station see a message on `/orders/agent/` and cannot process orders until assigned.
+
+## Django user flow
+
+1. **Register** → verify email → **Login**
+2. **Upload** at `/upload/` with live price preview
+3. **Track** order at `/track/` with visual status timeline
+4. **Pay at pickup** — review prints, pay in cash, staff marks order as paid
+5. View **receipt** at `/orders/<id>/receipt/` after payment is recorded
+6. **Admin/Agent** dashboards for order management and marking payments
+
+## Pricing
+
+| Mode | Price per page |
+|------|----------------|
+| Black & White | UGX 200 |
+| Color | UGX 300 |
+
+Double-sided printing uses half the page count (rounded up) for billing.
 
 ## Environment variables
 
 | Variable | Description |
 |----------|-------------|
-| `SECRET_KEY` | Django secret key (required in production) |
+| `SECRET_KEY` | Django secret key |
 | `DEBUG` | `True` or `False` |
 | `ALLOWED_HOSTS` | Comma-separated hostnames |
 | `CSRF_TRUSTED_ORIGINS` | Comma-separated HTTPS origins |
-| `CORS_ALLOWED_ORIGINS` | Comma-separated origins for React API (if used) |
-| `FLUTTERWAVE_SECRET_KEY` | Flutterwave secret key for payment verification |
-| `FLUTTERWAVE_PUBLIC_KEY` | Flutterwave public key for checkout |
-| `DATABASE_URL` | Database connection string (defaults to SQLite) |
+| `CORS_ALLOWED_ORIGINS` | Comma-separated origins for React API |
+| `DATABASE_URL` | Database connection string |
+| `EMAIL_*` | Email configuration (see above) |
+| `DEFAULT_FROM_EMAIL` | Outgoing email sender |
 
 ## Running tests
 
 ```bash
 cd backend
-python3 manage.py test
+python3 manage.py test --verbosity=2
 ```
+
+CI runs automatically via GitHub Actions (`.github/workflows/django-ci.yml` and `frontend-ci.yml`).
+
+## Deployment split
+
+| Component | Platform | Notes |
+|-----------|----------|-------|
+| Django backend | PythonAnywhere | WSGI via Gunicorn, SQLite or external DB |
+| React frontend | Vercel | Legacy SPA |
+
+Uploaded files are served via authenticated download at `/orders/<id>/file/` — not publicly accessible.
 
 ## Project structure
 
 ```
 print_hub/
-├── backend/           # Django project
-│   ├── accounts/      # User auth (CustomUser model)
-│   ├── orders/        # Orders, uploads, payments
+├── backend/
+│   ├── accounts/      # Auth, email verification
+│   ├── orders/        # Orders, payments, receipts
 │   ├── stations/      # Pickup locations
 │   ├── templates/     # Django HTML templates
 │   └── core/          # Settings, URLs
-├── frontend/          # Legacy React app (Vercel)
-└── .env.example       # Environment variable template
+├── frontend/          # Legacy React app
+├── .github/workflows/ # CI pipelines
+└── .env.example
 ```
