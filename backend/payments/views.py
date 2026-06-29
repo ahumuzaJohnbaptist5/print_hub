@@ -3,81 +3,101 @@ from django.contrib.auth.decorators import login_required
 from django.contrib import messages
 from django.http import JsonResponse
 from django.views.decorators.http import require_POST
+from django.utils import timezone
 from .models import Payment
 from orders.models import Order
-import requests
-from django.conf import settings
+import re
 
 @login_required
-def initiate_payment(request, order_id):
-    """First step: Select payment method and enter phone number"""
+def payment_page(request, order_id):
+    """The single unified Copy & Pay + Paste Message page"""
     order = get_object_or_404(Order, id=order_id, client=request.user)
     
+    # If already paid or has a pending payment, redirect to status
+    existing_payment = Payment.objects.filter(order=order).first()
+    if existing_payment:
+        return redirect('payment_status', payment_id=existing_payment.id)
+
     if request.method == 'POST':
         payment_method = request.POST.get('payment_method')
         customer_phone = request.POST.get('customer_phone')
+        transaction_id = request.POST.get('transaction_id', '').strip()
+        transaction_message = request.POST.get('transaction_message', '').strip()
         
-        if not payment_method or not customer_phone:
-            messages.error(request, 'Please fill in all fields')
-            return redirect('initiate_payment', order_id=order_id)
+        if not all([payment_method, customer_phone, transaction_id]):
+            messages.error(request, 'Please fill in all required fields.')
+            return redirect('payment_page', order_id=order_id)
         
-        # Set merchant details based on payment method
+        # Merchant details
         if payment_method == 'mtn':
-            merchant_phone = '0765511075'  # Replace with your actual MTN number
-            merchant_name = 'Matovu Evaristo'  # Replace with your actual name
-        else:  # airtel
-            merchant_phone = '0775523720'  # Replace with your actual Airtel number
-            merchant_name = 'Ezra Nasaasira'  # Replace with your actual name
+            merchant_phone, merchant_name = '0765511075', 'Matovu Evaristo'
+        else:
+            merchant_phone, merchant_name = '0775523720', 'Ezra Nasaasira'
         
-        # Create payment record
-        payment = Payment.objects.create(
-            order=order,
-            user=request.user,
-            amount=order.total_price,
-            payment_method=payment_method,
-            customer_phone=customer_phone,
-            merchant_phone=merchant_phone,
-            merchant_name=merchant_name,
+        # Create Payment (Status: Pending)
+        Payment.objects.create(
+            order=order, user=request.user, amount=order.total_price,
+            payment_method=payment_method, customer_phone=customer_phone,
+            merchant_phone=merchant_phone, merchant_name=merchant_name,
+            transaction_id=transaction_id, transaction_message=transaction_message,
+            status='pending'
         )
         
-        return redirect('payment_confirmation', transaction_id=payment.transaction_id)
-    
-    return render(request, 'payments/initiate_payment.html', {'order': order})
+        messages.success(request, 'Payment submitted! Waiting for admin approval.')
+        return redirect('dashboard')
 
-@login_required
-def payment_confirmation(request, transaction_id):
-    """Second step: Show merchant details for manual payment"""
-    payment = get_object_or_404(Payment, transaction_id=transaction_id, user=request.user)
-    
-    context = {
-        'payment': payment,
-        'merchant_phone_formatted': payment.merchant_phone,
-        'merchant_name': payment.merchant_name,
-    }
-    return render(request, 'payments/payment_confirmation.html', context)
+    return render(request, 'payments/payment_page.html', {'order': order})
 
 @login_required
 @require_POST
-def check_payment_status(request, transaction_id):
-    """Check if payment has been completed (AJAX endpoint)"""
-    payment = get_object_or_404(Payment, transaction_id=transaction_id, user=request.user)
+def extract_transaction_id(request):
+    """AJAX endpoint to extract Transaction ID from pasted SMS"""
+    message = request.POST.get('message', '')
     
-    # For manual payments, you would typically:
-    # 1. Check with mobile money API if payment was received
-    # 2. Or manually verify and update in admin panel
-    # 3. For now, we'll simulate checking
+    # Regex to find common transaction ID patterns in Ugandan Mobile Money SMS
+    patterns = [
+        r'(?:Transaction\s*ID|Ref|Reference)[:\s]*([A-Z0-9]+)',
+        r'\b([A-Z]{2,}[0-9]{6,})\b', # e.g., MTN12345678
+        r'\b([0-9]{10,})\b'           # Fallback to long numbers
+    ]
     
-    # TODO: Integrate with Flutterwave or mobile money API here
-    # For now, just return current status
+    transaction_id = None
+    for pattern in patterns:
+        match = re.search(pattern, message, re.IGNORECASE)
+        if match:
+            transaction_id = match.group(1).upper()
+            break
+            
+    is_valid = bool(transaction_id and len(transaction_id) >= 6)
     
-    return JsonResponse({
-        'status': payment.status,
-        'amount_paid': float(payment.amount_paid),
-        'is_complete': payment.status == 'completed'
-    })
+    return JsonResponse({'transaction_id': transaction_id, 'is_valid': is_valid})
 
 @login_required
-def payment_success(request, transaction_id):
-    """Payment success page"""
-    payment = get_object_or_404(Payment, transaction_id=transaction_id, user=request.user)
-    return render(request, 'payments/payment_success.html', {'payment': payment})
+def admin_approve_payments(request):
+    """Admin page to approve/reject payments"""
+    if not request.user.is_staff:
+        messages.error(request, 'Access denied.')
+        return redirect('dashboard')
+        
+    if request.method == 'POST':
+        payment_id = request.POST.get('payment_id')
+        action = request.POST.get('action')
+        payment = get_object_or_404(Payment, id=payment_id)
+        
+        if action == 'approve':
+            payment.status = 'approved'
+            payment.approved_at = timezone.now()
+            payment.save()
+            # Update the actual Order status to Paid
+            payment.order.status = 'paid'
+            payment.order.save()
+            messages.success(request, f'Payment {payment.transaction_id} approved!')
+        elif action == 'reject':
+            payment.status = 'rejected'
+            payment.save()
+            messages.error(request, f'Payment {payment.transaction_id} rejected.')
+            
+        return redirect('admin_approve_payments')
+
+    pending = Payment.objects.filter(status='pending').order_by('-created_at')
+    return render(request, 'payments/admin_approve.html', {'pending_payments': pending})
