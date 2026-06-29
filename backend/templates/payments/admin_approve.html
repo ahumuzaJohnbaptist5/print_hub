@@ -1,0 +1,37 @@
+{% extends 'base.html' %}
+{% block title %}Approve Payments{% endblock %}
+{% block content %}
+<div class="max-w-4xl mx-auto px-4 py-12">
+    <h1 class="text-3xl font-bold text-white mb-8">Pending Payment Approvals</h1>
+    
+    {% if pending_payments %}
+    <div class="space-y-4">
+        {% for payment in pending_payments %}
+        <div class="bg-white/5 border border-white/10 rounded-xl p-6 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+            <div>
+                <p class="text-white font-bold text-lg">Order #{{ payment.order.id }} - UGX {{ payment.amount|floatformat:0 }}</p>
+                <p class="text-gray-400 text-sm">User: {{ payment.user.username }} | Phone: {{ payment.customer_phone }}</p>
+                <p class="text-orange-500 font-mono mt-1">TX ID: {{ payment.transaction_id }}</p>
+            </div>
+            <div class="flex gap-2 w-full sm:w-auto">
+                <form method="POST" class="flex-1 sm:flex-none">
+                    {% csrf_token %}
+                    <input type="hidden" name="payment_id" value="{{ payment.id }}">
+                    <input type="hidden" name="action" value="approve">
+                    <button class="w-full bg-green-600 hover:bg-green-700 text-white font-bold py-2 px-6 rounded-lg">Approve</button>
+                </form>
+                <form method="POST" class="flex-1 sm:flex-none">
+                    {% csrf_token %}
+                    <input type="hidden" name="payment_id" value="{{ payment.id }}">
+                    <input type="hidden" name="action" value="reject">
+                    <button class="w-full bg-red-600 hover:bg-red-700 text-white font-bold py-2 px-6 rounded-lg">Reject</button>
+                </form>
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+    {% else %}
+    <p class="text-gray-400 text-center">No pending payments to approve.</p>
+    {% endif %}
+</div>
+{% endblock %}
