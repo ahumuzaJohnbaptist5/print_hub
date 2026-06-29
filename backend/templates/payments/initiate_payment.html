@@ -1,0 +1,64 @@
+{% extends 'base.html' %}
+
+{% block title %}Make Payment - PrintHub{% endblock %}
+
+{% block content %}
+<div class="max-w-2xl mx-auto px-4 py-12">
+    <h1 class="text-3xl sm:text-4xl font-bold text-white mb-6">Complete Your Payment</h1>
+    
+    <div class="bg-white/5 border border-white/10 backdrop-blur-md rounded-2xl p-6 sm:p-8">
+        <div class="mb-6">
+            <p class="text-gray-300 mb-2">Payment Amount:</p>
+            <p class="text-3xl font-bold text-orange-500">UGX {{ order.total_price|floatformat:0 }}</p>
+        </div>
+        
+        <form method="POST" class="space-y-6">
+            {% csrf_token %}
+            
+            <div>
+                <label class="block text-gray-300 mb-3">Please select a payment method</label>
+                <div class="grid grid-cols-2 gap-4">
+                    <label class="cursor-pointer">
+                        <input type="radio" name="payment_method" value="mtn" class="peer sr-only" required>
+                        <div class="border-2 border-white/10 rounded-xl p-4 text-center peer-checked:border-orange-500 peer-checked:bg-orange-500/10 transition-all hover:bg-white/5">
+                            <img src="https://upload.wikimedia.org/wikipedia/commons/thumb/9/93/MTN_Logo.png/200px-MTN_Logo.png" alt="MTN" class="w-16 h-16 mx-auto mb-2 object-contain">
+                            <span class="text-white font-medium">MTN</span>
+                        </div>
+                    </label>
+                    
+                    <label class="cursor-pointer">
+                        <input type="radio" name="payment_method" value="airtel" class="peer sr-only" required>
+                        <div class="border-2 border-white/10 rounded-xl p-4 text-center peer-checked:border-red-500 peer-checked:bg-red-500/10 transition-all hover:bg-white/5">
+                            <img src="https://upload.wikimedia.org/wikipedia/commons/thumb/c/c0/Airtel_logo.svg/200px-Airtel_logo.svg.png" alt="Airtel" class="w-16 h-16 mx-auto mb-2 object-contain">
+                            <span class="text-white font-medium">Airtel</span>
+                        </div>
+                    </label>
+                </div>
+            </div>
+            
+            <div>
+                <label class="block text-gray-300 mb-2">Your Mobile Money Number</label>
+                <div class="relative">
+                    <span class="absolute left-4 top-1/2 -translate-y-1/2 text-orange-500">+256</span>
+                    <input 
+                        type="tel" 
+                        name="customer_phone" 
+                        placeholder="Please enter your actual payment account"
+                        class="w-full bg-white/10 border border-white/20 rounded-xl pl-16 pr-4 py-3 text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-orange-500"
+                        pattern="[0-9]{9}"
+                        required
+                    >
+                </div>
+                <p class="text-gray-400 text-sm mt-2">Enter the number you'll use to pay (e.g., 775523720)</p>
+            </div>
+            
+            <button 
+                type="submit" 
+                class="w-full bg-gradient-to-r from-orange-500 to-yellow-500 text-white font-bold py-3 rounded-xl hover:shadow-lg transition-all hover:-translate-y-1"
+            >
+                Confirm →
+            </button>
+        </form>
+    </div>
+</div>
+{% endblock %}
