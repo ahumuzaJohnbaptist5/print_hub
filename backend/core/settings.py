@@ -21,7 +21,6 @@ ALLOWED_HOSTS = [
 LOGIN_URL = '/auth/login/'
 
 # CSRF Configuration
-# CSRF Configuration
 CSRF_TRUSTED_ORIGINS = [
     'http://localhost:8000',
     'http://127.0.0.1:8000',
@@ -29,8 +28,7 @@ CSRF_TRUSTED_ORIGINS = [
     'http://printlink.pythonanywhere.com',
 ]
 
-# CSRF Cookie settings
-CSRF_COOKIE_SECURE = False  # Set to True only if using HTTPS in production
+CSRF_COOKIE_SECURE = False
 CSRF_COOKIE_HTTPONLY = True
 CSRF_COOKIE_SAMESITE = 'Lax'
 
