@@ -1,5 +1,3 @@
-<!-- Inside the <nav> tag, replace the Desktop Menu and Mobile Menu links with this: -->
-
 <!-- Desktop Menu -->
 <div class="hidden md:flex items-center space-x-4">
     {% if user.is_authenticated %}
@@ -8,12 +6,9 @@
         {% if user.role == 'client' %}
             <a href="{% url 'profile' %}" class="text-gray-300 hover:text-white px-3 py-2 rounded-md text-sm font-medium hover:bg-white/10">Profile</a>
             <a href="{% url 'upload' %}" class="text-gray-300 hover:text-white px-3 py-2 rounded-md text-sm font-medium hover:bg-white/10">Upload</a>
-        {% elif user.role == 'agent' %}
-            <a href="{% url 'agent_dashboard' %}" class="text-gray-300 hover:text-white px-3 py-2 rounded-md text-sm font-medium hover:bg-white/10">Agent Dashboard</a>
         {% endif %}
         
-        {% if user.is_staff %}
-            <a href="{% url 'admin_dashboard' %}" class="text-gray-300 hover:text-white px-3 py-2 rounded-md text-sm font-medium hover:bg-white/10">Admin</a>
+        {% if user.is_staff or user.role == 'agent' %}
             <a href="{% url 'admin_approve_payments' %}" class="text-gray-300 hover:text-white px-3 py-2 rounded-md text-sm font-medium hover:bg-white/10">Payments</a>
         {% endif %}
         
@@ -25,32 +20,4 @@
         <a href="{% url 'login' %}" class="text-gray-300 hover:text-white px-3 py-2 rounded-md text-sm font-medium hover:bg-white/10">Login</a>
         <a href="{% url 'register' %}" class="bg-gradient-to-r from-blue-600 to-purple-600 text-white px-4 py-2 rounded-lg hover:shadow-lg transition-all text-sm font-medium">Register</a>
     {% endif %}
-</div>
-
-<!-- Mobile Menu (Update the links inside the mobile-menu div similarly) -->
-<div id="mobile-menu" class="hidden md:hidden absolute top-16 left-0 w-full bg-slate-800/95 backdrop-blur-md border-b border-white/10 shadow-lg">
-    <div class="px-4 pt-2 pb-4 space-y-2">
-        {% if user.is_authenticated %}
-            <div class="px-3 py-2 text-gray-400 text-sm">Welcome, {{ user.first_name|default:user.username }}</div>
-            
-            {% if user.role == 'client' %}
-                <a href="{% url 'profile' %}" class="block px-3 py-2 rounded-md text-base font-medium text-gray-300 hover:text-white hover:bg-white/10">Profile</a>
-                <a href="{% url 'upload' %}" class="block px-3 py-2 rounded-md text-base font-medium text-gray-300 hover:text-white hover:bg-white/10">Upload</a>
-            {% elif user.role == 'agent' %}
-                <a href="{% url 'agent_dashboard' %}" class="block px-3 py-2 rounded-md text-base font-medium text-gray-300 hover:text-white hover:bg-white/10">Agent Dashboard</a>
-            {% endif %}
-            
-            {% if user.is_staff %}
-                <a href="{% url 'admin_dashboard' %}" class="block px-3 py-2 rounded-md text-base font-medium text-gray-300 hover:text-white hover:bg-white/10">Admin</a>
-            {% endif %}
-            
-            <form method="POST" action="{% url 'logout' %}">
-                {% csrf_token %}
-                <button type="submit" class="block w-full text-left px-3 py-2 rounded-md text-base font-medium text-gray-300 hover:text-white hover:bg-white/10">Logout</button>
-            </form>
-        {% else %}
-            <a href="{% url 'login' %}" class="block px-3 py-2 rounded-md text-base font-medium text-gray-300 hover:text-white hover:bg-white/10">Login</a>
-            <a href="{% url 'register' %}" class="block px-3 py-2 rounded-md text-base font-medium text-white bg-gradient-to-r from-blue-600 to-purple-600 hover:shadow-lg text-center mt-2">Register</a>
-        {% endif %}
-    </div>
 </div>
