@@ -4,6 +4,8 @@ from django.contrib import messages
 from django.http import JsonResponse
 from django.views.decorators.http import require_POST
 from django.utils import timezone
+from django.core.mail import send_mail
+from django.conf import settings
 from .models import Payment
 from orders.models import Order
 import re
@@ -13,7 +15,7 @@ def payment_page(request, order_id):
     """The single unified Copy & Pay + Paste Message page"""
     order = get_object_or_404(Order, id=order_id, client=request.user)
     
-    # If already paid or has a pending payment, redirect to status
+    # If already has a payment, redirect to status
     existing_payment = Payment.objects.filter(order=order).first()
     if existing_payment:
         return redirect('payment_status', payment_id=existing_payment.id)
@@ -49,16 +51,22 @@ def payment_page(request, order_id):
     return render(request, 'payments/payment_page.html', {'order': order})
 
 @login_required
+def payment_status(request, payment_id):
+    """Show payment status"""
+    payment = get_object_or_404(Payment, id=payment_id, user=request.user)
+    return render(request, 'payments/payment_status.html', {'payment': payment})
+
+@login_required
 @require_POST
 def extract_transaction_id(request):
     """AJAX endpoint to extract Transaction ID from pasted SMS"""
     message = request.POST.get('message', '')
     
-    # Regex to find common transaction ID patterns in Ugandan Mobile Money SMS
+    # Regex to find common transaction ID patterns
     patterns = [
         r'(?:Transaction\s*ID|Ref|Reference)[:\s]*([A-Z0-9]+)',
-        r'\b([A-Z]{2,}[0-9]{6,})\b', # e.g., MTN12345678
-        r'\b([0-9]{10,})\b'           # Fallback to long numbers
+        r'\b([A-Z]{2,}[0-9]{6,})\b',
+        r'\b([0-9]{10,})\b'
     ]
     
     transaction_id = None
@@ -88,9 +96,23 @@ def admin_approve_payments(request):
             payment.status = 'approved'
             payment.approved_at = timezone.now()
             payment.save()
-            # Update the actual Order status to Paid
+            
+            # Update order status to paid
             payment.order.status = 'paid'
             payment.order.save()
+            
+            # Send email notification
+            try:
+                send_mail(
+                    subject='Payment Approved - PrintHub',
+                    message=f"Hello {payment.user.first_name},\n\nYour payment of UGX {payment.amount} for Order #{payment.order.id} has been approved.\n\nYour order is now being processed!\n\nThank you,\nPrintHub Team",
+                    from_email=settings.DEFAULT_FROM_EMAIL,
+                    recipient_list=[payment.user.email],
+                    fail_silently=True,
+                )
+            except Exception as e:
+                print(f"Email failed: {e}")
+            
             messages.success(request, f'Payment {payment.transaction_id} approved!')
         elif action == 'reject':
             payment.status = 'rejected'
