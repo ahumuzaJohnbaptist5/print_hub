@@ -5,6 +5,8 @@ import dj_database_url
 
 # Build paths
 BASE_DIR = Path(__file__).resolve().parent.parent
+
+# Load environment variables
 load_dotenv(BASE_DIR.parent / '.env')
 load_dotenv(BASE_DIR / '.env')
 
@@ -18,20 +20,10 @@ ALLOWED_HOSTS = [
     'printlink.pythonanywhere.com',
     '.pythonanywhere.com',
 ]
+
 LOGIN_URL = '/auth/login/'
 
-# SECURITY
-SECRET_KEY = os.environ.get('SECRET_KEY', 'django-insecure-dev-key-change-in-production')
-DEBUG = os.environ.get('DEBUG', 'False').lower() == 'true'
-
-ALLOWED_HOSTS = [
-    'localhost',
-    '127.0.0.1',
-    'printlink.pythonanywhere.com',
-    '.pythonanywhere.com',
-]
-
-# CSRF Configuration - MUST include PythonAnywhere
+# CSRF Configuration
 CSRF_TRUSTED_ORIGINS = [
     'https://printlink.pythonanywhere.com',
     'http://printlink.pythonanywhere.com',
@@ -42,6 +34,7 @@ CSRF_TRUSTED_ORIGINS = [
 CSRF_COOKIE_SECURE = False
 CSRF_COOKIE_HTTPONLY = False
 CSRF_COOKIE_SAMESITE = 'Lax'
+
 # Application definition
 INSTALLED_APPS = [
     'django.contrib.admin',
@@ -131,7 +124,7 @@ STATIC_URL = '/static/'
 STATIC_ROOT = BASE_DIR / 'staticfiles'
 STATICFILES_STORAGE = 'whitenoise.storage.CompressedManifestStaticFilesStorage'
 
-# Media files (User uploads — served via authenticated view, not public URL)
+# Media files (User uploads)
 MEDIA_URL = '/media/'
 MEDIA_ROOT = BASE_DIR / 'media'
 
@@ -140,14 +133,15 @@ DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
 # Custom User Model
 AUTH_USER_MODEL = 'accounts.CustomUser'
+
 # Email Configuration - Gmail SMTP
 EMAIL_BACKEND = 'django.core.mail.backends.smtp.EmailBackend'
 EMAIL_HOST = 'smtp.gmail.com'
 EMAIL_PORT = 587
 EMAIL_USE_TLS = True
-EMAIL_HOST_USER = 'printhub2027@gmail.com'
-EMAIL_HOST_PASSWORD = 'clayrxgpqxhrycg'  # No spaces!
-DEFAULT_FROM_EMAIL = 'PrintHub <printhub2027@gmail.com>'
+EMAIL_HOST_USER = os.environ.get('EMAIL_HOST_USER', 'printhub2027@gmail.com')
+EMAIL_HOST_PASSWORD = os.environ.get('EMAIL_HOST_PASSWORD', 'clayrxgpqxhr ycg')
+DEFAULT_FROM_EMAIL = f"PrintHub <{EMAIL_HOST_USER}>"
 
 # Security settings for production
 if not DEBUG:
