@@ -232,31 +232,39 @@ def admin_dashboard_view(request):
     })
 
 
+from django.shortcuts import render, redirect, get_object_or_404
+from django.contrib.auth.decorators import login_required, user_passes_test
+from django.contrib import messages
+from .models import Order
+from .utils import apply_order_status_change
+
+# Helper to check if user is agent or admin
+def is_agent_or_admin(user):
+    return user.is_authenticated and (user.role == 'agent' or user.is_staff)
+
 @login_required
+@user_passes_test(is_agent_or_admin, login_url='login')
 def agent_dashboard_view(request):
-    if _user_role(request.user) != 'agent':
-        messages.error(request, 'Access denied. Agent only.')
-        return redirect('dashboard')
+    # Agents only see orders for their station. Admins see all.
+    if request.user.role == 'agent' and request.user.station:
+        orders = Order.objects.filter(station=request.user.station).order_by('-created_at')
+    else:
+        orders = Order.objects.all().order_by('-created_at')
 
-    agent_station = request.user.station
-    if not agent_station:
-        return render(request, 'orders/agent_dashboard.html', {
-            'no_station': True,
-            'orders': [],
-            'station': None,
-        })
+    if request.method == 'POST':
+        order_id = request.POST.get('order_id')
+        new_status = request.POST.get('status')
+        order = get_object_or_404(Order, id=order_id)
+        
+        # Use the utility function to apply the change
+        if apply_order_status_change(order, new_status, request.user):
+            messages.success(request, f'Order #{order.id} updated to {order.get_status_display()}.')
+        else:
+            messages.info(request, f'Order #{order.id} status unchanged.')
+        
+        return redirect('agent_dashboard')
 
-    orders = Order.objects.filter(
-        station=agent_station,
-        status__in=['paid', 'printing', 'ready'],
-    ).select_related('client').order_by('-created_at')
-
-    return render(request, 'orders/agent_dashboard.html', {
-        'orders': orders,
-        'station': agent_station,
-        'no_station': False,
-    })
-
+    return render(request, 'orders/agent_dashboard.html', {'orders': orders})
 
 @login_required
 def update_order_status_view(request, order_id):
