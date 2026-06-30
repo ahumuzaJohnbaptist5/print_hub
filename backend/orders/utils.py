@@ -24,5 +24,26 @@ def send_order_update_email(order, status_type):
             messages[status_type],
             settings.DEFAULT_FROM_EMAIL,
             [order.client.email],
-            fail_silently=True, # Won't crash the app if email fails
+            fail_silently=True,
         )
+
+def apply_order_status_change(order, new_status, user=None):
+    """
+    Updates the order status and sends email notification if needed.
+    Returns True if successful, False otherwise.
+    """
+    old_status = order.status
+    
+    # Don't update if status is the same
+    if old_status == new_status:
+        return False
+    
+    # Update the status
+    order.status = new_status
+    order.save()
+    
+    # Send email notification for specific status changes
+    if new_status in ['paid', 'ready', 'collected']:
+        send_order_update_email(order, new_status)
+    
+    return True
