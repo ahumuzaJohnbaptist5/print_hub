@@ -1,18 +1,28 @@
-from django.utils import timezone
+from django.core.mail import send_mail
+from django.conf import settings
 
+def send_order_update_email(order, status_type):
+    """Sends an email to the client when their order status changes."""
+    if not order.client.email:
+        return
 
-def apply_order_status_change(order, new_status):
-    """Update order status and set the appropriate timestamp."""
-    now = timezone.now()
-    order.status = new_status
+    subjects = {
+        'paid': f"Payment Confirmed - Order #{order.id}",
+        'ready': f"Order Ready for Pickup - Order #{order.id}",
+        'collected': f"Order Successfully Delivered - Order #{order.id}",
+    }
+    
+    messages = {
+        'paid': f"Hi {order.client.first_name or order.client.username},\n\nGreat news! Your payment for Order #{order.id} has been confirmed. We are now processing your prints.\n\nThank you,\nPrintHub Team",
+        'ready': f"Hi {order.client.first_name or order.client.username},\n\nYour Order #{order.id} is now ready for pickup at the station. Please come and collect it.\n\nThank you,\nPrintHub Team",
+        'collected': f"Hi {order.client.first_name or order.client.username},\n\nYour Order #{order.id} has been successfully delivered/collected. Thank you for choosing PrintHub!\n\nThank you,\nPrintHub Team",
+    }
 
-    if new_status == 'paid' and not order.paid_at:
-        order.paid_at = now
-    elif new_status == 'printing' and not order.printing_at:
-        order.printing_at = now
-    elif new_status == 'ready' and not order.ready_at:
-        order.ready_at = now
-    elif new_status == 'collected' and not order.collected_at:
-        order.collected_at = now
-
-    order.save()
+    if status_type in subjects:
+        send_mail(
+            subjects[status_type],
+            messages[status_type],
+            settings.DEFAULT_FROM_EMAIL,
+            [order.client.email],
+            fail_silently=True, # Won't crash the app if email fails
+        )
