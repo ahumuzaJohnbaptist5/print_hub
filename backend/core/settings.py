@@ -134,14 +134,18 @@ DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 # Custom User Model
 AUTH_USER_MODEL = 'accounts.CustomUser'
 
-# Email Configuration - Gmail SMTP
+# Email Configuration - PythonAnywhere Internal Mail Server
 EMAIL_BACKEND = 'django.core.mail.backends.smtp.EmailBackend'
-EMAIL_HOST = 'smtp.gmail.com'
+EMAIL_HOST = 'smtp.pythonanywhere.com'
 EMAIL_PORT = 587
 EMAIL_USE_TLS = True
-EMAIL_HOST_USER = os.environ.get('EMAIL_HOST_USER', 'printhub2027@gmail.com')
-EMAIL_HOST_PASSWORD = os.environ.get('EMAIL_HOST_PASSWORD', 'clayrxgpqxhr ycg')
-DEFAULT_FROM_EMAIL = f"PrintHub <{EMAIL_HOST_USER}>"
+
+# IMPORTANT: Use your PythonAnywhere username and password here
+EMAIL_HOST_USER = 'PrintLink'  # <-- Your PythonAnywhere username
+EMAIL_HOST_PASSWORD = 'Ihategoogle@12'  # <-- Your PythonAnywhere login password
+
+# The "From" email must match your PythonAnywhere username
+DEFAULT_FROM_EMAIL = 'PrintLink <PrintLink@pythonanywhere.com>'
 
 # Security settings for production
 if not DEBUG:
