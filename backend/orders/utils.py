@@ -6,7 +6,10 @@ from datetime import timedelta
 def send_welcome_email(user):
     """Send welcome email when user registers."""
     if not user.email:
+        print(f"⚠️ User {user.username} has no email!")
         return
+    
+    print(f"📧 Sending welcome email to {user.email}...")
     
     subject = 'Welcome to PrintHub! 🎉'
     message = f"""Hi {user.first_name or user.username},
@@ -31,13 +34,18 @@ The PrintHub Team
         message,
         settings.DEFAULT_FROM_EMAIL,
         [user.email],
-        fail_silently=True,
+        fail_silently=False,  # TEMPORARILY FALSE TO SEE ERRORS
     )
+    
+    print(f"✅ Welcome email sent!")
 
 def send_payment_confirmed_email(order):
     """Send email when payment is approved."""
     if not order.client.email:
+        print(f"⚠️ Order #{order.id} client has no email!")
         return
+    
+    print(f"📧 Sending payment confirmed email to {order.client.email}...")
     
     subject = f'Payment Confirmed - Order #{order.id} ✅'
     message = f"""Hi {order.client.first_name or order.client.username},
@@ -60,13 +68,18 @@ Thank you for choosing PrintHub!
         message,
         settings.DEFAULT_FROM_EMAIL,
         [order.client.email],
-        fail_silently=True,
+        fail_silently=False,
     )
+    
+    print(f"✅ Payment confirmed email sent!")
 
 def send_order_started_email(order):
     """Send email when agent starts printing."""
     if not order.client.email:
+        print(f"️ Order #{order.id} client has no email!")
         return
+    
+    print(f"📧 Sending printing started email to {order.client.email}...")
     
     subject = f'Printing Started - Order #{order.id} 🖨️'
     message = f"""Hi {order.client.first_name or order.client.username},
@@ -84,15 +97,20 @@ The PrintHub Team
         message,
         settings.DEFAULT_FROM_EMAIL,
         [order.client.email],
-        fail_silently=True,
+        fail_silently=False,
     )
+    
+    print(f"✅ Printing started email sent!")
 
 def send_order_ready_email(order):
     """Send email when order is ready for pickup."""
     if not order.client.email:
+        print(f"⚠️ Order #{order.id} client has no email!")
         return
     
     station_name = order.station.name if order.station else 'our station'
+    
+    print(f" Sending ready for pickup email to {order.client.email}...")
     
     subject = f'Order Ready for Pickup - Order #{order.id} 📦'
     message = f"""Hi {order.client.first_name or order.client.username},
@@ -114,13 +132,18 @@ Thank you for choosing PrintHub!
         message,
         settings.DEFAULT_FROM_EMAIL,
         [order.client.email],
-        fail_silently=True,
+        fail_silently=False,
     )
+    
+    print(f"✅ Ready for pickup email sent!")
 
 def send_order_collected_email(order):
     """Send email when order is collected/delivered."""
     if not order.client.email:
+        print(f"⚠️ Order #{order.id} client has no email!")
         return
+    
+    print(f"📧 Sending collected email to {order.client.email}...")
     
     subject = f'Order Successfully Delivered - Order #{order.id} ✅'
     message = f"""Hi {order.client.first_name or order.client.username},
@@ -140,13 +163,18 @@ The PrintHub Team
         message,
         settings.DEFAULT_FROM_EMAIL,
         [order.client.email],
-        fail_silently=True,
+        fail_silently=False,
     )
+    
+    print(f"✅ Collected email sent!")
 
 def send_delayed_order_email(order, reason=''):
     """Send email when order is delayed."""
     if not order.client.email:
+        print(f"⚠️ Order #{order.id} client has no email!")
         return
+    
+    print(f"📧 Sending delay notification to {order.client.email}...")
     
     subject = f'Update on Your Order #{order.id} ⏰'
     
@@ -172,8 +200,10 @@ The PrintHub Team
         message,
         settings.DEFAULT_FROM_EMAIL,
         [order.client.email],
-        fail_silently=True,
+        fail_silently=False,
     )
+    
+    print(f"✅ Delay notification sent!")
 
 def apply_order_status_change(order, new_status, user=None):
     """
@@ -189,6 +219,8 @@ def apply_order_status_change(order, new_status, user=None):
     # Update the status
     order.status = new_status
     order.save()
+    
+    print(f" Order #{order.id} status changed: {old_status} → {new_status}")
     
     # Send email notification based on status
     if new_status == 'paid':
