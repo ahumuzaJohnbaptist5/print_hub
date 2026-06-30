@@ -39,12 +39,9 @@ CSRF_TRUSTED_ORIGINS = [
     'http://127.0.0.1:8000',
 ]
 
-# CSRF Cookie settings for production
-CSRF_COOKIE_SECURE = False  # Set to True ONLY if using HTTPS everywhere
-CSRF_COOKIE_HTTPONLY = False  # Set to False to allow JavaScript access (needed for forms)
+CSRF_COOKIE_SECURE = False
+CSRF_COOKIE_HTTPONLY = False
 CSRF_COOKIE_SAMESITE = 'Lax'
-CSRF_COOKIE_DOMAIN = None
-
 # Application definition
 INSTALLED_APPS = [
     'django.contrib.admin',
