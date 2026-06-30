@@ -4,7 +4,7 @@ from django.contrib.auth.decorators import login_required
 from django.contrib import messages
 from stations.models import Station
 from orders.models import Order
-from orders.utils import send_welcome_email  # <-- ADD THIS IMPORT
+from orders.utils import send_welcome_email
 
 User = get_user_model()
 
@@ -52,6 +52,7 @@ def register_view(request):
             return render(request, 'accounts/register.html', {'error': 'Email already exists'})
 
         try:
+            # Create user
             user = User.objects.create_user(
                 username=username,
                 email=email,
@@ -60,12 +61,26 @@ def register_view(request):
                 email_verified=True,
             )
             
-            # Send welcome email immediately after registration
-            send_welcome_email(user)
+            print(f"✅ User created: {username} ({email})")
+            
+            # Send welcome email with explicit error handling
+            try:
+                print(f"📧 Attempting to send welcome email to {email}...")
+                send_welcome_email(user)
+                print(f"✅ Welcome email sent successfully to {email}")
+            except Exception as email_error:
+                print(f"❌ Welcome email FAILED: {type(email_error).__name__}: {email_error}")
+                import traceback
+                traceback.print_exc()
+                # Don't fail registration if email fails - user is already created
             
             messages.success(request, 'Account created successfully! Please log in.')
             return redirect('login')
+            
         except Exception as e:
+            print(f"❌ Registration FAILED: {type(e).__name__}: {e}")
+            import traceback
+            traceback.print_exc()
             return render(request, 'accounts/register.html', {'error': f'Registration failed: {str(e)}'})
 
     return render(request, 'accounts/register.html')
