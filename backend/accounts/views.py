@@ -4,6 +4,7 @@ from django.contrib.auth.decorators import login_required
 from django.contrib import messages
 from stations.models import Station
 from orders.models import Order
+from orders.utils import send_welcome_email  # <-- ADD THIS IMPORT
 
 User = get_user_model()
 
@@ -51,16 +52,19 @@ def register_view(request):
             return render(request, 'accounts/register.html', {'error': 'Email already exists'})
 
         try:
-            # Create user and auto-verify them instantly
             user = User.objects.create_user(
                 username=username,
                 email=email,
                 password=password,
                 role='client',
-                email_verified=True, # Instant verification!
+                email_verified=True,
             )
+            
+            # Send welcome email immediately after registration
+            send_welcome_email(user)
+            
             messages.success(request, 'Account created successfully! Please log in.')
-            return redirect('login') # Send straight to login
+            return redirect('login')
         except Exception as e:
             return render(request, 'accounts/register.html', {'error': f'Registration failed: {str(e)}'})
 
@@ -78,8 +82,6 @@ def login_view(request):
 
         if user is None:
             return render(request, 'accounts/login.html', {'error': 'Invalid credentials'})
-
-        # NO VERIFICATION CHECK HERE! They can log in immediately.
         
         login(request, user)
         messages.success(request, f'Welcome back, {user.first_name or username}!')
