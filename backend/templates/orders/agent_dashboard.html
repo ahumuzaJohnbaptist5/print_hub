@@ -1,70 +1,114 @@
 {% extends 'base.html' %}
-
-{% block title %}Agent Dashboard - PrintHub{% endblock %}
-
+{% block title %}Agent Dashboard{% endblock %}
 {% block content %}
-<div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
-    {% if no_station %}
-    <div class="bg-yellow-500/20 border border-yellow-500/50 text-yellow-300 px-6 py-8 rounded-2xl text-center">
-        <h1 class="text-2xl font-bold mb-2">No Station Assigned</h1>
-        <p>You have not been assigned to a station yet. Contact admin.</p>
-    </div>
-    {% else %}
-    <h1 class="text-4xl font-bold text-white mb-2">Agent Dashboard</h1>
-    <p class="text-blue-300 text-lg mb-2">{{ station.name }}{% if station.location_description %} — {{ station.location_description }}{% endif %}</p>
-    <p class="text-gray-400 text-sm mb-8">When a client pays in person after reviewing their prints, mark the order as <strong class="text-white">Paid</strong>, then <strong class="text-white">Collected</strong> when they leave.</p>
-
-    {% if orders %}
-    <div class="bg-white/5 border border-white/10 backdrop-blur-md rounded-2xl overflow-hidden">
-        <table class="w-full">
-            <thead class="bg-white/10">
+<div class="max-w-7xl mx-auto px-4 py-12">
+    <h1 class="text-3xl font-bold text-white mb-8">Station Dashboard</h1>
+    
+    <div class="bg-white/5 border border-white/10 rounded-2xl overflow-hidden">
+        <table class="w-full text-left">
+            <thead class="bg-white/10 text-gray-300 uppercase text-xs">
                 <tr>
-                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-300 uppercase">Order ID</th>
-                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-300 uppercase">Client</th>
-                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-300 uppercase">File</th>
-                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-300 uppercase">Status</th>
-                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-300 uppercase">Actions</th>
+                    <th class="p-4">Order ID</th>
+                    <th class="p-4">Client</th>
+                    <th class="p-4">File</th>
+                    <th class="p-4">Details</th>
+                    <th class="p-4">Status</th>
+                    <th class="p-4">Actions</th>
                 </tr>
             </thead>
-            <tbody class="divide-y divide-white/10">
+            <tbody class="divide-y divide-white/10 text-sm">
                 {% for order in orders %}
                 <tr class="hover:bg-white/5">
-                    <td class="px-6 py-4 text-white">#{{ order.id }}</td>
-                    <td class="px-6 py-4 text-gray-300">{{ order.client.username }}</td>
-                    <td class="px-6 py-4 text-gray-300 truncate max-w-[200px]">
-                        <a href="{% url 'download_order_file' order.id %}" class="text-blue-400 hover:text-blue-300">{{ order.file_name }}</a>
+                    <td class="p-4 text-white font-bold">#{{ order.id }}</td>
+                    <td class="p-4 text-gray-300">{{ order.client.get_full_name|default:order.client.username }}</td>
+                    <td class="p-4 text-gray-300 truncate max-w-[150px]">{{ order.file_name }}</td>
+                    <td class="p-4 text-gray-400">
+                        {{ order.page_count }} pages • 
+                        {% if order.is_color %}<span class="text-orange-400">Color</span>{% else %}B&W{% endif %}
                     </td>
-                    <td class="px-6 py-4">
-                        <span class="px-3 py-1 rounded-full text-xs font-semibold
-                            {% if order.status == 'paid' %}bg-blue-500/20 text-blue-300
+                    <td class="p-4">
+                        <span class="px-2 py-1 rounded text-xs font-bold 
+                            {% if order.status == 'collected' %}bg-green-500/20 text-green-300
+                            {% elif order.status == 'ready' %}bg-blue-500/20 text-blue-300
                             {% elif order.status == 'printing' %}bg-purple-500/20 text-purple-300
-                            {% elif order.status == 'ready' %}bg-green-500/20 text-green-300
-                            {% endif %}">
+                            {% elif order.status == 'paid' %}bg-yellow-500/20 text-yellow-300
+                            {% else %}bg-gray-500/20 text-gray-300{% endif %}">
                             {{ order.get_status_display }}
                         </span>
                     </td>
-                    <td class="px-6 py-4">
-                        <form method="POST" action="{% url 'update_order_status' order.id %}" class="inline">
-                            {% csrf_token %}
-                            <select name="status" onchange="this.form.submit()" class="bg-white/10 border border-white/20 rounded px-2 py-1 text-white text-sm">
-                                <option value="pending" {% if order.status == 'pending' %}selected{% endif %}>Pending</option>
-                                <option value="printing" {% if order.status == 'printing' %}selected{% endif %}>Printing</option>
-                                <option value="ready" {% if order.status == 'ready' %}selected{% endif %}>Ready</option>
-                                <option value="paid" {% if order.status == 'paid' %}selected{% endif %}>Paid</option>
-                                <option value="collected" {% if order.status == 'collected' %}selected{% endif %}>Collected</option>
-                            </select>
-                        </form>
+                    <td class="p-4">
+                        <div class="flex gap-2 flex-wrap">
+                            <!-- Status Update Form -->
+                            <form method="POST" class="flex gap-2">
+                                {% csrf_token %}
+                                <input type="hidden" name="action" value="update_status">
+                                <input type="hidden" name="order_id" value="{{ order.id }}">
+                                <select name="status" class="bg-slate-800 border border-white/20 rounded px-2 py-1 text-white text-xs">
+                                    <option value="paid" {% if order.status == 'paid' %}selected{% endif %}>Paid</option>
+                                    <option value="printing" {% if order.status == 'printing' %}selected{% endif %}>Printing</option>
+                                    <option value="ready" {% if order.status == 'ready' %}selected{% endif %}>Ready</option>
+                                    <option value="collected" {% if order.status == 'collected' %}selected{% endif %}>Collected</option>
+                                </select>
+                                <button class="bg-blue-600 hover:bg-blue-700 text-white px-3 py-1 rounded text-xs">Update</button>
+                            </form>
+                            
+                            <!-- Delay Notification Button -->
+                            {% if order.status != 'collected' %}
+                            <button 
+                                onclick="showDelayModal({{ order.id }})"
+                                class="bg-yellow-600 hover:bg-yellow-700 text-white px-3 py-1 rounded text-xs"
+                            >
+                                Notify Delay
+                            </button>
+                            {% endif %}
+                        </div>
                     </td>
                 </tr>
                 {% endfor %}
             </tbody>
         </table>
     </div>
-    {% else %}
-    <div class="bg-white/5 border border-white/10 backdrop-blur-md rounded-2xl p-12 text-center">
-        <p class="text-gray-400 text-lg">No active orders at this station.</p>
-    </div>
-    {% endif %}
-    {% endif %}
 </div>
+
+<!-- Delay Notification Modal -->
+<div id="delayModal" class="hidden fixed inset-0 bg-black/50 flex items-center justify-center z-50">
+    <div class="bg-slate-800 rounded-xl p-6 max-w-md w-full mx-4">
+        <h3 class="text-xl font-bold text-white mb-4">Send Delay Notification</h3>
+        <form method="POST" id="delayForm">
+            {% csrf_token %}
+            <input type="hidden" name="action" value="notify_delay">
+            <input type="hidden" name="order_id" id="delayOrderId">
+            
+            <div class="mb-4">
+                <label class="block text-gray-300 text-sm mb-2">Reason for delay (optional)</label>
+                <textarea 
+                    name="delay_reason" 
+                    rows="3"
+                    placeholder="e.g., High volume of orders, equipment maintenance, etc."
+                    class="w-full bg-white/10 border border-white/20 rounded-lg px-3 py-2 text-white focus:outline-none focus:ring-2 focus:ring-yellow-500"
+                ></textarea>
+            </div>
+            
+            <div class="flex gap-2">
+                <button type="submit" class="flex-1 bg-yellow-600 hover:bg-yellow-700 text-white font-bold py-2 rounded-lg">
+                    Send Notification
+                </button>
+                <button type="button" onclick="hideDelayModal()" class="flex-1 bg-gray-600 hover:bg-gray-700 text-white font-bold py-2 rounded-lg">
+                    Cancel
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<script>
+function showDelayModal(orderId) {
+    document.getElementById('delayOrderId').value = orderId;
+    document.getElementById('delayModal').classList.remove('hidden');
+}
+
+function hideDelayModal() {
+    document.getElementById('delayModal').classList.add('hidden');
+}
+</script>
 {% endblock %}
