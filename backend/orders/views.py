@@ -3,7 +3,7 @@ import mimetypes
 from datetime import timedelta
 
 from django.contrib import messages
-from django.contrib.auth.decorators import login_required
+from django.contrib.auth.decorators import login_required, user_passes_test
 from django.contrib.auth import get_user_model
 from django.core.paginator import Paginator
 from django.db.models import Q
@@ -14,7 +14,7 @@ from django.utils import timezone
 from stations.models import Station
 
 from .models import Order
-from .utils import apply_order_status_change
+from .utils import apply_order_status_change, send_delayed_order_email
 
 User = get_user_model()
 
@@ -232,19 +232,15 @@ def admin_dashboard_view(request):
     })
 
 
-from django.shortcuts import render, redirect, get_object_or_404
-from django.contrib.auth.decorators import login_required, user_passes_test
-from django.contrib import messages
-from .models import Order
-from .utils import apply_order_status_change
-
-# Helper to check if user is agent or admin
 def is_agent_or_admin(user):
+    """Helper to check if user is agent or admin"""
     return user.is_authenticated and (user.role == 'agent' or user.is_staff)
+
 
 @login_required
 @user_passes_test(is_agent_or_admin, login_url='login')
 def agent_dashboard_view(request):
+    """Agent dashboard with status updates and delay notifications"""
     # Agents only see orders for their station. Admins see all.
     if request.user.role == 'agent' and request.user.station:
         orders = Order.objects.filter(station=request.user.station).order_by('-created_at')
@@ -252,19 +248,31 @@ def agent_dashboard_view(request):
         orders = Order.objects.all().order_by('-created_at')
 
     if request.method == 'POST':
+        action = request.POST.get('action')
         order_id = request.POST.get('order_id')
-        new_status = request.POST.get('status')
-        order = get_object_or_404(Order, id=order_id)
         
-        # Use the utility function to apply the change
-        if apply_order_status_change(order, new_status, request.user):
-            messages.success(request, f'Order #{order.id} updated to {order.get_status_display()}.')
-        else:
-            messages.info(request, f'Order #{order.id} status unchanged.')
+        if action == 'update_status':
+            new_status = request.POST.get('status')
+            order = get_object_or_404(Order, id=order_id)
+            
+            # Use the utility function to apply the change and send emails
+            if apply_order_status_change(order, new_status, request.user):
+                messages.success(request, f'Order #{order.id} updated to {order.get_status_display()}.')
+            else:
+                messages.info(request, f'Order #{order.id} status unchanged.')
+        
+        elif action == 'notify_delay':
+            order = get_object_or_404(Order, id=order_id)
+            reason = request.POST.get('delay_reason', '').strip()
+            
+            # Send delay notification email
+            send_delayed_order_email(order, reason)
+            messages.success(request, f'Delay notification sent for Order #{order.id}.')
         
         return redirect('agent_dashboard')
 
     return render(request, 'orders/agent_dashboard.html', {'orders': orders})
+
 
 @login_required
 def update_order_status_view(request, order_id):
