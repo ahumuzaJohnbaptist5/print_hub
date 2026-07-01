@@ -8,6 +8,7 @@ from orders.utils import send_welcome_email
 
 User = get_user_model()
 
+
 @login_required
 def profile_view(request):
     past_orders = Order.objects.filter(client=request.user).order_by('-created_at')
@@ -32,6 +33,7 @@ def profile_view(request):
         'past_orders': past_orders,
         'stations': stations
     })
+
 
 def register_view(request):
     next_url = request.GET.get('next', 'dashboard')
@@ -74,6 +76,7 @@ def register_view(request):
 
     return render(request, 'accounts/register.html')
 
+
 def login_view(request):
     next_url = request.GET.get('next', 'dashboard')
     
@@ -94,7 +97,8 @@ def login_view(request):
         return redirect(next_url)
 
     return render(request, 'accounts/login.html')
-    
+
+
 def logout_view(request):
     logout(request)
     messages.success(request, 'You have been logged out.')
