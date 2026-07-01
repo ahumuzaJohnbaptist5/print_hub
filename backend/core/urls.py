@@ -1,6 +1,5 @@
 from django.contrib import admin
 from django.urls import path, include
-from django.shortcuts import render, redirect
 from django.contrib.auth.decorators import login_required
 from orders.views import (
     dashboard_view,
@@ -13,16 +12,13 @@ from orders.views import (
     order_track_view,
 )
 
-
-def home_view(request):
-    if request.user.is_authenticated:
-        return redirect('dashboard')
-    return render(request, 'home.html')
-
-
 urlpatterns = [
     path('admin/', admin.site.urls),
-    path('', home_view, name='home'),
+    
+    # 🎯 THE MAGIC CHANGE: Root URL now goes directly to the upload page!
+    # If they aren't logged in, Django automatically bounces them to /auth/login/?next=/
+    path('', login_required(upload_view), name='home'),
+    
     path('auth/', include('accounts.urls')),
     path('dashboard/', login_required(dashboard_view), name='dashboard'),
     path('upload/', login_required(upload_view), name='upload'),
