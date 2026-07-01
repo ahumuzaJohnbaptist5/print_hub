@@ -58,6 +58,18 @@ def upload_view(request):
     upload_error = None
 
     if request.method == 'POST':
+        # 🎯 THE MAGIC: If they try to submit but aren't logged in, bounce to login!
+        if not request.user.is_authenticated:
+            # Save their form data in session so we can restore it after login
+            request.session['pending_upload'] = {
+                'page_count': request.POST.get('page_count', 1),
+                'is_color': request.POST.get('is_color', 'False') == 'True',
+                'is_double_sided': request.POST.get('is_double_sided') == 'on',
+                'station_id': request.POST.get('station'),
+            }
+            messages.info(request, 'Please log in or create an account to complete your upload.')
+            return redirect('/auth/login/?next=/upload/')
+
         file = request.FILES.get('file')
         page_count = request.POST.get('page_count', 1)
         is_color = request.POST.get('is_color', 'False') == 'True'
@@ -90,7 +102,7 @@ def upload_view(request):
             )
             messages.success(
                 request,
-                f'Order submitted! Pay at the pickup station after reviewing your prints. Total: {order.total_price:,} UGX',
+                f'Order submitted! Total: {order.total_price:,} UGX',
             )
             return redirect('dashboard')
         except Exception as e:
