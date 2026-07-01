@@ -1,181 +1,135 @@
 {% extends 'base.html' %}
 
-{% block title %}Upload Document - PrintHub{% endblock %}
+{% block title %}Upload - PrintHub{% endblock %}
 
 {% block content %}
-<div class="max-w-5xl mx-auto px-4 py-12">
-    <h1 class="text-4xl font-bold text-white mb-8">Upload Document</h1>
+<div class="relative min-h-[calc(100vh-4rem)] overflow-hidden">
+    <!-- Background Image -->
+    <div class="absolute inset-0 z-0">
+        <img 
+            src="https://images.unsplash.com/photo-1557804506-669a67965ba0?w=1920&q=80" 
+            alt="Background" 
+            class="w-full h-full object-cover opacity-30"
+        />
+        <div class="absolute inset-0 bg-gradient-to-br from-slate-900/90 via-slate-900/70 to-slate-900/90"></div>
+    </div>
 
-    {% if upload_error %}
-    <div class="bg-red-500/20 border border-red-500/50 text-red-300 px-4 py-3 rounded-xl mb-6">{{ upload_error }}</div>
-    {% endif %}
+    <!-- Animated Blobs -->
+    <div class="absolute top-0 left-0 w-96 h-96 bg-blue-600 rounded-full mix-blend-multiply filter blur-3xl opacity-20 animate-blob"></div>
+    <div class="absolute bottom-0 right-0 w-96 h-96 bg-purple-600 rounded-full mix-blend-multiply filter blur-3xl opacity-20 animate-blob animation-delay-2000"></div>
 
-    <div class="grid grid-cols-1 lg:grid-cols-2 gap-8">
-        <div class="bg-white/5 border border-white/10 backdrop-blur-md rounded-3xl p-8">
-            <form method="POST" enctype="multipart/form-data" id="upload-form" class="space-y-6">
+    <!-- Content -->
+    <div class="relative z-10 max-w-2xl mx-auto px-4 py-12">
+        <div class="bg-white/5 border border-white/10 backdrop-blur-md rounded-3xl p-8 shadow-2xl">
+            <h2 class="text-3xl font-bold text-white text-center mb-2">Upload Your Document</h2>
+            <p class="text-gray-400 text-center mb-8">We'll print it and have it ready for pickup</p>
+
+            {% if upload_error %}
+            <div class="bg-red-500/20 border border-red-500/50 text-red-300 px-4 py-3 rounded-xl mb-6">
+                {{ upload_error }}
+            </div>
+            {% endif %}
+
+            <form method="POST" enctype="multipart/form-data" class="space-y-6">
                 {% csrf_token %}
 
+                <!-- File Upload -->
                 <div>
                     <label class="block text-sm font-medium text-gray-300 mb-2">Select File</label>
-                    <input type="file" name="file" id="file-input"
-                        accept=".pdf,.doc,.docx,.txt,.png,.jpg,.jpeg"
-                        class="w-full bg-white/10 border border-white/10 rounded-xl px-4 py-3 text-white file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-sm file:font-semibold file:bg-blue-500 file:text-white hover:file:bg-blue-600"
-                        required />
-                    <p class="text-gray-400 text-sm mt-1">PDF, DOC, DOCX, TXT, PNG, JPG — max 10MB</p>
+                    <div class="relative">
+                        <input 
+                            type="file" 
+                            name="file" 
+                            id="file-input"
+                            class="hidden"
+                            accept=".pdf,.docx,.doc,.txt,.png,.jpg,.jpeg"
+                            required
+                        />
+                        <label 
+                            for="file-input"
+                            class="flex items-center justify-center w-full px-6 py-8 bg-white/10 border-2 border-dashed border-white/20 rounded-xl cursor-pointer hover:bg-white/15 hover:border-white/30 transition-all"
+                        >
+                            <div class="text-center">
+                                <svg class="w-12 h-12 mx-auto text-gray-400 mb-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12"></path>
+                                </svg>
+                                <p class="text-gray-300 text-sm">Click to upload or drag and drop</p>
+                                <p class="text-gray-500 text-xs mt-1">PDF, DOCX, DOC, TXT, PNG, JPG (Max 10MB)</p>
+                            </div>
+                        </label>
+                    </div>
+                    <p id="file-name" class="text-sm text-blue-400 mt-2"></p>
                 </div>
 
-                <div id="file-preview" class="hidden bg-white/5 border border-white/10 rounded-xl p-4">
-                    <div id="preview-content"></div>
-                    <p id="file-validation" class="text-sm mt-2"></p>
+                <!-- Page Count -->
+                <div>
+                    <label class="block text-sm font-medium text-gray-300 mb-2">Number of Pages</label>
+                    <input 
+                        type="number" 
+                        name="page_count" 
+                        min="1" 
+                        value="1"
+                        class="w-full bg-white/10 border border-white/10 rounded-xl px-4 py-3 text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
+                        required
+                    />
                 </div>
 
+                <!-- Options -->
+                <div class="grid grid-cols-2 gap-4">
+                    <label class="flex items-center space-x-3 cursor-pointer">
+                        <input 
+                            type="checkbox" 
+                            name="is_color" 
+                            value="True"
+                            class="w-5 h-5 rounded bg-white/10 border-white/20 text-blue-600 focus:ring-blue-500"
+                        />
+                        <span class="text-gray-300">Color Print</span>
+                    </label>
+
+                    <label class="flex items-center space-x-3 cursor-pointer">
+                        <input 
+                            type="checkbox" 
+                            name="is_double_sided"
+                            class="w-5 h-5 rounded bg-white/10 border-white/20 text-blue-600 focus:ring-blue-500"
+                        />
+                        <span class="text-gray-300">Double-sided</span>
+                    </label>
+                </div>
+
+                <!-- Station Selection -->
                 <div>
                     <label class="block text-sm font-medium text-gray-300 mb-2">Pickup Station</label>
-                    <select name="station" class="w-full bg-white/10 border border-white/10 rounded-xl px-4 py-3 text-white focus:outline-none focus:ring-2 focus:ring-blue-500" required>
+                    <select 
+                        name="station" 
+                        class="w-full bg-white/10 border border-white/10 rounded-xl px-4 py-3 text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
+                        required
+                    >
+                        <option value="" class="bg-slate-800">Select a station</option>
                         {% for station in stations %}
                         <option value="{{ station.id }}" class="bg-slate-800">{{ station.name }}</option>
-                        {% empty %}
-                        <option value="" disabled class="bg-slate-800">No stations available</option>
                         {% endfor %}
                     </select>
                 </div>
 
-                <div>
-                    <label class="block text-sm font-medium text-gray-300 mb-2">Number of Pages</label>
-                    <input type="number" name="page_count" id="page-count" min="1" value="1"
-                        class="w-full bg-white/10 border border-white/10 rounded-xl px-4 py-3 text-white focus:outline-none focus:ring-2 focus:ring-blue-500" required />
-                </div>
-
-                <div>
-                    <label class="block text-sm font-medium text-gray-300 mb-2">Print Type</label>
-                    <select name="is_color" id="is-color" class="w-full bg-white/10 border border-white/10 rounded-xl px-4 py-3 text-white focus:outline-none focus:ring-2 focus:ring-blue-500">
-                        <option value="False" class="bg-slate-800">Black &amp; White (200 UGX/page)</option>
-                        <option value="True" class="bg-slate-800">Color (300 UGX/page)</option>
-                    </select>
-                </div>
-
-                <div class="flex items-center">
-                    <input type="checkbox" name="is_double_sided" id="is-double-sided"
-                        class="w-5 h-5 bg-white/10 border border-white/10 rounded text-blue-500 focus:ring-2 focus:ring-blue-500" />
-                    <label for="is-double-sided" class="ml-3 text-gray-300">Print double-sided (half page count for pricing)</label>
-                </div>
-
-                <button type="submit" id="submit-btn"
-                    class="w-full bg-gradient-to-r from-blue-600 to-purple-600 text-white font-bold py-3 rounded-xl hover:shadow-lg transition-all disabled:opacity-50">
-                    Submit Order
+                <!-- Submit Button -->
+                <button 
+                    type="submit" 
+                    class="w-full bg-gradient-to-r from-blue-600 to-purple-600 text-white font-bold py-4 rounded-xl hover:shadow-lg hover:shadow-blue-500/30 transition-all hover:-translate-y-1"
+                >
+                    Upload & Continue
                 </button>
             </form>
-        </div>
-
-        <div class="bg-white/5 border border-white/10 backdrop-blur-md rounded-3xl p-8 h-fit">
-            <h3 class="text-xl font-bold text-white mb-6">Live Price Breakdown</h3>
-            <div class="space-y-3 text-gray-300 text-sm">
-                <div class="flex justify-between py-2 border-b border-white/10">
-                    <span>Pages</span><span id="price-pages">1</span>
-                </div>
-                <div class="flex justify-between py-2 border-b border-white/10">
-                    <span>Mode</span><span id="price-mode">Black &amp; White</span>
-                </div>
-                <div class="flex justify-between py-2 border-b border-white/10">
-                    <span>Double-sided</span><span id="price-double">No</span>
-                </div>
-                <div class="flex justify-between py-2 border-b border-white/10">
-                    <span>Effective pages</span><span id="price-effective">1</span>
-                </div>
-                <div class="flex justify-between py-2 border-b border-white/10">
-                    <span>Price per page</span><span id="price-per-page">UGX 200</span>
-                </div>
-            </div>
-            <div class="mt-6 bg-gradient-to-r from-blue-600/20 to-purple-600/20 border border-blue-500/30 rounded-2xl p-6 text-center">
-                <p class="text-gray-400 text-sm mb-1">Total</p>
-                <p class="text-4xl font-black text-white" id="price-total">UGX 200</p>
-                <p class="text-gray-500 text-xs mt-2">Pay in cash at pickup after reviewing your prints</p>
-            </div>
         </div>
     </div>
 </div>
 
 <script>
-(function() {
-    const BASE_BW = 200, COLOR_SURCHARGE = 100, MAX_SIZE = 10 * 1024 * 1024;
-    const ALLOWED = ['.pdf','.doc','.docx','.txt','.png','.jpg','.jpeg'];
-
-    const fileInput = document.getElementById('file-input');
-    const pageCount = document.getElementById('page-count');
-    const isColor = document.getElementById('is-color');
-    const isDouble = document.getElementById('is-double-sided');
-    const preview = document.getElementById('file-preview');
-    const previewContent = document.getElementById('preview-content');
-    const fileValidation = document.getElementById('file-validation');
-    const submitBtn = document.getElementById('submit-btn');
-
-    function formatUgx(n) { return 'UGX ' + n.toLocaleString('en-US'); }
-
-    function calcPrice() {
-        const pages = parseInt(pageCount.value) || 1;
-        const color = isColor.value === 'True';
-        const dbl = isDouble.checked;
-        const perPage = color ? BASE_BW + COLOR_SURCHARGE : BASE_BW;
-        const effective = dbl ? Math.ceil(pages / 2) : pages;
-        const total = perPage * effective;
-        document.getElementById('price-pages').textContent = pages;
-        document.getElementById('price-mode').textContent = color ? 'Color' : 'Black & White';
-        document.getElementById('price-double').textContent = dbl ? 'Yes (' + effective + ' effective pages)' : 'No';
-        document.getElementById('price-effective').textContent = effective;
-        document.getElementById('price-per-page').textContent = formatUgx(perPage);
-        document.getElementById('price-total').textContent = formatUgx(total);
+document.getElementById('file-input').addEventListener('change', function(e) {
+    const fileName = e.target.files[0]?.name;
+    const fileNameDisplay = document.getElementById('file-name');
+    if (fileName) {
+        fileNameDisplay.textContent = '✓ Selected: ' + fileName;
     }
-
-    function formatSize(bytes) {
-        if (bytes < 1024) return bytes + ' B';
-        if (bytes < 1024 * 1024) return (bytes / 1024).toFixed(1) + ' KB';
-        return (bytes / (1024 * 1024)).toFixed(1) + ' MB';
-    }
-
-    function validateFile(file) {
-        const ext = '.' + file.name.split('.').pop().toLowerCase();
-        if (!ALLOWED.includes(ext)) return 'Invalid file type.';
-        if (file.size > MAX_SIZE) return 'File exceeds 10MB limit.';
-        return null;
-    }
-
-    fileInput.addEventListener('change', function() {
-        const file = this.files[0];
-        if (!file) { preview.classList.add('hidden'); return; }
-        preview.classList.remove('hidden');
-        const err = validateFile(file);
-        const ext = '.' + file.name.split('.').pop().toLowerCase();
-        let html = '<p class="text-white font-medium">' + file.name + '</p>';
-        html += '<p class="text-gray-400 text-sm">' + formatSize(file.size) + '</p>';
-
-        if (ext === '.png' || ext === '.jpg' || ext === '.jpeg') {
-            const reader = new FileReader();
-            reader.onload = function(e) {
-                previewContent.innerHTML = html + '<img src="' + e.target.result + '" class="mt-3 max-h-40 rounded-lg border border-white/10" alt="Preview" />';
-            };
-            reader.readAsDataURL(file);
-        } else if (ext === '.pdf') {
-            const estPages = Math.max(1, Math.round(file.size / 51200));
-            html += '<p class="text-gray-400 text-sm mt-1">PDF — est. ~' + estPages + ' pages (verify manually)</p>';
-            html += '<div class="mt-3 w-12 h-12 bg-red-500/20 rounded-lg flex items-center justify-center text-red-400 font-bold text-xs">PDF</div>';
-            previewContent.innerHTML = html;
-        } else {
-            html += '<div class="mt-3 w-12 h-12 bg-blue-500/20 rounded-lg flex items-center justify-center text-blue-400 font-bold text-xs">DOC</div>';
-            previewContent.innerHTML = html;
-        }
-
-        if (err) {
-            fileValidation.innerHTML = '<span class="text-red-400">' + err + '</span>';
-            submitBtn.disabled = true;
-        } else {
-            fileValidation.innerHTML = '<span class="text-green-400">File ready</span>';
-            submitBtn.disabled = false;
-        }
-    });
-
-    [pageCount, isColor, isDouble].forEach(el => el.addEventListener('change', calcPrice));
-    [pageCount].forEach(el => el.addEventListener('input', calcPrice));
-    calcPrice();
-})();
+});
 </script>
 {% endblock %}
