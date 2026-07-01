@@ -15,13 +15,12 @@ from orders.views import (
 urlpatterns = [
     path('admin/', admin.site.urls),
     
-    # 🎯 THE MAGIC CHANGE: Root URL now goes directly to the upload page!
-    # If they aren't logged in, Django automatically bounces them to /auth/login/?next=/
-    path('', login_required(upload_view), name='home'),
+    # 🎯 Root URL shows upload page (NO login required to see it)
+    path('', upload_view, name='home'),
     
     path('auth/', include('accounts.urls')),
     path('dashboard/', login_required(dashboard_view), name='dashboard'),
-    path('upload/', login_required(upload_view), name='upload'),
+    path('upload/', upload_view, name='upload'),
     path('track/', order_track_view, name='track_order'),
     path('admin-dashboard/', login_required(admin_dashboard_view), name='admin_dashboard'),
     path('orders/agent/', login_required(agent_dashboard_view), name='agent_dashboard'),
