@@ -52,21 +52,12 @@ def dashboard_view(request):
     return render(request, 'orders/dashboard.html', {'orders': orders})
 
 
-@login_required
 def upload_view(request):
     stations = Station.objects.all()
     upload_error = None
 
     if request.method == 'POST':
-        # 🎯 THE MAGIC: If they try to submit but aren't logged in, bounce to login!
         if not request.user.is_authenticated:
-            # Save their form data in session so we can restore it after login
-            request.session['pending_upload'] = {
-                'page_count': request.POST.get('page_count', 1),
-                'is_color': request.POST.get('is_color', 'False') == 'True',
-                'is_double_sided': request.POST.get('is_double_sided') == 'on',
-                'station_id': request.POST.get('station'),
-            }
             messages.info(request, 'Please log in or create an account to complete your upload.')
             return redirect('/auth/login/?next=/upload/')
 
@@ -113,8 +104,6 @@ def upload_view(request):
             })
 
     return render(request, 'orders/upload.html', {'stations': stations})
-
-
 @login_required
 def order_receipt_view(request, order_id):
     order = get_object_or_404(Order, id=order_id)
