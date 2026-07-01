@@ -14,10 +14,7 @@ from orders.views import (
 
 urlpatterns = [
     path('admin/', admin.site.urls),
-    
-    # 🎯 Root URL shows upload page (NO login required to see it)
     path('', upload_view, name='home'),
-    
     path('auth/', include('accounts.urls')),
     path('dashboard/', login_required(dashboard_view), name='dashboard'),
     path('upload/', upload_view, name='upload'),
