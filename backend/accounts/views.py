@@ -34,9 +34,10 @@ def profile_view(request):
     })
 
 def register_view(request):
-     next_url = request.GET.get('next', 'dashboard') 
+    next_url = request.GET.get('next', 'dashboard')
+    
     if request.user.is_authenticated:
-        return redirect('dashboard')
+        return redirect(next_url)
 
     if request.method == 'POST':
         username = request.POST.get('username')
@@ -53,7 +54,6 @@ def register_view(request):
             return render(request, 'accounts/register.html', {'error': 'Email already exists'})
 
         try:
-            # Create user
             user = User.objects.create_user(
                 username=username,
                 email=email,
@@ -62,34 +62,25 @@ def register_view(request):
                 email_verified=True,
             )
             
-            print(f"✅ User created: {username} ({email})")
-            
-            # Send welcome email with explicit error handling
+            # Send welcome email (but don't fail registration if it fails)
             try:
-                print(f"📧 Attempting to send welcome email to {email}...")
                 send_welcome_email(user)
-                print(f"✅ Welcome email sent successfully to {email}")
             except Exception as email_error:
-                print(f"❌ Welcome email FAILED: {type(email_error).__name__}: {email_error}")
-                import traceback
-                traceback.print_exc()
-                # Don't fail registration if email fails - user is already created
+                print(f"Warning: Welcome email failed to send: {email_error}")
+                # Registration still succeeds even if email fails
             
-            messages.success(request, 'Account created successfully! Please log in.')
-            return redirect('login')
-            
+            messages.success(request, 'Account created successfully!')
+            return redirect(next_url)
         except Exception as e:
-            print(f"❌ Registration FAILED: {type(e).__name__}: {e}")
-            import traceback
-            traceback.print_exc()
             return render(request, 'accounts/register.html', {'error': f'Registration failed: {str(e)}'})
 
     return render(request, 'accounts/register.html')
 
 def login_view(request):
-     next_url = request.GET.get('next', 'dashboard')
+    next_url = request.GET.get('next', 'dashboard')
+    
     if request.user.is_authenticated:
-        return redirect('dashboard')
+        return redirect(next_url)
 
     if request.method == 'POST':
         username = request.POST.get('username')
@@ -102,7 +93,7 @@ def login_view(request):
         
         login(request, user)
         messages.success(request, f'Welcome back, {user.first_name or username}!')
-        return redirect('dashboard')
+        return redirect(next_url)
 
     return render(request, 'accounts/login.html')
 
