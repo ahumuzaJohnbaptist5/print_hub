@@ -34,6 +34,7 @@ def profile_view(request):
     })
 
 def register_view(request):
+     next_url = request.GET.get('next', 'dashboard') 
     if request.user.is_authenticated:
         return redirect('dashboard')
 
@@ -86,6 +87,7 @@ def register_view(request):
     return render(request, 'accounts/register.html')
 
 def login_view(request):
+     next_url = request.GET.get('next', 'dashboard')
     if request.user.is_authenticated:
         return redirect('dashboard')
 
