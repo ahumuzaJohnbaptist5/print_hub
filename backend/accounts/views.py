@@ -62,12 +62,10 @@ def register_view(request):
                 email_verified=True,
             )
             
-            # Send welcome email (but don't fail registration if it fails)
             try:
                 send_welcome_email(user)
             except Exception as email_error:
-                print(f"Warning: Welcome email failed to send: {email_error}")
-                # Registration still succeeds even if email fails
+                print(f"Warning: Welcome email failed: {email_error}")
             
             messages.success(request, 'Account created successfully!')
             return redirect(next_url)
@@ -96,7 +94,7 @@ def login_view(request):
         return redirect(next_url)
 
     return render(request, 'accounts/login.html')
-
+    
 def logout_view(request):
     logout(request)
     messages.success(request, 'You have been logged out.')
