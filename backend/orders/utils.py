@@ -216,20 +216,20 @@ def apply_order_status_change(order, new_status, user=None):
     if old_status == new_status:
         return False
     
-    # Update the status
+    # Update the status in the database
     order.status = new_status
     order.save()
     
-    print(f" Order #{order.id} status changed: {old_status} → {new_status}")
-    
-    # Send email notification based on status
-    if new_status == 'paid':
-        send_payment_confirmed_email(order)
-    elif new_status == 'printing':
-        send_order_started_email(order)
-    elif new_status == 'ready':
-        send_order_ready_email(order)
-    elif new_status == 'collected':
-        send_order_collected_email(order)
+    # --- EMAIL TRIGGERS ---
+    try:
+        if new_status == 'paid':
+            send_payment_confirmed_email(order)
+        elif new_status == 'ready':
+            send_order_ready_email(order)
+        elif new_status == 'collected':
+            send_order_collected_email(order)
+    except Exception as e:
+        # This prevents the site from crashing if PythonAnywhere blocks the email
+        print(f"️ Email notification failed for Order #{order.id}: {e}")
     
     return True
