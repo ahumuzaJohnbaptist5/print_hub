@@ -57,8 +57,7 @@
             </div>
             
             {% if order.status == 'pending' %}
-           <a href="{% url 'payment_page' order.id %}" class="block w-full text-center bg-gradient-to-r from-green-600 to-blue-600 text-white font-bold py-2 rounded-lg hover:shadow-lg transition-all">
-           Pay Now
+        <a href="{% url 'payment_page' order.id %}" class="block w-full text-center bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 rounded-lg hover:shadow-lg transition-all"> Pay now
            </a>
             {% elif order.status == 'ready' %}
             <p class="text-center text-green-400 text-sm">✓ Ready for pickup!</p>
