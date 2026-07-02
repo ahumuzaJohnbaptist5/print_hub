@@ -139,9 +139,9 @@ EMAIL_BACKEND = 'django.core.mail.backends.smtp.EmailBackend'
 EMAIL_HOST = 'smtp.sendgrid.net'
 EMAIL_PORT = 587
 EMAIL_USE_TLS = True
-EMAIL_HOST_USER = 'apikey'  # SendGrid requires this exact username
-EMAIL_HOST_PASSWORD = 'PrintHub v2'  
-DEFAULT_FROM_EMAIL = 'PrintHub <printhub2027@gmail.com>'
+EMAIL_HOST_USER = os.getenv('EMAIL_HOST_USER', 'apikey')
+EMAIL_HOST_PASSWORD = os.getenv('SENDGRID_API_KEY')
+DEFAULT_FROM_EMAIL = os.getenv('DEFAULT_FROM_EMAIL', 'PrintHub <printhub2027@gmail.com>')
 
 # CRITICAL: These must match your PythonAnywhere account exactly
 EMAIL_HOST_USER = 'PrintLink'  # Your exact PA username
