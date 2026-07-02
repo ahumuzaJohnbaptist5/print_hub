@@ -134,11 +134,14 @@ DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 # Custom User Model
 AUTH_USER_MODEL = 'accounts.CustomUser'
 
-# Email Configuration - PythonAnywhere Internal (Works on Free Tier)
+# Email Configuration - SendGrid
 EMAIL_BACKEND = 'django.core.mail.backends.smtp.EmailBackend'
-EMAIL_HOST = 'smtp.pythonanywhere.com'
+EMAIL_HOST = 'smtp.sendgrid.net'
 EMAIL_PORT = 587
 EMAIL_USE_TLS = True
+EMAIL_HOST_USER = 'apikey'  # SendGrid requires this exact username
+EMAIL_HOST_PASSWORD = 'PrintHub v2'  
+DEFAULT_FROM_EMAIL = 'PrintHub <printhub2027@gmail.com>'
 
 # CRITICAL: These must match your PythonAnywhere account exactly
 EMAIL_HOST_USER = 'PrintLink'  # Your exact PA username
