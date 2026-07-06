@@ -32,6 +32,9 @@ class Order(models.Model):
     ready_at = models.DateTimeField(blank=True, null=True)
     collected_at = models.DateTimeField(blank=True, null=True)
     created_at = models.DateTimeField(auto_now_add=True)
+    
+    # --- NEW PRIORITY FIELD ---
+    sla_minutes = models.IntegerField(default=120, help_text="Target time to complete order in minutes.")
 
     BASE_PRICE_BW = 200
     COLOR_SURCHARGE = 100
@@ -52,9 +55,44 @@ class Order(models.Model):
         return self.total_price
 
     def estimated_ready_at(self):
+        # Updated to use the new sla_minutes field instead of hardcoded 2 hours
         if self.paid_at:
-            return self.paid_at + timedelta(hours=2)
+            return self.paid_at + timedelta(minutes=self.sla_minutes)
         return None
+
+    @property
+    def priority_info(self):
+        """Calculates remaining time and priority level for the airport board."""
+        start_time = self.paid_at or self.created_at
+        deadline = start_time + timedelta(minutes=self.sla_minutes)
+        now = timezone.now()
+        
+        remaining_td = deadline - now
+        remaining_seconds = max(0, int(remaining_td.total_seconds()))
+        is_overdue = now > deadline
+        
+        if is_overdue:
+            level, display = 'overdue', 'OVERDUE'
+        elif remaining_seconds < 600:      # Less than 10 mins
+            level, display = 'critical', 'CRITICAL'
+        elif remaining_seconds < 1800:     # Less than 30 mins
+            level, display = 'urgent', 'URGENT'
+        elif remaining_seconds < 3600:     # Less than 60 mins
+            level, display = 'high', 'HIGH'
+        else:
+            level, display = 'normal', 'NORMAL'
+            
+        hours, remainder = divmod(remaining_seconds, 3600)
+        minutes, seconds = divmod(remainder, 60)
+        time_display = f"{hours:02d}:{minutes:02d}:{seconds:02d}"
+        
+        return {
+            'level': level,
+            'display': display,
+            'remaining_seconds': remaining_seconds,
+            'time_display': time_display,
+            'is_overdue': is_overdue
+        }
 
     def save(self, *args, **kwargs):
         self.calculate_price()
