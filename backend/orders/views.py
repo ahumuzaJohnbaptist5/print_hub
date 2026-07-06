@@ -10,12 +10,11 @@ from django.db.models import Q
 from django.http import FileResponse, HttpResponseForbidden, JsonResponse
 from django.shortcuts import get_object_or_404, redirect, render
 from django.utils import timezone
-
 from django.urls import reverse
 
 from stations.models import Station
 
-from .models import Order
+from .models import Order, SystemSettings
 from .utils import apply_order_status_change, send_delayed_order_email
 
 User = get_user_model()
@@ -106,6 +105,7 @@ def upload_view(request):
             })
 
     return render(request, 'orders/upload.html', {'stations': stations})
+
 
 @login_required
 def order_receipt_view(request, order_id):
@@ -208,6 +208,9 @@ def admin_dashboard_view(request):
 
     agents = User.objects.filter(role='agent').select_related('station')
     stations = Station.objects.all()
+    
+    # NEW: Load system settings for the template
+    system_settings = SystemSettings.load()
 
     active_filters = []
     for key, label in [
@@ -233,7 +236,39 @@ def admin_dashboard_view(request):
         'filter_date': request.GET.get('date', ''),
         'filter_search': request.GET.get('search', ''),
         'total_filtered': orders_qs.count(),
+        'system_settings': system_settings,  # <--- PASS TO TEMPLATE
     })
+
+
+@login_required
+def toggle_system_pause_view(request):
+    """Allows Admin to pause or resume all order timers."""
+    if _user_role(request.user) != 'admin':
+        return HttpResponseForbidden("Admin access only.")
+        
+    sys_settings = SystemSettings.load()
+    
+    if request.method == 'POST':
+        action = request.POST.get('action')
+        
+        if action == 'pause':
+            if not sys_settings.is_paused:
+                sys_settings.is_paused = True
+                sys_settings.pause_reason = request.POST.get('reason', 'Unforeseen circumstances')
+                sys_settings.pause_started_at = timezone.now()
+                sys_settings.save()
+                messages.success(request, "System timers PAUSED successfully.")
+                
+        elif action == 'resume':
+            if sys_settings.is_paused:
+                if sys_settings.pause_started_at:
+                    sys_settings.total_paused_seconds += (timezone.now() - sys_settings.pause_started_at).total_seconds()
+                sys_settings.is_paused = False
+                sys_settings.pause_started_at = None
+                sys_settings.save()
+                messages.success(request, "System timers RESUMED successfully.")
+                
+    return redirect('admin_dashboard')
 
 
 def is_agent_or_admin(user):
@@ -244,7 +279,7 @@ def is_agent_or_admin(user):
 @login_required
 @user_passes_test(is_agent_or_admin, login_url='login')
 def agent_dashboard_view(request):
-    """Agent dashboard with status updates and delay notifications"""
+    """Agent dashboard with status updates, delay, cancel, and postpone actions"""
     if request.user.role == 'agent' and request.user.station:
         orders = Order.objects.filter(station=request.user.station).order_by('-created_at')
     else:
@@ -269,6 +304,33 @@ def agent_dashboard_view(request):
             
             send_delayed_order_email(order, reason)
             messages.success(request, f'Delay notification sent for Order #{order.id}.')
+            
+        # NEW: Cancel Order Action
+        elif action == 'cancel_order':
+            order = get_object_or_404(Order, id=order_id)
+            if order.status not in ['collected', 'cancelled']:
+                order.status = 'cancelled'
+                order.save(update_fields=['status'])
+                messages.success(request, f'Order #{order.id} has been CANCELLED.')
+            else:
+                messages.error(request, 'Cannot cancel this order.')
+                
+        # NEW: Postpone Order Action
+        elif action == 'postpone_order':
+            order = get_object_or_404(Order, id=order_id)
+            if order.status not in ['collected', 'cancelled']:
+                try:
+                    extra_minutes = int(request.POST.get('extra_minutes', 30))
+                    if extra_minutes > 0:
+                        order.postponed_minutes += extra_minutes
+                        order.save(update_fields=['postponed_minutes'])
+                        messages.success(request, f'Order #{order.id} postponed by {extra_minutes} minutes.')
+                    else:
+                        messages.error(request, 'Please enter a valid number of minutes.')
+                except ValueError:
+                    messages.error(request, 'Invalid number of minutes.')
+            else:
+                messages.error(request, 'Cannot postpone this order.')
         
         return redirect('agent_dashboard')
 
@@ -288,7 +350,7 @@ def update_order_status_view(request, order_id):
 
     if request.method == 'POST':
         new_status = request.POST.get('status')
-        valid_statuses = ['pending', 'paid', 'printing', 'ready', 'collected']
+        valid_statuses = ['pending', 'paid', 'printing', 'ready', 'collected', 'cancelled']
         if new_status not in valid_statuses:
             messages.error(request, 'Invalid status.')
             return redirect('dashboard')
@@ -399,8 +461,12 @@ def order_track_view(request):
 
 
 # ==========================================
-# --- NEW LIVE BOARD VIEWS ---
+# --- LIVE BOARD & HOMEPAGE VIEWS ---
 # ==========================================
+
+def home_view(request):
+    """Renders the new homepage with the live departures board."""
+    return render(request, 'home.html')
 
 @login_required
 def live_board_view(request):
@@ -409,7 +475,8 @@ def live_board_view(request):
 
 def live_board_api_view(request):
     """API endpoint for JavaScript to poll real-time updates."""
-    active_statuses = ['paid', 'printing', 'ready']
+    # Include 'cancelled' so they show up on the board like cancelled flights
+    active_statuses = ['paid', 'printing', 'ready', 'cancelled'] 
     orders = Order.objects.filter(status__in=active_statuses).select_related('station', 'client')
     
     board_data = []
@@ -427,24 +494,22 @@ def live_board_api_view(request):
             'priority_level': priority['level'],
         })
         
-    # Sort so most urgent orders are at the top
-    board_data.sort(key=lambda x: x['remaining_seconds'])
+    # Sort so most urgent orders are at the top, but cancelled orders go to the bottom
+    board_data.sort(key=lambda x: (x['status_raw'] == 'cancelled', x['remaining_seconds']))
     
-    return JsonResponse({'orders': board_data})
+    # NEW: Get system pause status
+    sys_settings = SystemSettings.load()
+    
+    return JsonResponse({
+        'orders': board_data,
+        'system_paused': sys_settings.is_paused,
+        'pause_reason': sys_settings.pause_reason
+    })
 
 
-
-def home_view(request):
-    """Renders the new homepage with the live departures board."""
-    return render(request, 'home.html')
-
-
-
-
-
-from django.urls import reverse # <--- Make sure this is at the top of your file!
-
-# ... (all your existing views) ...
+# ==========================================
+# --- ALL LINKS INDEX VIEW ---
+# ==========================================
 
 def all_links_view(request):
     """A cheat-sheet page that lists all available URLs in the app."""
@@ -468,7 +533,6 @@ def all_links_view(request):
             url = '#'
         links.append({'name': name, 'url': url, 'desc': desc})
         
-    # Add the Django built-in admin manually
     links.append({'name': 'Django Admin', 'url': '/admin/', 'desc': 'Built-in database admin panel'})
     
     return render(request, 'all_links.html', {'links': links})
