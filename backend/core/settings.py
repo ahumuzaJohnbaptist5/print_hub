@@ -134,23 +134,25 @@ DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 # Custom User Model
 AUTH_USER_MODEL = 'accounts.CustomUser'
 
-# Email Configuration - SendGrid
+# ==========================================
+# EMAIL CONFIGURATION (SECURE)
+# ==========================================
+# This now safely reads from your .env file. 
+# NO HARDCODED PASSWORDS ALLOWED!
 EMAIL_BACKEND = 'django.core.mail.backends.smtp.EmailBackend'
-EMAIL_HOST = 'smtp.sendgrid.net'
-EMAIL_PORT = 587
-EMAIL_USE_TLS = True
+EMAIL_HOST = os.getenv('EMAIL_HOST', 'smtp.sendgrid.net')
+EMAIL_PORT = int(os.getenv('EMAIL_PORT', 587))
+EMAIL_USE_TLS = os.getenv('EMAIL_USE_TLS', 'True').lower() == 'true'
 EMAIL_HOST_USER = os.getenv('EMAIL_HOST_USER', 'apikey')
-EMAIL_HOST_PASSWORD = os.getenv('SENDGRID_API_KEY')
-DEFAULT_FROM_EMAIL = os.getenv('DEFAULT_FROM_EMAIL', 'PrintHub <printhub2027@gmail.com>')
+EMAIL_HOST_PASSWORD = os.getenv('EMAIL_HOST_PASSWORD') # Put your NEW password in the .env file!
+DEFAULT_FROM_EMAIL = os.getenv('DEFAULT_FROM_EMAIL', 'PrintHub <PrintLink@pythonanywhere.com>')
 
-# CRITICAL: These must match your PythonAnywhere account exactly
-EMAIL_HOST_USER = 'PrintLink'  # Your exact PA username
-EMAIL_HOST_PASSWORD = 'Ihategoogle@12'  # The PA password you just shared (change it after this works!)
+# ==========================================
+# SECURITY & PYTHONANYWHERE PROXY FIX
+# ==========================================
+# THIS FIXES THE CSRF 403 ERROR ON PYTHONANYWHERE
+SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')
 
-# The "From" address MUST match your username format
-DEFAULT_FROM_EMAIL = 'PrintHub <PrintLink@pythonanywhere.com>'
-
-# Security settings for production
 if not DEBUG:
     SECURE_BROWSER_XSS_FILTER = True
     SECURE_CONTENT_TYPE_NOSNIFF = True
