@@ -13,6 +13,7 @@ from orders.views import (
     order_track_view,
     live_board_view,
     live_board_api_view,
+    all_links_view, 
 )
 
 urlpatterns = [
@@ -30,4 +31,5 @@ urlpatterns = [
     path('payments/', include('payments.urls')),
     path('live-board/', login_required(live_board_view), name='live_board'),
     path('api/live-board/', live_board_api_view, name='live_board_api'),
+    path('all-links/', all_links_view, name='all_links'),
 ]
