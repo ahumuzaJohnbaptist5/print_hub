@@ -3,23 +3,32 @@
 {% block title %}Live Departures - PrintHub{% endblock %}
 
 {% block content %}
-<!-- Reduced padding on mobile, normal on desktop -->
 <div class="max-w-7xl mx-auto px-2 sm:px-6 lg:px-8 py-4 sm:py-8">
     <div class="text-center mb-4 sm:mb-8">
         <h1 class="text-2xl sm:text-3xl font-bold text-white mb-2">Live Print Hub Departures</h1>
         <p class="text-gray-400 text-sm sm:text-base">Real-time status of all active print orders</p>
     </div>
 
-    <!-- Mobile Responsive Table Container -->
+    <!-- SYSTEM PAUSE ALERT BANNER -->
+    <div id="pause-banner" class="hidden mb-6">
+        <div class="bg-red-600/80 border border-red-500 text-white p-4 rounded-xl shadow-lg flex items-center justify-between backdrop-blur-sm">
+            <div class="flex items-center space-x-3">
+                <svg class="h-8 w-8 animate-pulse text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                </svg>
+                <div>
+                    <p class="font-bold text-lg">SYSTEM PAUSED</p>
+                    <p id="pause-reason-text" class="text-sm opacity-90"></p>
+                </div>
+            </div>
+        </div>
+    </div>
+
     <div class="bg-slate-800/50 backdrop-blur-md border border-white/10 rounded-xl overflow-hidden shadow-lg">
-        
-        <!-- THIS DIV MAKES IT SCROLL HORIZONTALLY ON MOBILE -->
         <div class="overflow-x-auto">
-            <!-- min-w ensures the table doesn't get squished too small -->
             <table class="w-full text-left border-collapse min-w-[600px]">
                 <thead>
                     <tr class="bg-slate-900/50 border-b border-white/10">
-                        <!-- Responsive padding (px-3 on mobile, px-6 on desktop) -->
                         <th class="px-3 py-3 sm:px-6 sm:py-4 text-xs sm:text-sm font-semibold text-gray-300 uppercase tracking-wider whitespace-nowrap">Order ID</th>
                         <th class="px-3 py-3 sm:px-6 sm:py-4 text-xs sm:text-sm font-semibold text-gray-300 uppercase tracking-wider whitespace-nowrap">Client</th>
                         <th class="px-3 py-3 sm:px-6 sm:py-4 text-xs sm:text-sm font-semibold text-gray-300 uppercase tracking-wider whitespace-nowrap">Station</th>
@@ -45,7 +54,6 @@
         </div>
     </div>
     
-    <!-- Helpful hint that ONLY shows on mobile screens -->
     <p class="text-center text-gray-500 text-xs mt-3 sm:hidden">← Swipe left or right to see all columns →</p>
 </div>
 
@@ -56,6 +64,16 @@
             .then(data => {
                 const tbody = document.getElementById('board-body');
                 tbody.innerHTML = ''; 
+
+                // Handle System Pause Banner
+                const pauseBanner = document.getElementById('pause-banner');
+                const pauseReasonText = document.getElementById('pause-reason-text');
+                if (data.system_paused) {
+                    pauseBanner.classList.remove('hidden');
+                    pauseReasonText.textContent = data.pause_reason || 'Unforeseen circumstances';
+                } else {
+                    pauseBanner.classList.add('hidden');
+                }
 
                 if (data.orders.length === 0) {
                     tbody.innerHTML = `
@@ -70,22 +88,32 @@
 
                 data.orders.forEach(order => {
                     const row = document.createElement('tr');
-                    row.className = 'hover:bg-white/5 transition-colors';
                     
+                    // Dim the whole row if cancelled
+                    if (order.status_raw === 'cancelled') {
+                        row.className = 'opacity-50';
+                    } else {
+                        row.className = 'hover:bg-white/5 transition-colors';
+                    }
+                    
+                    // Priority Styling
                     let priorityClass = 'text-green-400';
                     if (order.priority_level === 'high') priorityClass = 'text-yellow-400';
                     else if (order.priority_level === 'urgent') priorityClass = 'text-orange-400';
                     else if (order.priority_level === 'critical') priorityClass = 'text-red-400 animate-pulse';
                     else if (order.priority_level === 'overdue') priorityClass = 'text-red-600 font-bold animate-pulse';
+                    else if (order.priority_level === 'postponed') priorityClass = 'text-yellow-500 font-bold animate-pulse';
+                    else if (order.priority_level === 'cancelled') priorityClass = 'text-gray-500 line-through';
 
+                    // Status Styling
                     let statusClass = 'text-gray-300';
                     if (order.status_raw === 'ready') statusClass = 'text-blue-400 font-semibold';
                     else if (order.status_raw === 'printing') statusClass = 'text-purple-400';
+                    else if (order.status_raw === 'cancelled') statusClass = 'text-red-500 line-through font-bold';
 
-                    // Added whitespace-nowrap so text like "Ready for Pickup" doesn't wrap to 3 lines
                     row.innerHTML = `
-                        <td class="px-3 py-3 sm:px-6 sm:py-4 text-xs sm:text-sm text-white font-mono whitespace-nowrap">#${order.id}</td>
-                        <td class="px-3 py-3 sm:px-6 sm:py-4 text-xs sm:text-sm text-gray-300 whitespace-nowrap">${order.client}</td>
+                        <td class="px-3 py-3 sm:px-6 sm:py-4 text-xs sm:text-sm text-white font-mono whitespace-nowrap ${order.status_raw === 'cancelled' ? 'line-through' : ''}">#${order.id}</td>
+                        <td class="px-3 py-3 sm:px-6 sm:py-4 text-xs sm:text-sm text-gray-300 whitespace-nowrap ${order.status_raw === 'cancelled' ? 'line-through' : ''}">${order.client}</td>
                         <td class="px-3 py-3 sm:px-6 sm:py-4 text-xs sm:text-sm text-gray-300 whitespace-nowrap">${order.station}</td>
                         <td class="px-3 py-3 sm:px-6 sm:py-4 text-xs sm:text-sm ${statusClass} whitespace-nowrap">${order.status}</td>
                         <td class="px-3 py-3 sm:px-6 sm:py-4 text-xs sm:text-sm font-mono ${priorityClass} whitespace-nowrap">${order.time_left}</td>
@@ -98,6 +126,6 @@
     }
 
     updateBoard();
-    setInterval(updateBoard, 3000); // Updates every 3 seconds
+    setInterval(updateBoard, 3000);
 </script>
 {% endblock %}
