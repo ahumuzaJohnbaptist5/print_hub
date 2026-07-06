@@ -6,6 +6,34 @@ from django.conf import settings
 from django.utils import timezone
 
 
+class SystemSettings(models.Model):
+    """Singleton model to store global system state like pause timers."""
+    is_paused = models.BooleanField(default=False)
+    pause_reason = models.CharField(max_length=255, blank=True, default='')
+    total_paused_seconds = models.FloatField(default=0.0)
+    pause_started_at = models.DateTimeField(null=True, blank=True)
+
+    class Meta:
+        verbose_name = "System Setting"
+        verbose_name_plural = "System Settings"
+
+    def save(self, *args, **kwargs):
+        self.pk = 1  # Force singleton (only one row in DB)
+        super().save(*args, **kwargs)
+
+    @classmethod
+    def load(cls):
+        obj, created = cls.objects.get_or_create(pk=1)
+        return obj
+        
+    def get_current_paused_seconds(self):
+        """Calculates total paused time, including the current ongoing pause."""
+        total = self.total_paused_seconds
+        if self.is_paused and self.pause_started_at:
+            total += (timezone.now() - self.pause_started_at).total_seconds()
+        return total
+
+
 class Order(models.Model):
     STATUS_CHOICES = (
         ('pending', 'Pending'),
@@ -81,13 +109,23 @@ class Order(models.Model):
         deadline = start_time + timedelta(minutes=total_minutes)
         now = timezone.now()
         
-        remaining_td = deadline - now
+        # 3. Get total paused seconds from SystemSettings
+        try:
+            sys_settings = SystemSettings.load()
+            paused_seconds = sys_settings.get_current_paused_seconds()
+        except Exception:
+            paused_seconds = 0
+            
+        # 4. Push the deadline forward by the paused time
+        effective_deadline = deadline + timedelta(seconds=paused_seconds)
+        
+        remaining_td = effective_deadline - now
         remaining_seconds = max(0, int(remaining_td.total_seconds()))
-        is_overdue = now > deadline
+        is_overdue = now > effective_deadline
         
         is_postponed = self.postponed_minutes > 0
         
-        # 3. Determine Priority Level
+        # 5. Determine Priority Level
         if is_postponed:
             level, display = 'postponed', 'POSTPONED'
         elif is_overdue:
