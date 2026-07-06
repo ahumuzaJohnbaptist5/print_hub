@@ -3,39 +3,50 @@
 {% block title %}Live Departures - PrintHub{% endblock %}
 
 {% block content %}
-<div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-    <div class="text-center mb-8">
-        <h1 class="text-3xl font-bold text-white mb-2">Live Print Hub Departures</h1>
-        <p class="text-gray-400">Real-time status of all active print orders</p>
+<!-- Reduced padding on mobile, normal on desktop -->
+<div class="max-w-7xl mx-auto px-2 sm:px-6 lg:px-8 py-4 sm:py-8">
+    <div class="text-center mb-4 sm:mb-8">
+        <h1 class="text-2xl sm:text-3xl font-bold text-white mb-2">Live Print Hub Departures</h1>
+        <p class="text-gray-400 text-sm sm:text-base">Real-time status of all active print orders</p>
     </div>
 
+    <!-- Mobile Responsive Table Container -->
     <div class="bg-slate-800/50 backdrop-blur-md border border-white/10 rounded-xl overflow-hidden shadow-lg">
-        <table class="w-full text-left border-collapse">
-            <thead>
-                <tr class="bg-slate-900/50 border-b border-white/10">
-                    <th class="px-6 py-4 text-sm font-semibold text-gray-300 uppercase tracking-wider">Order ID</th>
-                    <th class="px-6 py-4 text-sm font-semibold text-gray-300 uppercase tracking-wider">Client</th>
-                    <th class="px-6 py-4 text-sm font-semibold text-gray-300 uppercase tracking-wider">Station</th>
-                    <th class="px-6 py-4 text-sm font-semibold text-gray-300 uppercase tracking-wider">Status</th>
-                    <th class="px-6 py-4 text-sm font-semibold text-gray-300 uppercase tracking-wider">Time Left</th>
-                    <th class="px-6 py-4 text-sm font-semibold text-gray-300 uppercase tracking-wider">Priority</th>
-                </tr>
-            </thead>
-            <tbody id="board-body" class="divide-y divide-white/5">
-                <tr>
-                    <td colspan="6" class="px-6 py-12 text-center text-gray-500">
-                        <div class="flex items-center justify-center space-x-2">
-                            <svg class="animate-spin h-5 w-5 text-blue-500" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                                <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
-                                <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                            </svg>
-                            <span>Loading flights...</span>
-                        </div>
-                    </td>
-                </tr>
-            </tbody>
-        </table>
+        
+        <!-- THIS DIV MAKES IT SCROLL HORIZONTALLY ON MOBILE -->
+        <div class="overflow-x-auto">
+            <!-- min-w ensures the table doesn't get squished too small -->
+            <table class="w-full text-left border-collapse min-w-[600px]">
+                <thead>
+                    <tr class="bg-slate-900/50 border-b border-white/10">
+                        <!-- Responsive padding (px-3 on mobile, px-6 on desktop) -->
+                        <th class="px-3 py-3 sm:px-6 sm:py-4 text-xs sm:text-sm font-semibold text-gray-300 uppercase tracking-wider whitespace-nowrap">Order ID</th>
+                        <th class="px-3 py-3 sm:px-6 sm:py-4 text-xs sm:text-sm font-semibold text-gray-300 uppercase tracking-wider whitespace-nowrap">Client</th>
+                        <th class="px-3 py-3 sm:px-6 sm:py-4 text-xs sm:text-sm font-semibold text-gray-300 uppercase tracking-wider whitespace-nowrap">Station</th>
+                        <th class="px-3 py-3 sm:px-6 sm:py-4 text-xs sm:text-sm font-semibold text-gray-300 uppercase tracking-wider whitespace-nowrap">Status</th>
+                        <th class="px-3 py-3 sm:px-6 sm:py-4 text-xs sm:text-sm font-semibold text-gray-300 uppercase tracking-wider whitespace-nowrap">Time Left</th>
+                        <th class="px-3 py-3 sm:px-6 sm:py-4 text-xs sm:text-sm font-semibold text-gray-300 uppercase tracking-wider whitespace-nowrap">Priority</th>
+                    </tr>
+                </thead>
+                <tbody id="board-body" class="divide-y divide-white/5">
+                    <tr>
+                        <td colspan="6" class="px-3 py-8 sm:px-6 sm:py-12 text-center text-gray-500">
+                            <div class="flex items-center justify-center space-x-2">
+                                <svg class="animate-spin h-5 w-5 text-blue-500" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                                    <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                                    <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                                </svg>
+                                <span class="text-sm sm:text-base">Loading flights...</span>
+                            </div>
+                        </td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
     </div>
+    
+    <!-- Helpful hint that ONLY shows on mobile screens -->
+    <p class="text-center text-gray-500 text-xs mt-3 sm:hidden">← Swipe left or right to see all columns →</p>
 </div>
 
 <script>
@@ -49,8 +60,8 @@
                 if (data.orders.length === 0) {
                     tbody.innerHTML = `
                         <tr>
-                            <td colspan="6" class="px-6 py-12 text-center text-gray-500">
-                                No active flights (orders) at the moment.
+                            <td colspan="6" class="px-3 py-8 sm:px-6 sm:py-12 text-center text-gray-500">
+                                <span class="text-sm sm:text-base">No active flights (orders) at the moment.</span>
                             </td>
                         </tr>
                     `;
@@ -71,13 +82,14 @@
                     if (order.status_raw === 'ready') statusClass = 'text-blue-400 font-semibold';
                     else if (order.status_raw === 'printing') statusClass = 'text-purple-400';
 
+                    // Added whitespace-nowrap so text like "Ready for Pickup" doesn't wrap to 3 lines
                     row.innerHTML = `
-                        <td class="px-6 py-4 text-sm text-white font-mono">#${order.id}</td>
-                        <td class="px-6 py-4 text-sm text-gray-300">${order.client}</td>
-                        <td class="px-6 py-4 text-sm text-gray-300">${order.station}</td>
-                        <td class="px-6 py-4 text-sm ${statusClass}">${order.status}</td>
-                        <td class="px-6 py-4 text-sm font-mono ${priorityClass}">${order.time_left}</td>
-                        <td class="px-6 py-4 text-sm font-bold ${priorityClass}">${order.priority}</td>
+                        <td class="px-3 py-3 sm:px-6 sm:py-4 text-xs sm:text-sm text-white font-mono whitespace-nowrap">#${order.id}</td>
+                        <td class="px-3 py-3 sm:px-6 sm:py-4 text-xs sm:text-sm text-gray-300 whitespace-nowrap">${order.client}</td>
+                        <td class="px-3 py-3 sm:px-6 sm:py-4 text-xs sm:text-sm text-gray-300 whitespace-nowrap">${order.station}</td>
+                        <td class="px-3 py-3 sm:px-6 sm:py-4 text-xs sm:text-sm ${statusClass} whitespace-nowrap">${order.status}</td>
+                        <td class="px-3 py-3 sm:px-6 sm:py-4 text-xs sm:text-sm font-mono ${priorityClass} whitespace-nowrap">${order.time_left}</td>
+                        <td class="px-3 py-3 sm:px-6 sm:py-4 text-xs sm:text-sm font-bold ${priorityClass} whitespace-nowrap">${order.priority}</td>
                     `;
                     tbody.appendChild(row);
                 });
