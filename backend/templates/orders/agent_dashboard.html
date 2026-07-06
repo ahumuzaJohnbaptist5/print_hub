@@ -1,73 +1,85 @@
 {% extends 'base.html' %}
 {% block title %}Agent Dashboard{% endblock %}
 {% block content %}
-<div class="max-w-7xl mx-auto px-4 py-12">
-    <h1 class="text-3xl font-bold text-white mb-8">Station Dashboard</h1>
+<div class="max-w-7xl mx-auto px-2 sm:px-6 py-4 sm:py-12">
+    <h1 class="text-2xl sm:text-3xl font-bold text-white mb-4 sm:mb-8">Station Dashboard</h1>
     
     <div class="bg-white/5 border border-white/10 rounded-2xl overflow-hidden">
-        <table class="w-full text-left">
-            <thead class="bg-white/10 text-gray-300 uppercase text-xs">
-                <tr>
-                    <th class="p-4">Order ID</th>
-                    <th class="p-4">Client</th>
-                    <th class="p-4">File</th>
-                    <th class="p-4">Details</th>
-                    <th class="p-4">Status</th>
-                    <th class="p-4">Actions</th>
-                </tr>
-            </thead>
-            <tbody class="divide-y divide-white/10 text-sm">
-                {% for order in orders %}
-                <tr class="hover:bg-white/5">
-                    <td class="p-4 text-white font-bold">#{{ order.id }}</td>
-                    <td class="p-4 text-gray-300">{{ order.client.get_full_name|default:order.client.username }}</td>
-                    <td class="p-4 text-gray-300 truncate max-w-[150px]">{{ order.file_name }}</td>
-                    <td class="p-4 text-gray-400">
-                        {{ order.page_count }} pages • 
-                        {% if order.is_color %}<span class="text-orange-400">Color</span>{% else %}B&W{% endif %}
-                    </td>
-                    <td class="p-4">
-                        <span class="px-2 py-1 rounded text-xs font-bold 
-                            {% if order.status == 'collected' %}bg-green-500/20 text-green-300
-                            {% elif order.status == 'ready' %}bg-blue-500/20 text-blue-300
-                            {% elif order.status == 'printing' %}bg-purple-500/20 text-purple-300
-                            {% elif order.status == 'paid' %}bg-yellow-500/20 text-yellow-300
-                            {% else %}bg-gray-500/20 text-gray-300{% endif %}">
-                            {{ order.get_status_display }}
-                        </span>
-                    </td>
-                    <td class="p-4">
-                        <div class="flex gap-2 flex-wrap">
-                            <!-- Status Update Form -->
-                            <form method="POST" class="flex gap-2">
-                                {% csrf_token %}
-                                <input type="hidden" name="action" value="update_status">
-                                <input type="hidden" name="order_id" value="{{ order.id }}">
-                                <select name="status" class="bg-slate-800 border border-white/20 rounded px-2 py-1 text-white text-xs">
-                                    <option value="paid" {% if order.status == 'paid' %}selected{% endif %}>Paid</option>
-                                    <option value="printing" {% if order.status == 'printing' %}selected{% endif %}>Printing</option>
-                                    <option value="ready" {% if order.status == 'ready' %}selected{% endif %}>Ready</option>
-                                    <option value="collected" {% if order.status == 'collected' %}selected{% endif %}>Collected</option>
-                                </select>
-                                <button class="bg-blue-600 hover:bg-blue-700 text-white px-3 py-1 rounded text-xs">Update</button>
-                            </form>
-                            
-                            <!-- Delay Notification Button -->
-                            {% if order.status != 'collected' %}
-                            <button 
-                                onclick="showDelayModal({{ order.id }})"
-                                class="bg-yellow-600 hover:bg-yellow-700 text-white px-3 py-1 rounded text-xs"
-                            >
-                                Notify Delay
-                            </button>
-                            {% endif %}
-                        </div>
-                    </td>
-                </tr>
-                {% endfor %}
-            </tbody>
-        </table>
+        
+        <!-- THIS DIV MAKES IT SCROLL HORIZONTALLY ON MOBILE -->
+        <div class="overflow-x-auto">
+            <!-- min-w ensures the table doesn't get squished too small -->
+            <table class="w-full text-left min-w-[800px]">
+                <thead class="bg-white/10 text-gray-300 uppercase text-xs">
+                    <tr>
+                        <th class="p-3 sm:p-4 whitespace-nowrap">Order ID</th>
+                        <th class="p-3 sm:p-4 whitespace-nowrap">Client</th>
+                        <th class="p-3 sm:p-4 whitespace-nowrap">File</th>
+                        <th class="p-3 sm:p-4 whitespace-nowrap">Details</th>
+                        <th class="p-3 sm:p-4 whitespace-nowrap">Status</th>
+                        <th class="p-3 sm:p-4 whitespace-nowrap">Actions</th>
+                    </tr>
+                </thead>
+                <tbody class="divide-y divide-white/10 text-sm">
+                    {% for order in orders %}
+                    <tr class="hover:bg-white/5">
+                        <td class="p-3 sm:p-4 text-white font-bold text-xs sm:text-sm whitespace-nowrap">#{{ order.id }}</td>
+                        <td class="p-3 sm:p-4 text-gray-300 text-xs sm:text-sm whitespace-nowrap">{{ order.client.get_full_name|default:order.client.username }}</td>
+                        <td class="p-3 sm:p-4 text-gray-300 truncate max-w-[150px] text-xs sm:text-sm whitespace-nowrap">{{ order.file_name }}</td>
+                        <td class="p-3 sm:p-4 text-gray-400 text-xs sm:text-sm whitespace-nowrap">
+                            {{ order.page_count }} pages • 
+                            {% if order.is_color %}<span class="text-orange-400">Color</span>{% else %}B&W{% endif %}
+                        </td>
+                        <td class="p-3 sm:p-4 whitespace-nowrap">
+                            <span class="px-2 py-1 rounded text-xs font-bold 
+                                {% if order.status == 'collected' %}bg-green-500/20 text-green-300
+                                {% elif order.status == 'ready' %}bg-blue-500/20 text-blue-300
+                                {% elif order.status == 'printing' %}bg-purple-500/20 text-purple-300
+                                {% elif order.status == 'paid' %}bg-yellow-500/20 text-yellow-300
+                                {% else %}bg-gray-500/20 text-gray-300{% endif %}">
+                                {{ order.get_status_display }}
+                            </span>
+                        </td>
+                        <td class="p-3 sm:p-4 whitespace-nowrap">
+                            <div class="flex gap-2 flex-wrap">
+                                <!-- Status Update Form -->
+                                <form method="POST" class="flex gap-2">
+                                    {% csrf_token %}
+                                    <input type="hidden" name="action" value="update_status">
+                                    <input type="hidden" name="order_id" value="{{ order.id }}">
+                                    <select name="status" class="bg-slate-800 border border-white/20 rounded px-2 py-1 text-white text-xs">
+                                        <option value="paid" {% if order.status == 'paid' %}selected{% endif %}>Paid</option>
+                                        <option value="printing" {% if order.status == 'printing' %}selected{% endif %}>Printing</option>
+                                        <option value="ready" {% if order.status == 'ready' %}selected{% endif %}>Ready</option>
+                                        <option value="collected" {% if order.status == 'collected' %}selected{% endif %}>Collected</option>
+                                    </select>
+                                    <button class="bg-blue-600 hover:bg-blue-700 text-white px-3 py-1 rounded text-xs">Update</button>
+                                </form>
+                                
+                                <!-- Delay Notification Button -->
+                                {% if order.status != 'collected' %}
+                                <button 
+                                    onclick="showDelayModal({{ order.id }})"
+                                    class="bg-yellow-600 hover:bg-yellow-700 text-white px-3 py-1 rounded text-xs"
+                                >
+                                    Delay
+                                </button>
+                                {% endif %}
+                            </div>
+                        </td>
+                    </tr>
+                    {% empty %}
+                    <tr>
+                        <td colspan="6" class="p-6 text-center text-gray-500">No orders found for this station.</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
     </div>
+    
+    <!-- Helpful hint that ONLY shows on mobile screens -->
+    <p class="text-center text-gray-500 text-xs mt-3 sm:hidden">← Swipe left or right to see actions →</p>
 </div>
 
 <!-- Delay Notification Modal -->
