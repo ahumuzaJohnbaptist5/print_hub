@@ -1,0 +1,116 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Live Print Hub Departures</title>
+    <style>
+        body {
+            background-color: #111;
+            color: #f5c518; /* Airport amber/yellow */
+            font-family: 'Courier New', Courier, monospace;
+            margin: 0;
+            padding: 20px;
+        }
+        h1 {
+            text-align: center;
+            text-transform: uppercase;
+            letter-spacing: 5px;
+            border-bottom: 2px solid #f5c518;
+            padding-bottom: 10px;
+            margin-bottom: 30px;
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 20px;
+        }
+        th, td {
+            padding: 15px;
+            text-align: left;
+            border-bottom: 1px solid #333;
+            font-size: 1.2em;
+        }
+        th {
+            background-color: #222;
+            color: #fff;
+            text-transform: uppercase;
+        }
+        
+        /* Priority Colors & Animations */
+        .priority-normal { color: #4caf50; } /* Green */
+        .priority-high { color: #f5c518; }   /* Amber */
+        .priority-urgent { color: #ff9800; } /* Orange */
+        .priority-critical { color: #f44336; animation: blink 1s infinite; } /* Red blinking */
+        .priority-overdue { color: #ff0000; animation: blink 0.5s infinite; font-weight: bold; } /* Bright Red fast blink */
+
+        .status-ready { color: #2196f3; font-weight: bold; } /* Blue for ready */
+
+        @keyframes blink {
+            50% { opacity: 0.3; }
+        }
+        
+        .loading-text {
+            text-align: center;
+            font-size: 1.5em;
+            color: #888;
+        }
+    </style>
+</head>
+<body>
+    <h1>Live Print Hub Departures</h1>
+    
+    <table id="flight-board">
+        <thead>
+            <tr>
+                <th>Order ID</th>
+                <th>Client</th>
+                <th>Station</th>
+                <th>Status</th>
+                <th>Time Left</th>
+                <th>Priority</th>
+            </tr>
+        </thead>
+        <tbody id="board-body">
+            <tr><td colspan="6" class="loading-text">Loading flights...</td></tr>
+        </tbody>
+    </table>
+
+    <script>
+        function updateBoard() {
+            fetch("{% url 'live_board_api' %}")
+                .then(response => response.json())
+                .then(data => {
+                    const tbody = document.getElementById('board-body');
+                    tbody.innerHTML = ''; 
+
+                    if (data.orders.length === 0) {
+                        tbody.innerHTML = '<tr><td colspan="6" class="loading-text">No active flights (orders) at the moment.</td></tr>';
+                        return;
+                    }
+
+                    data.orders.forEach(order => {
+                        const row = document.createElement('tr');
+                        
+                        const priorityClass = `priority-${order.priority_level}`;
+                        const statusClass = order.status_raw === 'ready' ? 'status-ready' : '';
+
+                        row.innerHTML = `
+                            <td>#${order.id}</td>
+                            <td>${order.client}</td>
+                            <td>${order.station}</td>
+                            <td class="${statusClass}">${order.status}</td>
+                            <td class="${priorityClass}">${order.time_left}</td>
+                            <td class="${priorityClass}">${order.priority}</td>
+                        `;
+                        tbody.appendChild(row);
+                    });
+                })
+                .catch(error => console.error('Error fetching board data:', error));
+        }
+
+        updateBoard();
+        setInterval(updateBoard, 3000); // Updates every 3 seconds
+    </script>
+</body>
+</html>
