@@ -1,5 +1,6 @@
 from django.shortcuts import render, redirect
 from django.contrib.auth import get_user_model, authenticate, login, logout
+from django.contrib.auth.decorators import login_required  # <--- THIS WAS MISSING!
 from django.contrib import messages
 from stations.models import Station
 from orders.models import Order
