@@ -11,6 +11,8 @@ from django.http import FileResponse, HttpResponseForbidden, JsonResponse
 from django.shortcuts import get_object_or_404, redirect, render
 from django.utils import timezone
 
+from django.urls import reverse
+
 from stations.models import Station
 
 from .models import Order
@@ -435,3 +437,38 @@ def live_board_api_view(request):
 def home_view(request):
     """Renders the new homepage with the live departures board."""
     return render(request, 'home.html')
+
+
+
+
+
+from django.urls import reverse # <--- Make sure this is at the top of your file!
+
+# ... (all your existing views) ...
+
+def all_links_view(request):
+    """A cheat-sheet page that lists all available URLs in the app."""
+    links_data = [
+        ('home', 'Home (Live Board)', 'Live departures board'),
+        ('dashboard', 'Client Dashboard', 'View your past orders'),
+        ('upload', 'Upload / Place Order', 'Upload files for printing'),
+        ('track_order', 'Track Order', 'Track order status by ID or email'),
+        ('admin_dashboard', 'Admin Dashboard', 'Admin overview and management'),
+        ('agent_dashboard', 'Agent Dashboard', 'Station agent dashboard'),
+        ('live_board', 'Live Board (Standalone)', 'Full screen live board'),
+        ('login', 'Login', 'User login page'),
+        ('register', 'Register', 'User registration page'),
+    ]
+    
+    links = []
+    for url_name, name, desc in links_data:
+        try:
+            url = reverse(url_name)
+        except Exception:
+            url = '#'
+        links.append({'name': name, 'url': url, 'desc': desc})
+        
+    # Add the Django built-in admin manually
+    links.append({'name': 'Django Admin', 'url': '/admin/', 'desc': 'Built-in database admin panel'})
+    
+    return render(request, 'all_links.html', {'links': links})
