@@ -2,6 +2,7 @@ from django.contrib import admin
 from django.urls import path, include
 from django.contrib.auth.decorators import login_required
 from orders.views import (
+    home_view,  # <-- ADDED THIS IMPORT
     dashboard_view,
     upload_view,
     admin_dashboard_view,
@@ -10,14 +11,13 @@ from orders.views import (
     order_receipt_view,
     download_order_file_view,
     order_track_view,
-    # --- NEW IMPORTS FOR LIVE BOARD ---
     live_board_view,
     live_board_api_view,
 )
 
 urlpatterns = [
     path('admin/', admin.site.urls),
-    path('', upload_view, name='home'),
+    path('', home_view, name='home'),  # <-- CHANGED THIS FROM upload_view TO home_view
     path('auth/', include('accounts.urls')),
     path('dashboard/', login_required(dashboard_view), name='dashboard'),
     path('upload/', upload_view, name='upload'),
@@ -28,8 +28,6 @@ urlpatterns = [
     path('orders/<int:order_id>/receipt/', login_required(order_receipt_view), name='order_receipt'),
     path('orders/<int:order_id>/file/', login_required(download_order_file_view), name='download_order_file'),
     path('payments/', include('payments.urls')),
-    
-    # --- NEW LIVE BOARD PATHS ---
     path('live-board/', login_required(live_board_view), name='live_board'),
     path('api/live-board/', live_board_api_view, name='live_board_api'),
 ]
