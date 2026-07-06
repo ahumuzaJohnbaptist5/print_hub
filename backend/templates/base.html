@@ -75,7 +75,16 @@
                                 <a href="{% url 'agent_dashboard' %}" class="text-gray-300 hover:text-white px-3 py-2 rounded-md text-sm font-medium hover:bg-white/10">Agent Dashboard</a>
                                 <a href="{% url 'admin_approve_payments' %}" class="text-gray-300 hover:text-white px-3 py-2 rounded-md text-sm font-medium hover:bg-white/10">Payments</a>
                             {% endif %}
-                            
+
+
+
+                        {% if user.is_staff or user.role == 'admin' %}
+                        <a href="{% url 'admin_dashboard' %}" class="text-gray-300 hover:text-white px-3 py-2 rounded-md text-sm font-medium hover:bg-white/10">Admin Dashboard</a>
+                        {% endif %}
+
+                        
+
+                        
                             <form method="POST" action="{% url 'logout' %}" class="inline">
                                 {% csrf_token %}
                                 <button type="submit" class="text-gray-300 hover:text-white px-3 py-2 rounded-md text-sm font-medium hover:bg-white/10">Logout</button>
