@@ -1,10 +1,8 @@
 from django.shortcuts import render, redirect
 from django.contrib.auth import get_user_model, authenticate, login, logout
-from django.contrib.auth.decorators import login_required
 from django.contrib import messages
 from stations.models import Station
 from orders.models import Order
-from orders.utils import send_welcome_email
 
 User = get_user_model()
 
@@ -56,18 +54,13 @@ def register_view(request):
             return render(request, 'accounts/register.html', {'error': 'Email already exists'})
 
         try:
+            # Clean registration without email verification
             user = User.objects.create_user(
                 username=username,
                 email=email,
                 password=password,
                 role='client',
-                email_verified=True,
             )
-            
-            try:
-                send_welcome_email(user)
-            except Exception as email_error:
-                print(f"Warning: Welcome email failed: {email_error}")
             
             messages.success(request, 'Account created successfully!')
             return redirect(next_url)
