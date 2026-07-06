@@ -70,7 +70,9 @@
                                 <a href="{% url 'profile' %}" class="text-gray-300 hover:text-white px-3 py-2 rounded-md text-sm font-medium hover:bg-white/10">Profile</a>
                             {% endif %}
                             
+                            <!-- NEW: Agent Dashboard Link -->
                             {% if user.is_staff or user.role == 'agent' %}
+                                <a href="{% url 'agent_dashboard' %}" class="text-gray-300 hover:text-white px-3 py-2 rounded-md text-sm font-medium hover:bg-white/10">Agent Dashboard</a>
                                 <a href="{% url 'admin_approve_payments' %}" class="text-gray-300 hover:text-white px-3 py-2 rounded-md text-sm font-medium hover:bg-white/10">Payments</a>
                             {% endif %}
                             
@@ -87,7 +89,7 @@
             </div>
         </div>
 
-        <!-- Mobile Menu Dropdown (Now only contains account links) -->
+        <!-- Mobile Menu Dropdown -->
         <div id="mobile-menu" class="hidden md:hidden absolute top-16 left-0 w-full bg-slate-800/95 backdrop-blur-md border-b border-white/10 shadow-lg">
             <div class="px-4 pt-2 pb-4 space-y-2">
                 {% if user.is_authenticated %}
@@ -97,7 +99,9 @@
                         <a href="{% url 'profile' %}" class="block px-3 py-2 rounded-md text-base font-medium text-gray-300 hover:text-white hover:bg-white/10">Profile</a>
                     {% endif %}
                     
+                    <!-- NEW: Agent Dashboard Link for Mobile -->
                     {% if user.is_staff or user.role == 'agent' %}
+                        <a href="{% url 'agent_dashboard' %}" class="block px-3 py-2 rounded-md text-base font-medium text-gray-300 hover:text-white hover:bg-white/10">Agent Dashboard</a>
                         <a href="{% url 'admin_approve_payments' %}" class="block px-3 py-2 rounded-md text-base font-medium text-gray-300 hover:text-white hover:bg-white/10">Payments</a>
                     {% endif %}
                     
