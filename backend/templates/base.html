@@ -32,12 +32,19 @@
 
                 <!-- Desktop Menu -->
                 <div class="hidden md:flex items-center space-x-4">
+                    <!-- NEW: Prominent Place an Order Button -->
+                    <a href="{% url 'upload' %}" class="bg-gradient-to-r from-blue-500 to-purple-600 text-white px-4 py-2 rounded-lg hover:shadow-lg transition-all text-sm font-medium flex items-center space-x-2">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" />
+                        </svg>
+                        <span>Place an Order</span>
+                    </a>
+
                     {% if user.is_authenticated %}
                         <span class="text-gray-300 text-sm">Welcome, {{ user.first_name|default:user.username }}</span>
                         
                         {% if user.role == 'client' %}
                             <a href="{% url 'profile' %}" class="text-gray-300 hover:text-white px-3 py-2 rounded-md text-sm font-medium hover:bg-white/10">Profile</a>
-                            <a href="{% url 'upload' %}" class="text-gray-300 hover:text-white px-3 py-2 rounded-md text-sm font-medium hover:bg-white/10">Upload</a>
                         {% endif %}
                         
                         {% if user.is_staff or user.role == 'agent' %}
@@ -72,12 +79,16 @@
         <!-- Mobile Menu -->
         <div id="mobile-menu" class="hidden md:hidden absolute top-16 left-0 w-full bg-slate-800/95 backdrop-blur-md border-b border-white/10 shadow-lg">
             <div class="px-4 pt-2 pb-4 space-y-2">
+                <!-- NEW: Prominent Place an Order Button for Mobile -->
+                <a href="{% url 'upload' %}" class="block w-full text-center bg-gradient-to-r from-blue-500 to-purple-600 text-white px-4 py-3 rounded-lg hover:shadow-lg transition-all text-base font-medium mb-4">
+                    Place an Order
+                </a>
+
                 {% if user.is_authenticated %}
                     <div class="px-3 py-2 text-gray-400 text-sm">Welcome, {{ user.first_name|default:user.username }}</div>
                     
                     {% if user.role == 'client' %}
                         <a href="{% url 'profile' %}" class="block px-3 py-2 rounded-md text-base font-medium text-gray-300 hover:text-white hover:bg-white/10">Profile</a>
-                        <a href="{% url 'upload' %}" class="block px-3 py-2 rounded-md text-base font-medium text-gray-300 hover:text-white hover:bg-white/10">Upload</a>
                     {% endif %}
                     
                     {% if user.is_staff or user.role == 'agent' %}
