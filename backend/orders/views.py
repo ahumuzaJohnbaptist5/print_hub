@@ -7,7 +7,7 @@ from django.contrib.auth.decorators import login_required, user_passes_test
 from django.contrib.auth import get_user_model
 from django.core.paginator import Paginator
 from django.db.models import Q
-from django.http import FileResponse, HttpResponseForbidden
+from django.http import FileResponse, HttpResponseForbidden, JsonResponse
 from django.shortcuts import get_object_or_404, redirect, render
 from django.utils import timezone
 
@@ -104,6 +104,7 @@ def upload_view(request):
             })
 
     return render(request, 'orders/upload.html', {'stations': stations})
+
 @login_required
 def order_receipt_view(request, order_id):
     order = get_object_or_404(Order, id=order_id)
@@ -242,7 +243,6 @@ def is_agent_or_admin(user):
 @user_passes_test(is_agent_or_admin, login_url='login')
 def agent_dashboard_view(request):
     """Agent dashboard with status updates and delay notifications"""
-    # Agents only see orders for their station. Admins see all.
     if request.user.role == 'agent' and request.user.station:
         orders = Order.objects.filter(station=request.user.station).order_by('-created_at')
     else:
@@ -256,7 +256,6 @@ def agent_dashboard_view(request):
             new_status = request.POST.get('status')
             order = get_object_or_404(Order, id=order_id)
             
-            # Use the utility function to apply the change and send emails
             if apply_order_status_change(order, new_status, request.user):
                 messages.success(request, f'Order #{order.id} updated to {order.get_status_display()}.')
             else:
@@ -266,7 +265,6 @@ def agent_dashboard_view(request):
             order = get_object_or_404(Order, id=order_id)
             reason = request.POST.get('delay_reason', '').strip()
             
-            # Send delay notification email
             send_delayed_order_email(order, reason)
             messages.success(request, f'Delay notification sent for Order #{order.id}.')
         
@@ -396,3 +394,38 @@ def order_track_view(request):
         'query_order_id': order_id,
         'query_email': email,
     })
+
+
+# ==========================================
+# --- NEW LIVE BOARD VIEWS ---
+# ==========================================
+
+@login_required
+def live_board_view(request):
+    """Renders the real-time airport-style flight board HTML page."""
+    return render(request, 'orders/live_board.html')
+
+def live_board_api_view(request):
+    """API endpoint for JavaScript to poll real-time updates."""
+    active_statuses = ['paid', 'printing', 'ready']
+    orders = Order.objects.filter(status__in=active_statuses).select_related('station', 'client')
+    
+    board_data = []
+    for order in orders:
+        priority = order.priority_info
+        board_data.append({
+            'id': order.id,
+            'client': order.client.username,
+            'station': order.station.name if order.station else 'Unassigned',
+            'status': order.get_status_display(),
+            'status_raw': order.status,
+            'time_left': priority['time_display'],
+            'remaining_seconds': priority['remaining_seconds'],
+            'priority': priority['display'],
+            'priority_level': priority['level'],
+        })
+        
+    # Sort so most urgent orders are at the top
+    board_data.sort(key=lambda x: x['remaining_seconds'])
+    
+    return JsonResponse({'orders': board_data})
