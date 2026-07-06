@@ -24,7 +24,10 @@
         </div>
     </div>
 
-    <div class="bg-slate-800/50 backdrop-blur-md border border-white/10 rounded-xl overflow-hidden shadow-lg">
+    <!-- ========================================== -->
+    <!-- DESKTOP TABLE (Hidden on mobile screens)   -->
+    <!-- ========================================== -->
+    <div class="hidden md:block bg-slate-800/50 backdrop-blur-md border border-white/10 rounded-xl overflow-hidden shadow-lg">
         <div class="overflow-x-auto">
             <table class="w-full text-left border-collapse min-w-[600px]">
                 <thead>
@@ -37,24 +40,21 @@
                         <th class="px-3 py-3 sm:px-6 sm:py-4 text-xs sm:text-sm font-semibold text-gray-300 uppercase tracking-wider whitespace-nowrap">Priority</th>
                     </tr>
                 </thead>
-                <tbody id="board-body" class="divide-y divide-white/5">
+                <tbody id="desktop-board-body" class="divide-y divide-white/5">
                     <tr>
-                        <td colspan="6" class="px-3 py-8 sm:px-6 sm:py-12 text-center text-gray-500">
-                            <div class="flex items-center justify-center space-x-2">
-                                <svg class="animate-spin h-5 w-5 text-blue-500" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                                    <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
-                                    <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                                </svg>
-                                <span class="text-sm sm:text-base">Loading flights...</span>
-                            </div>
-                        </td>
+                        <td colspan="6" class="px-3 py-8 text-center text-gray-500">Loading flights...</td>
                     </tr>
                 </tbody>
             </table>
         </div>
     </div>
-    
-    <p class="text-center text-gray-500 text-xs mt-3 sm:hidden">← Swipe left or right to see all columns →</p>
+
+    <!-- ========================================== -->
+    <!-- MOBILE CARDS (Hidden on desktop screens)   -->
+    <!-- ========================================== -->
+    <div id="mobile-board-body" class="md:hidden space-y-4">
+        <div class="text-center text-gray-500 py-8">Loading flights...</div>
+    </div>
 </div>
 
 <script>
@@ -62,10 +62,14 @@
         fetch("{% url 'live_board_api' %}")
             .then(response => response.json())
             .then(data => {
-                const tbody = document.getElementById('board-body');
-                tbody.innerHTML = ''; 
+                const desktopBody = document.getElementById('desktop-board-body');
+                const mobileBody = document.getElementById('mobile-board-body');
+                
+                // Clear both containers before updating
+                desktopBody.innerHTML = '';
+                mobileBody.innerHTML = '';
 
-                // Handle System Pause Banner
+                // 1. Handle System Pause Banner
                 const pauseBanner = document.getElementById('pause-banner');
                 const pauseReasonText = document.getElementById('pause-reason-text');
                 if (data.system_paused) {
@@ -75,28 +79,16 @@
                     pauseBanner.classList.add('hidden');
                 }
 
+                // 2. Handle Empty State
                 if (data.orders.length === 0) {
-                    tbody.innerHTML = `
-                        <tr>
-                            <td colspan="6" class="px-3 py-8 sm:px-6 sm:py-12 text-center text-gray-500">
-                                <span class="text-sm sm:text-base">No active flights (orders) at the moment.</span>
-                            </td>
-                        </tr>
-                    `;
+                    desktopBody.innerHTML = `<tr><td colspan="6" class="px-3 py-8 text-center text-gray-500">No active flights (orders) at the moment.</td></tr>`;
+                    mobileBody.innerHTML = `<div class="text-center text-gray-500 py-8">No active flights (orders) at the moment.</div>`;
                     return;
                 }
 
+                // 3. Populate Data
                 data.orders.forEach(order => {
-                    const row = document.createElement('tr');
-                    
-                    // Dim the whole row if cancelled
-                    if (order.status_raw === 'cancelled') {
-                        row.className = 'opacity-50';
-                    } else {
-                        row.className = 'hover:bg-white/5 transition-colors';
-                    }
-                    
-                    // Priority Styling
+                    // Determine Colors & Animations
                     let priorityClass = 'text-green-400';
                     if (order.priority_level === 'high') priorityClass = 'text-yellow-400';
                     else if (order.priority_level === 'urgent') priorityClass = 'text-orange-400';
@@ -105,27 +97,62 @@
                     else if (order.priority_level === 'postponed') priorityClass = 'text-yellow-500 font-bold animate-pulse';
                     else if (order.priority_level === 'cancelled') priorityClass = 'text-gray-500 line-through';
 
-                    // Status Styling
                     let statusClass = 'text-gray-300';
                     if (order.status_raw === 'ready') statusClass = 'text-blue-400 font-semibold';
                     else if (order.status_raw === 'printing') statusClass = 'text-purple-400';
                     else if (order.status_raw === 'cancelled') statusClass = 'text-red-500 line-through font-bold';
+                    
+                    let rowOpacity = order.status_raw === 'cancelled' ? 'opacity-50' : '';
+                    let strikeThrough = order.status_raw === 'cancelled' ? 'line-through' : '';
 
+                    // --- DESKTOP: Create Table Row ---
+                    const row = document.createElement('tr');
+                    row.className = `hover:bg-white/5 transition-colors ${rowOpacity}`;
                     row.innerHTML = `
-                        <td class="px-3 py-3 sm:px-6 sm:py-4 text-xs sm:text-sm text-white font-mono whitespace-nowrap ${order.status_raw === 'cancelled' ? 'line-through' : ''}">#${order.id}</td>
-                        <td class="px-3 py-3 sm:px-6 sm:py-4 text-xs sm:text-sm text-gray-300 whitespace-nowrap ${order.status_raw === 'cancelled' ? 'line-through' : ''}">${order.client}</td>
+                        <td class="px-3 py-3 sm:px-6 sm:py-4 text-xs sm:text-sm text-white font-mono whitespace-nowrap ${strikeThrough}">#${order.id}</td>
+                        <td class="px-3 py-3 sm:px-6 sm:py-4 text-xs sm:text-sm text-gray-300 whitespace-nowrap ${strikeThrough}">${order.client}</td>
                         <td class="px-3 py-3 sm:px-6 sm:py-4 text-xs sm:text-sm text-gray-300 whitespace-nowrap">${order.station}</td>
                         <td class="px-3 py-3 sm:px-6 sm:py-4 text-xs sm:text-sm ${statusClass} whitespace-nowrap">${order.status}</td>
                         <td class="px-3 py-3 sm:px-6 sm:py-4 text-xs sm:text-sm font-mono ${priorityClass} whitespace-nowrap">${order.time_left}</td>
                         <td class="px-3 py-3 sm:px-6 sm:py-4 text-xs sm:text-sm font-bold ${priorityClass} whitespace-nowrap">${order.priority}</td>
                     `;
-                    tbody.appendChild(row);
+                    desktopBody.appendChild(row);
+
+                    // --- MOBILE: Create Card ---
+                    const card = document.createElement('div');
+                    card.className = `bg-slate-800/80 border border-white/10 rounded-xl p-4 shadow-lg ${rowOpacity}`;
+                    card.innerHTML = `
+                        <div class="flex justify-between items-start mb-3 border-b border-white/10 pb-3">
+                            <div>
+                                <span class="text-white font-bold text-lg font-mono ${strikeThrough}">#${order.id}</span>
+                                <span class="text-gray-400 text-sm ml-2 ${strikeThrough}">${order.client}</span>
+                            </div>
+                            <span class="px-2 py-1 rounded text-xs font-bold ${statusClass} bg-white/10 whitespace-nowrap">
+                                ${order.status}
+                            </span>
+                        </div>
+                        <div class="grid grid-cols-2 gap-3 text-sm mt-3">
+                            <div>
+                                <p class="text-gray-500 text-xs uppercase tracking-wide">Station</p>
+                                <p class="text-gray-300 font-medium">${order.station}</p>
+                            </div>
+                            <div>
+                                <p class="text-gray-500 text-xs uppercase tracking-wide">Priority</p>
+                                <p class="font-bold ${priorityClass}">${order.priority}</p>
+                            </div>
+                            <div class="col-span-2 bg-black/20 rounded-lg p-3 text-center mt-2">
+                                <p class="text-gray-500 text-xs uppercase tracking-wide mb-1">Time Left</p>
+                                <p class="text-2xl font-mono font-bold ${priorityClass}">${order.time_left}</p>
+                            </div>
+                        </div>
+                    `;
+                    mobileBody.appendChild(card);
                 });
             })
             .catch(error => console.error('Error fetching board data:', error));
     }
 
     updateBoard();
-    setInterval(updateBoard, 3000);
+    setInterval(updateBoard, 3000); // Updates every 3 seconds
 </script>
 {% endblock %}
