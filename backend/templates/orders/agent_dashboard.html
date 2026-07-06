@@ -5,10 +5,7 @@
     <h1 class="text-2xl sm:text-3xl font-bold text-white mb-4 sm:mb-8">Station Dashboard</h1>
     
     <div class="bg-white/5 border border-white/10 rounded-2xl overflow-hidden">
-        
-        <!-- THIS DIV MAKES IT SCROLL HORIZONTALLY ON MOBILE -->
         <div class="overflow-x-auto">
-            <!-- min-w ensures the table doesn't get squished too small -->
             <table class="w-full text-left min-w-[800px]">
                 <thead class="bg-white/10 text-gray-300 uppercase text-xs">
                     <tr>
@@ -22,9 +19,9 @@
                 </thead>
                 <tbody class="divide-y divide-white/10 text-sm">
                     {% for order in orders %}
-                    <tr class="hover:bg-white/5">
-                        <td class="p-3 sm:p-4 text-white font-bold text-xs sm:text-sm whitespace-nowrap">#{{ order.id }}</td>
-                        <td class="p-3 sm:p-4 text-gray-300 text-xs sm:text-sm whitespace-nowrap">{{ order.client.get_full_name|default:order.client.username }}</td>
+                    <tr class="hover:bg-white/5 {% if order.status == 'cancelled' %}opacity-50{% endif %}">
+                        <td class="p-3 sm:p-4 text-white font-bold text-xs sm:text-sm whitespace-nowrap {% if order.status == 'cancelled' %}line-through{% endif %}">#{{ order.id }}</td>
+                        <td class="p-3 sm:p-4 text-gray-300 text-xs sm:text-sm whitespace-nowrap {% if order.status == 'cancelled' %}line-through{% endif %}">{{ order.client.get_full_name|default:order.client.username }}</td>
                         <td class="p-3 sm:p-4 text-gray-300 truncate max-w-[150px] text-xs sm:text-sm whitespace-nowrap">{{ order.file_name }}</td>
                         <td class="p-3 sm:p-4 text-gray-400 text-xs sm:text-sm whitespace-nowrap">
                             {{ order.page_count }} pages • 
@@ -36,6 +33,7 @@
                                 {% elif order.status == 'ready' %}bg-blue-500/20 text-blue-300
                                 {% elif order.status == 'printing' %}bg-purple-500/20 text-purple-300
                                 {% elif order.status == 'paid' %}bg-yellow-500/20 text-yellow-300
+                                {% elif order.status == 'cancelled' %}bg-red-500/20 text-red-300
                                 {% else %}bg-gray-500/20 text-gray-300{% endif %}">
                                 {{ order.get_status_display }}
                             </span>
@@ -43,6 +41,7 @@
                         <td class="p-3 sm:p-4 whitespace-nowrap">
                             <div class="flex gap-2 flex-wrap">
                                 <!-- Status Update Form -->
+                                {% if order.status != 'cancelled' and order.status != 'collected' %}
                                 <form method="POST" class="flex gap-2">
                                     {% csrf_token %}
                                     <input type="hidden" name="action" value="update_status">
@@ -55,15 +54,42 @@
                                     </select>
                                     <button class="bg-blue-600 hover:bg-blue-700 text-white px-3 py-1 rounded text-xs">Update</button>
                                 </form>
+                                {% endif %}
+                                
+                                <!-- Postpone Button -->
+                                {% if order.status != 'collected' and order.status != 'cancelled' %}
+                                <button 
+                                    onclick="showPostponeModal({{ order.id }})"
+                                    class="bg-yellow-600 hover:bg-yellow-700 text-white px-3 py-1 rounded text-xs"
+                                >
+                                    Postpone
+                                </button>
+                                {% endif %}
+
+                                <!-- Cancel Button -->
+                                {% if order.status != 'collected' and order.status != 'cancelled' %}
+                                <form method="POST" onsubmit="return confirm('Are you sure you want to cancel this order? This cannot be undone.');" class="inline">
+                                    {% csrf_token %}
+                                    <input type="hidden" name="action" value="cancel_order">
+                                    <input type="hidden" name="order_id" value="{{ order.id }}">
+                                    <button type="submit" class="bg-red-600 hover:bg-red-700 text-white px-3 py-1 rounded text-xs">
+                                        Cancel
+                                    </button>
+                                </form>
+                                {% endif %}
                                 
                                 <!-- Delay Notification Button -->
-                                {% if order.status != 'collected' %}
+                                {% if order.status != 'collected' and order.status != 'cancelled' %}
                                 <button 
                                     onclick="showDelayModal({{ order.id }})"
-                                    class="bg-yellow-600 hover:bg-yellow-700 text-white px-3 py-1 rounded text-xs"
+                                    class="bg-gray-600 hover:bg-gray-700 text-white px-3 py-1 rounded text-xs"
                                 >
                                     Delay
                                 </button>
+                                {% endif %}
+                                
+                                {% if order.status == 'cancelled' %}
+                                <span class="text-red-400 text-xs italic">Order Cancelled</span>
                                 {% endif %}
                             </div>
                         </td>
@@ -78,8 +104,34 @@
         </div>
     </div>
     
-    <!-- Helpful hint that ONLY shows on mobile screens -->
     <p class="text-center text-gray-500 text-xs mt-3 sm:hidden">← Swipe left or right to see actions →</p>
+</div>
+
+<!-- Postpone Modal -->
+<div id="postponeModal" class="hidden fixed inset-0 bg-black/50 flex items-center justify-center z-50">
+    <div class="bg-slate-800 rounded-xl p-6 max-w-md w-full mx-4">
+        <h3 class="text-xl font-bold text-white mb-4">Postpone Order</h3>
+        <form method="POST" id="postponeForm">
+            {% csrf_token %}
+            <input type="hidden" name="action" value="postpone_order">
+            <input type="hidden" name="order_id" id="postponeOrderId">
+            
+            <div class="mb-4">
+                <label class="block text-gray-300 text-sm mb-2">Add extra minutes to deadline</label>
+                <input type="number" name="extra_minutes" value="30" min="1" required
+                    class="w-full bg-white/10 border border-white/20 rounded-lg px-3 py-2 text-white focus:outline-none focus:ring-2 focus:ring-yellow-500">
+            </div>
+            
+            <div class="flex gap-2">
+                <button type="submit" class="flex-1 bg-yellow-600 hover:bg-yellow-700 text-white font-bold py-2 rounded-lg">
+                    Postpone
+                </button>
+                <button type="button" onclick="hidePostponeModal()" class="flex-1 bg-gray-600 hover:bg-gray-700 text-white font-bold py-2 rounded-lg">
+                    Cancel
+                </button>
+            </div>
+        </form>
+    </div>
 </div>
 
 <!-- Delay Notification Modal -->
@@ -118,9 +170,15 @@ function showDelayModal(orderId) {
     document.getElementById('delayOrderId').value = orderId;
     document.getElementById('delayModal').classList.remove('hidden');
 }
-
 function hideDelayModal() {
     document.getElementById('delayModal').classList.add('hidden');
+}
+function showPostponeModal(orderId) {
+    document.getElementById('postponeOrderId').value = orderId;
+    document.getElementById('postponeModal').classList.remove('hidden');
+}
+function hidePostponeModal() {
+    document.getElementById('postponeModal').classList.add('hidden');
 }
 </script>
 {% endblock %}
