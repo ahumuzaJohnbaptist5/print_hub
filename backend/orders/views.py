@@ -429,3 +429,9 @@ def live_board_api_view(request):
     board_data.sort(key=lambda x: x['remaining_seconds'])
     
     return JsonResponse({'orders': board_data})
+
+
+
+def home_view(request):
+    """Renders the new homepage with the live departures board."""
+    return render(request, 'home.html')
