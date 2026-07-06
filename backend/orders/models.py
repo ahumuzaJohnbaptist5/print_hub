@@ -13,6 +13,7 @@ class Order(models.Model):
         ('printing', 'Printing'),
         ('ready', 'Ready for Pickup'),
         ('collected', 'Collected'),
+        ('cancelled', 'Cancelled'), # NEW STATUS
     )
 
     client = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE)
@@ -33,8 +34,9 @@ class Order(models.Model):
     collected_at = models.DateTimeField(blank=True, null=True)
     created_at = models.DateTimeField(auto_now_add=True)
     
-    # --- NEW PRIORITY FIELD ---
+    # --- PRIORITY & POSTPONE FIELDS ---
     sla_minutes = models.IntegerField(default=120, help_text="Target time to complete order in minutes.")
+    postponed_minutes = models.IntegerField(default=0, help_text="Extra minutes added if the order is postponed.")
 
     BASE_PRICE_BW = 200
     COLOR_SURCHARGE = 100
@@ -55,23 +57,40 @@ class Order(models.Model):
         return self.total_price
 
     def estimated_ready_at(self):
-        # Updated to use the new sla_minutes field instead of hardcoded 2 hours
         if self.paid_at:
-            return self.paid_at + timedelta(minutes=self.sla_minutes)
+            total_minutes = self.sla_minutes + self.postponed_minutes
+            return self.paid_at + timedelta(minutes=total_minutes)
         return None
 
     @property
     def priority_info(self):
         """Calculates remaining time and priority level for the airport board."""
+        # 1. Handle Cancelled Orders (Stops the clock immediately)
+        if self.status == 'cancelled':
+            return {
+                'level': 'cancelled',
+                'display': 'CANCELLED',
+                'remaining_seconds': 0,
+                'time_display': '--:--:--',
+                'is_overdue': False
+            }
+
         start_time = self.paid_at or self.created_at
-        deadline = start_time + timedelta(minutes=self.sla_minutes)
+        # 2. Add postponed_minutes to the original SLA
+        total_minutes = self.sla_minutes + self.postponed_minutes
+        deadline = start_time + timedelta(minutes=total_minutes)
         now = timezone.now()
         
         remaining_td = deadline - now
         remaining_seconds = max(0, int(remaining_td.total_seconds()))
         is_overdue = now > deadline
         
-        if is_overdue:
+        is_postponed = self.postponed_minutes > 0
+        
+        # 3. Determine Priority Level
+        if is_postponed:
+            level, display = 'postponed', 'POSTPONED'
+        elif is_overdue:
             level, display = 'overdue', 'OVERDUE'
         elif remaining_seconds < 600:      # Less than 10 mins
             level, display = 'critical', 'CRITICAL'
