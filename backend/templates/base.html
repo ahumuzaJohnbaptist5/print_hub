@@ -66,30 +66,30 @@
                         {% if user.is_authenticated %}
                             <span class="text-gray-300 text-sm">Welcome, {{ user.first_name|default:user.username }}</span>
                             
+                            <!-- Live Departures Link -->
+                            <a href="{% url 'live_board' %}" class="text-gray-300 hover:text-white px-3 py-2 rounded-md text-sm font-medium hover:bg-white/10">Live Departures</a>
+                            
                             {% if user.role == 'client' %}
                                 <a href="{% url 'profile' %}" class="text-gray-300 hover:text-white px-3 py-2 rounded-md text-sm font-medium hover:bg-white/10">Profile</a>
                             {% endif %}
                             
-                            <!-- NEW: Agent Dashboard Link -->
                             {% if user.is_staff or user.role == 'agent' %}
                                 <a href="{% url 'agent_dashboard' %}" class="text-gray-300 hover:text-white px-3 py-2 rounded-md text-sm font-medium hover:bg-white/10">Agent Dashboard</a>
                                 <a href="{% url 'admin_approve_payments' %}" class="text-gray-300 hover:text-white px-3 py-2 rounded-md text-sm font-medium hover:bg-white/10">Payments</a>
                             {% endif %}
 
+                            <!-- Admin Dashboard Link -->
+                            {% if user.is_staff or user.role == 'admin' %}
+                                <a href="{% url 'admin_dashboard' %}" class="text-gray-300 hover:text-white px-3 py-2 rounded-md text-sm font-medium hover:bg-white/10">Admin Dashboard</a>
+                            {% endif %}
 
-
-                        {% if user.is_staff or user.role == 'admin' %}
-                        <a href="{% url 'admin_dashboard' %}" class="text-gray-300 hover:text-white px-3 py-2 rounded-md text-sm font-medium hover:bg-white/10">Admin Dashboard</a>
-                        {% endif %}
-
-                        
-
-                        
                             <form method="POST" action="{% url 'logout' %}" class="inline">
                                 {% csrf_token %}
                                 <button type="submit" class="text-gray-300 hover:text-white px-3 py-2 rounded-md text-sm font-medium hover:bg-white/10">Logout</button>
                             </form>
                         {% else %}
+                            <!-- Live Departures for guests -->
+                            <a href="{% url 'live_board' %}" class="text-gray-300 hover:text-white px-3 py-2 rounded-md text-sm font-medium hover:bg-white/10">Live Departures</a>
                             <a href="{% url 'login' %}" class="text-gray-300 hover:text-white px-3 py-2 rounded-md text-sm font-medium hover:bg-white/10">Login</a>
                             <a href="{% url 'register' %}" class="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 hover:shadow-lg transition-all text-sm font-medium">Register</a>
                         {% endif %}
@@ -98,20 +98,27 @@
             </div>
         </div>
 
-        <!-- Mobile Menu Dropdown -->
+        <!-- Mobile Menu Dropdown (Hamburger Menu) -->
         <div id="mobile-menu" class="hidden md:hidden absolute top-16 left-0 w-full bg-slate-800/95 backdrop-blur-md border-b border-white/10 shadow-lg">
             <div class="px-4 pt-2 pb-4 space-y-2">
                 {% if user.is_authenticated %}
                     <div class="px-3 py-2 text-gray-400 text-sm">Welcome, {{ user.first_name|default:user.username }}</div>
                     
+                    <!-- Live Departures Link (Always visible) -->
+                    <a href="{% url 'live_board' %}" class="block px-3 py-2 rounded-md text-base font-medium text-gray-300 hover:text-white hover:bg-white/10">Live Departures</a>
+                    
                     {% if user.role == 'client' %}
                         <a href="{% url 'profile' %}" class="block px-3 py-2 rounded-md text-base font-medium text-gray-300 hover:text-white hover:bg-white/10">Profile</a>
                     {% endif %}
                     
-                    <!-- NEW: Agent Dashboard Link for Mobile -->
                     {% if user.is_staff or user.role == 'agent' %}
                         <a href="{% url 'agent_dashboard' %}" class="block px-3 py-2 rounded-md text-base font-medium text-gray-300 hover:text-white hover:bg-white/10">Agent Dashboard</a>
                         <a href="{% url 'admin_approve_payments' %}" class="block px-3 py-2 rounded-md text-base font-medium text-gray-300 hover:text-white hover:bg-white/10">Payments</a>
+                    {% endif %}
+                    
+                    <!-- Admin Dashboard Link (Only for Admins) -->
+                    {% if user.is_staff or user.role == 'admin' %}
+                        <a href="{% url 'admin_dashboard' %}" class="block px-3 py-2 rounded-md text-base font-medium text-gray-300 hover:text-white hover:bg-white/10">Admin Dashboard</a>
                     {% endif %}
                     
                     <form method="POST" action="{% url 'logout' %}">
@@ -119,6 +126,9 @@
                         <button type="submit" class="block w-full text-left px-3 py-2 rounded-md text-base font-medium text-gray-300 hover:text-white hover:bg-white/10">Logout</button>
                     </form>
                 {% else %}
+                    <!-- Live Departures for guests -->
+                    <a href="{% url 'live_board' %}" class="block px-3 py-2 rounded-md text-base font-medium text-gray-300 hover:text-white hover:bg-white/10">Live Departures</a>
+                    
                     <a href="{% url 'login' %}" class="block px-3 py-2 rounded-md text-base font-medium text-gray-300 hover:text-white hover:bg-white/10">Login</a>
                     <a href="{% url 'register' %}" class="block px-3 py-2 rounded-md text-base font-medium text-white bg-blue-600 hover:bg-blue-700 hover:shadow-lg text-center mt-2">Register</a>
                 {% endif %}
