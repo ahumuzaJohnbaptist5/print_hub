@@ -39,13 +39,21 @@
                     <div id="page-count-status" class="text-sm mt-2 text-gray-500 text-center h-5"></div>
                 </div>
 
-                <!-- 2. Page Count -->
+                <!-- 2. Document Preview Area -->
+                <div id="preview-container" class="mb-6 hidden">
+                    <label class="block text-sm font-bold text-gray-700 mb-2">Document Preview</label>
+                    <div id="preview-content" class="border border-gray-200 rounded-xl p-4 bg-gray-50 max-h-80 overflow-auto shadow-inner">
+                        <!-- Preview content injected here by JS -->
+                    </div>
+                </div>
+
+                <!-- 3. Page Count -->
                 <div class="mb-6">
                     <label for="page_count" class="block text-sm font-bold text-gray-700 mb-2">Number of Pages</label>
                     <input type="number" class="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-all outline-none text-gray-700" id="page_count" name="page_count" min="1" value="1" required>
                 </div>
 
-                <!-- 3. Print Options (Color & Double Sided) -->
+                <!-- 4. Print Options (Color & Double Sided) -->
                 <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
                     <!-- Color -->
                     <div>
@@ -71,7 +79,7 @@
                     </div>
                 </div>
 
-                <!-- 4. Binding -->
+                <!-- 5. Binding -->
                 <div class="mb-6">
                     <label for="binding" class="block text-sm font-bold text-gray-700 mb-2">Binding / Finishing</label>
                     <select class="price-trigger w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-all outline-none text-gray-700 bg-white" id="binding" name="binding">
@@ -81,7 +89,7 @@
                     </select>
                 </div>
 
-                <!-- 5. Station Selection -->
+                <!-- 6. Station Selection -->
                 <div class="mb-8">
                     <label for="station" class="block text-sm font-bold text-gray-700 mb-2">Pickup Station</label>
                     <select class="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-all outline-none text-gray-700 bg-white" id="station" name="station" required>
@@ -92,13 +100,13 @@
                     </select>
                 </div>
 
-                <!-- 6. Live Price Display -->
+                <!-- 7. Live Price Display -->
                 <div class="bg-gradient-to-r from-indigo-50 to-purple-50 border-2 border-dashed border-indigo-200 rounded-2xl p-6 text-center mb-8">
                     <p class="text-sm font-bold text-indigo-600 uppercase tracking-wider">Estimated Total</p>
                     <p class="text-4xl font-extrabold text-gray-800 mt-2 transition-all" id="live-price">0 UGX</p>
                 </div>
 
-                <!-- 7. Submit Button -->
+                <!-- 8. Submit Button -->
                 <button type="submit" class="w-full bg-gradient-to-r from-indigo-500 to-purple-600 text-white font-bold py-4 px-4 rounded-xl shadow-lg hover:shadow-xl transform hover:-translate-y-1 transition-all duration-200 text-lg">
                     🚀 Submit Order
                 </button>
@@ -107,7 +115,7 @@
     </div>
 </div>
 
-<!-- JS Libraries for Page Counting -->
+<!-- JS Libraries for Page Counting & Preview -->
 <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/mammoth/1.6.0/mammoth.browser.min.js"></script>
 
@@ -125,6 +133,10 @@
     const statusText = document.getElementById('page-count-status');
     const livePrice = document.getElementById('live-price');
     const priceTriggers = document.querySelectorAll('.price-trigger');
+    
+    // Preview elements
+    const previewContainer = document.getElementById('preview-container');
+    const previewContent = document.getElementById('preview-content');
 
     // Update dropzone text when file is selected
     fileInput.addEventListener('change', function() {
@@ -133,6 +145,16 @@
             dropzoneText.classList.add('font-bold');
         }
     });
+
+    function clearPreview() {
+        previewContent.innerHTML = '';
+        previewContainer.classList.add('hidden');
+    }
+
+    function showPreview(htmlContent) {
+        previewContent.innerHTML = htmlContent;
+        previewContainer.classList.remove('hidden');
+    }
 
     // 🔢 SMOOTH COUNTING ANIMATION
     function animateCountUp(target, onComplete) {
@@ -173,8 +195,41 @@
         const file = e.target.files[0];
         if (!file) return;
 
+        clearPreview(); // Clear previous preview
         const ext = file.name.toLowerCase().split('.').pop();
-        
+        const fileURL = URL.createObjectURL(file);
+
+        // --- PREVIEW LOGIC ---
+        if (['png', 'jpg', 'jpeg'].includes(ext)) {
+            showPreview(`<img src="${fileURL}" class="max-h-64 rounded-lg shadow-md mx-auto block">`);
+        } else if (ext === 'pdf') {
+            showPreview(`<iframe src="${fileURL}" class="w-full h-64 rounded-lg shadow-md border bg-white"></iframe>`);
+        } else if (ext === 'txt') {
+            const reader = new FileReader();
+            reader.onload = function(event) {
+                const text = event.target.result;
+                // Escape HTML to prevent breaking the layout
+                const escapedText = text.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+                showPreview(`<pre class="text-sm text-gray-700 whitespace-pre-wrap font-mono">${escapedText}</pre>`);
+            };
+            reader.readAsText(file);
+        } else if (ext === 'docx') {
+            const reader = new FileReader();
+            reader.onload = function(event) {
+                mammoth.convertToHtml({arrayBuffer: event.target.result})
+                    .then(function(result){
+                        showPreview(`<div class="prose prose-sm max-w-none text-gray-700">${result.value}</div>`);
+                    })
+                    .catch(() => {
+                        showPreview(`<p class="text-center text-gray-500">Preview not available for this document.</p>`);
+                    });
+            };
+            reader.readAsArrayBuffer(file);
+        } else {
+            showPreview(`<div class="text-center py-8 text-gray-500"><svg class="mx-auto h-12 w-12 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path></svg><p class="mt-2 font-medium">Preview not available for .${ext} files</p></div>`);
+        }
+
+        // --- PAGE COUNT LOGIC ---
         if (ext === 'pdf') {
             const fileReader = new FileReader();
             fileReader.onload = function() {
