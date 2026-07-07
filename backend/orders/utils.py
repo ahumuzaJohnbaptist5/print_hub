@@ -34,7 +34,7 @@ The PrintHub Team
         message,
         settings.DEFAULT_FROM_EMAIL,
         [user.email],
-        fail_silently=False,  # TEMPORARILY FALSE TO SEE ERRORS
+        fail_silently=False,
     )
     
     print(f"✅ Welcome email sent!")
@@ -76,7 +76,7 @@ Thank you for choosing PrintHub!
 def send_order_started_email(order):
     """Send email when agent starts printing."""
     if not order.client.email:
-        print(f"️ Order #{order.id} client has no email!")
+        print(f"⚠️ Order #{order.id} client has no email!")
         return
     
     print(f"📧 Sending printing started email to {order.client.email}...")
@@ -86,7 +86,7 @@ def send_order_started_email(order):
 
 Good news! We've started printing your Order #{order.id}.
 
-Your document is now being processed at our station. We'll notify you as soon as it's ready for pickup.
+Your document is now being processed at our station. We'll notify you as soon as it's ready for pickup or out for delivery.
 
 Thank you for your patience!
 The PrintHub Team
@@ -110,7 +110,7 @@ def send_order_ready_email(order):
     
     station_name = order.station.name if order.station else 'our station'
     
-    print(f" Sending ready for pickup email to {order.client.email}...")
+    print(f"📧 Sending ready for pickup email to {order.client.email}...")
     
     subject = f'Order Ready for Pickup - Order #{order.id} 📦'
     message = f"""Hi {order.client.first_name or order.client.username},
@@ -205,9 +205,13 @@ The PrintHub Team
     
     print(f"✅ Delay notification sent!")
 
+
+# ==========================================
+# --- UPDATED STATUS CHANGE FUNCTION ---
+# ==========================================
 def apply_order_status_change(order, new_status, user=None):
     """
-    Updates the order status and sends email notification if needed.
+    Updates the order status, records timestamps, and sends email notifications.
     Returns True if successful, False otherwise.
     """
     old_status = order.status
@@ -216,20 +220,35 @@ def apply_order_status_change(order, new_status, user=None):
     if old_status == new_status:
         return False
     
-    # Update the status in the database
+    # 1. Update timestamps based on new status
+    now = timezone.now()
+    if new_status == 'paid' and not order.paid_at:
+        order.paid_at = now
+    elif new_status == 'printing' and not order.printing_at:
+        order.printing_at = now
+    elif new_status == 'in_transit' and not order.in_transit_at:
+        order.in_transit_at = now
+    elif new_status == 'ready' and not order.ready_at:
+        order.ready_at = now
+    elif new_status == 'collected' and not order.collected_at:
+        order.collected_at = now
+        
+    # 2. Update the status in the database
     order.status = new_status
     order.save()
     
-    # --- EMAIL TRIGGERS ---
+    # 3. --- EMAIL TRIGGERS ---
     try:
         if new_status == 'paid':
             send_payment_confirmed_email(order)
+        elif new_status == 'printing':
+            send_order_started_email(order)  # <--- ADDED THIS TRIGGER!
         elif new_status == 'ready':
             send_order_ready_email(order)
         elif new_status == 'collected':
             send_order_collected_email(order)
     except Exception as e:
         # This prevents the site from crashing if PythonAnywhere blocks the email
-        print(f"️ Email notification failed for Order #{order.id}: {e}")
+        print(f"⚠️ Email notification failed for Order #{order.id}: {e}")
     
     return True
