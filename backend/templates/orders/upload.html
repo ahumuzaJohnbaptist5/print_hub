@@ -1,135 +1,229 @@
-{% extends 'base.html' %}
+{% extends 'base.html' %} {% load static %}
 
-{% block title %}Upload - PrintHub{% endblock %}
+{% block title %}Upload Document{% endblock %}
 
 {% block content %}
-<div class="relative min-h-[calc(100vh-4rem)] overflow-hidden">
-    <!-- Background Image -->
-    <div class="absolute inset-0 z-0">
-        <img 
-            src="https://images.unsplash.com/photo-1557804506-669a67965ba0?w=1920&q=80" 
-            alt="Background" 
-            class="w-full h-full object-cover opacity-30"
-        />
-        <div class="absolute inset-0 bg-gradient-to-br from-slate-900/90 via-slate-900/70 to-slate-900/90"></div>
-    </div>
+<div class="container mt-5 mb-5">
+    <div class="row justify-content-center">
+        <div class="col-md-8">
+            <div class="card shadow-lg">
+                <div class="card-header bg-primary text-white">
+                    <h3 class="mb-0"><i class="fas fa-upload me-2"></i>Upload Print Job</h3>
+                </div>
+                <div class="card-body">
+                    {% if upload_error %}
+                        <div class="alert alert-danger">{{ upload_error }}</div>
+                    {% endif %}
 
-    <!-- Animated Blobs -->
-    <div class="absolute top-0 left-0 w-96 h-96 bg-blue-600 rounded-full mix-blend-multiply filter blur-3xl opacity-20 animate-blob"></div>
-    <div class="absolute bottom-0 right-0 w-96 h-96 bg-purple-600 rounded-full mix-blend-multiply filter blur-3xl opacity-20 animate-blob animation-delay-2000"></div>
+                    <form method="post" enctype="multipart/form-data" id="upload-form">
+                        {% csrf_token %}
+                        
+                        <div class="mb-3">
+                            <label for="file" class="form-label fw-bold">Select File</label>
+                            <input type="file" class="form-control" id="file" name="file" accept=".pdf,.docx,.doc,.txt,.png,.jpg,.jpeg" required>
+                            <div id="page-count-status" class="form-text text-muted mt-1">Select a file to auto-detect page count.</div>
+                        </div>
 
-    <!-- Content -->
-    <div class="relative z-10 max-w-2xl mx-auto px-4 py-12">
-        <div class="bg-white/5 border border-white/10 backdrop-blur-md rounded-3xl p-8 shadow-2xl">
-            <h2 class="text-3xl font-bold text-white text-center mb-2">Upload Your Document</h2>
-            <p class="text-gray-400 text-center mb-8">We'll print it and have it ready for pickup</p>
+                        <div class="mb-3">
+                            <label for="page_count" class="form-label fw-bold">Number of Pages</label>
+                            <input type="number" class="form-control" id="page_count" name="page_count" min="1" value="1" required>
+                        </div>
 
-            {% if upload_error %}
-            <div class="bg-red-500/20 border border-red-500/50 text-red-300 px-4 py-3 rounded-xl mb-6">
-                {{ upload_error }}
-            </div>
-            {% endif %}
-
-            <form method="POST" enctype="multipart/form-data" class="space-y-6">
-                {% csrf_token %}
-
-                <!-- File Upload -->
-                <div>
-                    <label class="block text-sm font-medium text-gray-300 mb-2">Select File</label>
-                    <div class="relative">
-                        <input 
-                            type="file" 
-                            name="file" 
-                            id="file-input"
-                            class="hidden"
-                            accept=".pdf,.docx,.doc,.txt,.png,.jpg,.jpeg"
-                            required
-                        />
-                        <label 
-                            for="file-input"
-                            class="flex items-center justify-center w-full px-6 py-8 bg-white/10 border-2 border-dashed border-white/20 rounded-xl cursor-pointer hover:bg-white/15 hover:border-white/30 transition-all"
-                        >
-                            <div class="text-center">
-                                <svg class="w-12 h-12 mx-auto text-gray-400 mb-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12"></path>
-                                </svg>
-                                <p class="text-gray-300 text-sm">Click to upload or drag and drop</p>
-                                <p class="text-gray-500 text-xs mt-1">PDF, DOCX, DOC, TXT, PNG, JPG (Max 10MB)</p>
+                        <div class="row mb-3">
+                            <div class="col-md-6">
+                                <label class="form-label fw-bold">Print Type</label>
+                                <div class="form-check">
+                                    <input class="form-check-input price-trigger" type="radio" name="is_color" id="bw" value="False" checked>
+                                    <label class="form-check-label" for="bw">Black & White</label>
+                                </div>
+                                <div class="form-check">
+                                    <input class="form-check-input price-trigger" type="radio" name="is_color" id="color" value="True">
+                                    <label class="form-check-label" for="color">Color</label>
+                                </div>
                             </div>
-                        </label>
-                    </div>
-                    <p id="file-name" class="text-sm text-blue-400 mt-2"></p>
+                            <div class="col-md-6">
+                                <label class="form-label fw-bold">Paper Side</label>
+                                <div class="form-check">
+                                    <input class="form-check-input price-trigger" type="checkbox" id="double_sided" name="is_double_sided">
+                                    <label class="form-check-label" for="double_sided">Double Sided (Saves paper!)</label>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="mb-3">
+                            <label for="binding" class="form-label fw-bold">Binding / Finishing</label>
+                            <select class="form-select price-trigger" id="binding" name="binding">
+                                <option value="none" selected>No Binding</option>
+                                <option value="staple">Staple (Corner)</option>
+                                <option value="spiral">Spiral Binding (+1,000 UGX)</option>
+                            </select>
+                        </div>
+
+                        <div class="mb-4">
+                            <label for="station" class="form-label fw-bold">Pickup Station</label>
+                            <select class="form-select" id="station" name="station" required>
+                                <option value="" disabled selected>Choose a station...</option>
+                                {% for station in stations %}
+                                    <option value="{{ station.id }}">{{ station.name }}</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+
+                        <div class="alert alert-secondary d-flex justify-content-between align-items-center">
+                            <span class="fw-bold fs-5">Estimated Total:</span>
+                            <span class="fw-bold fs-4 text-primary" id="live-price">0 UGX</span>
+                        </div>
+
+                        <button type="submit" class="btn btn-primary w-100 fs-5">Submit Order</button>
+                    </form>
                 </div>
-
-                <!-- Page Count -->
-                <div>
-                    <label class="block text-sm font-medium text-gray-300 mb-2">Number of Pages</label>
-                    <input 
-                        type="number" 
-                        name="page_count" 
-                        min="1" 
-                        value="1"
-                        class="w-full bg-white/10 border border-white/10 rounded-xl px-4 py-3 text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
-                        required
-                    />
-                </div>
-
-                <!-- Options -->
-                <div class="grid grid-cols-2 gap-4">
-                    <label class="flex items-center space-x-3 cursor-pointer">
-                        <input 
-                            type="checkbox" 
-                            name="is_color" 
-                            value="True"
-                            class="w-5 h-5 rounded bg-white/10 border-white/20 text-blue-600 focus:ring-blue-500"
-                        />
-                        <span class="text-gray-300">Color Print</span>
-                    </label>
-
-                    <label class="flex items-center space-x-3 cursor-pointer">
-                        <input 
-                            type="checkbox" 
-                            name="is_double_sided"
-                            class="w-5 h-5 rounded bg-white/10 border-white/20 text-blue-600 focus:ring-blue-500"
-                        />
-                        <span class="text-gray-300">Double-sided</span>
-                    </label>
-                </div>
-
-                <!-- Station Selection -->
-                <div>
-                    <label class="block text-sm font-medium text-gray-300 mb-2">Pickup Station</label>
-                    <select 
-                        name="station" 
-                        class="w-full bg-white/10 border border-white/10 rounded-xl px-4 py-3 text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
-                        required
-                    >
-                        <option value="" class="bg-slate-800">Select a station</option>
-                        {% for station in stations %}
-                        <option value="{{ station.id }}" class="bg-slate-800">{{ station.name }}</option>
-                        {% endfor %}
-                    </select>
-                </div>
-
-                <!-- Submit Button -->
-       <button 
-    type="submit" 
-    class="w-full bg-blue-600 text-white font-bold py-4 rounded-xl hover:bg-blue-700 hover:shadow-lg hover:shadow-blue-600/30 transition-all hover:-translate-y-1"
->
-    Upload & Continue
-</button>
-            </form>
+            </div>
         </div>
     </div>
 </div>
 
+<script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/mammoth/1.6.0/mammoth.browser.min.js"></script>
+
 <script>
-document.getElementById('file-input').addEventListener('change', function(e) {
-    const fileName = e.target.files[0]?.name;
-    const fileNameDisplay = document.getElementById('file-name');
-    if (fileName) {
-        fileNameDisplay.textContent = '✓ Selected: ' + fileName;
+    pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
+
+    const BASE_PRICE_BW = 200;
+    const COLOR_SURCHARGE = 100;
+    const SPIRAL_FEE = 1000;
+    const WORDS_PER_PAGE = 500;
+
+    const fileInput = document.getElementById('file');
+    const pageCountInput = document.getElementById('page_count');
+    const statusText = document.getElementById('page-count-status');
+    const livePrice = document.getElementById('live-price');
+    const priceTriggers = document.querySelectorAll('.price-trigger');
+
+    // 🔢 SMOOTH COUNTING ANIMATION
+    function animateCountUp(target, onComplete) {
+        if (target < 2) {
+            pageCountInput.value = target;
+            onComplete();
+            return;
+        }
+
+        const duration = 1000; // 1 second animation
+        const steps = 25;
+        const stepTime = duration / steps;
+        const increment = target / steps;
+        let current = 0;
+
+        // Show loading state
+        statusText.innerHTML = '⏳ <span class="spinner-border spinner-border-sm me-1"></span> Scanning document...';
+        statusText.className = 'form-text text-info mt-1';
+        pageCountInput.value = 0;
+
+        const timer = setInterval(() => {
+            current += increment;
+            pageCountInput.value = Math.round(current);
+
+            if (current >= target) {
+                clearInterval(timer);
+                pageCountInput.value = target;
+                onComplete();
+            }
+        }, stepTime);
     }
-});
+
+    function countWords(str) {
+        return str.trim().split(/\s+/).filter(word => word.length > 0).length;
+    }
+
+    fileInput.addEventListener('change', function(e) {
+        const file = e.target.files[0];
+        if (!file) return;
+
+        const ext = file.name.toLowerCase().split('.').pop();
+        
+        if (ext === 'pdf') {
+            const fileReader = new FileReader();
+            fileReader.onload = function() {
+                const typedarray = new Uint8Array(this.result);
+                pdfjsLib.getDocument(typedarray).promise.then(function(pdf) {
+                    animateCountUp(pdf.numPages, () => {
+                        statusText.innerText = `✅ Exact PDF page count: ${pdf.numPages} pages.`;
+                        statusText.className = 'form-text text-success mt-1';
+                    });
+                }).catch(() => {
+                    statusText.innerText = '❌ Could not read PDF. Please enter pages manually.';
+                    statusText.className = 'form-text text-danger mt-1';
+                    pageCountInput.value = 1;
+                    calculatePrice();
+                });
+            };
+            fileReader.readAsArrayBuffer(file);
+
+        } else if (['png', 'jpg', 'jpeg'].includes(ext)) {
+            animateCountUp(1, () => {
+                statusText.innerText = '✅ Image detected. Count set to 1 page.';
+                statusText.className = 'form-text text-success mt-1';
+            });
+
+        } else if (ext === 'docx') {
+            const reader = new FileReader();
+            reader.onload = function(event) {
+                const arrayBuffer = event.target.result;
+                mammoth.extractRawText({arrayBuffer})
+                    .then(function(result) {
+                        const words = countWords(result.value);
+                        const pages = Math.max(1, Math.ceil(words / WORDS_PER_PAGE));
+                        animateCountUp(pages, () => {
+                            statusText.innerText = `✅ DOCX detected ~${words} words. Estimated ${pages} pages.`;
+                            statusText.className = 'form-text text-success mt-1';
+                        });
+                    })
+                    .catch(() => {
+                        statusText.innerText = '❌ Could not read DOCX. Please enter pages manually.';
+                        statusText.className = 'form-text text-danger mt-1';
+                        pageCountInput.value = 1;
+                        calculatePrice();
+                    });
+            };
+            reader.readAsArrayBuffer(file);
+
+        } else if (ext === 'txt') {
+            const reader = new FileReader();
+            reader.onload = function(event) {
+                const text = event.target.result;
+                const words = countWords(text);
+                const pages = Math.max(1, Math.ceil(words / WORDS_PER_PAGE));
+                animateCountUp(pages, () => {
+                    statusText.innerText = `✅ TXT detected ~${words} words. Estimated ${pages} pages.`;
+                    statusText.className = 'form-text text-success mt-1';
+                });
+            };
+            reader.readAsText(file);
+
+        } else {
+            statusText.innerText = 'ℹ️ Auto-count not supported for .doc files. Please enter page count manually.';
+            statusText.className = 'form-text text-warning mt-1';
+            pageCountInput.value = 1;
+            calculatePrice();
+        }
+    });
+
+    function calculatePrice() {
+        let pages = parseInt(pageCountInput.value) || 0;
+        let isColor = document.getElementById('color').checked;
+        let isDoubleSided = document.getElementById('double_sided').checked;
+        let binding = document.getElementById('binding').value;
+
+        let effectivePages = isDoubleSided ? Math.ceil(pages / 2) : pages;
+        let pricePerPage = BASE_PRICE_BW + (isColor ? COLOR_SURCHARGE : 0);
+        let printingCost = effectivePages * pricePerPage;
+        let bindingCost = (binding === 'spiral') ? SPIRAL_FEE : 0;
+        
+        let total = printingCost + bindingCost;
+        livePrice.innerText = `${total.toLocaleString()} UGX`;
+    }
+
+    pageCountInput.addEventListener('input', calculatePrice);
+    priceTriggers.forEach(trigger => trigger.addEventListener('change', calculatePrice));
+    calculatePrice();
 </script>
 {% endblock %}
