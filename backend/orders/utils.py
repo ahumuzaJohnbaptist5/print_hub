@@ -2,7 +2,9 @@ from django.core.mail import send_mail
 from django.conf import settings
 from django.utils import timezone
 from datetime import timedelta
+from django.contrib.auth import get_user_model
 
+User = get_user_model()
 def send_welcome_email(user):
     """Send welcome email when user registers."""
     if not user.email:
@@ -211,44 +213,48 @@ The PrintHub Team
 # ==========================================
 def apply_order_status_change(order, new_status, user=None):
     """
-    Updates the order status, records timestamps, and sends email notifications.
-    Returns True if successful, False otherwise.
+    Updates the order status, sends email notification, and creates agent earnings.
     """
     old_status = order.status
     
-    # Don't update if status is the same
     if old_status == new_status:
         return False
     
-    # 1. Update timestamps based on new status
-    now = timezone.now()
-    if new_status == 'paid' and not order.paid_at:
-        order.paid_at = now
-    elif new_status == 'printing' and not order.printing_at:
-        order.printing_at = now
-    elif new_status == 'in_transit' and not order.in_transit_at:
-        order.in_transit_at = now
-    elif new_status == 'ready' and not order.ready_at:
-        order.ready_at = now
-    elif new_status == 'collected' and not order.collected_at:
-        order.collected_at = now
-        
-    # 2. Update the status in the database
     order.status = new_status
-    order.save()
+    order.save() # This triggers calculate_financials() in the Order model
     
-    # 3. --- EMAIL TRIGGERS ---
+    # --- AUTOMATIC AGENT EARNING ---
+    if new_status == 'collected' and order.station:
+        from finances.models import AgentEarning
+        
+        # Find the agent assigned to this specific station
+        agent = User.objects.filter(role='agent', station=order.station).first()
+        
+        # If an agent is found and we haven't paid them for this order yet
+        if agent and not AgentEarning.objects.filter(order=order).exists():
+            
+            # Calculate the percentage safely
+            rate = 0
+            if order.total_price > 0:
+                rate = float(order.agent_commission) / float(order.total_price) * 100
+                
+            AgentEarning.objects.create(
+                agent=agent,
+                order=order,
+                commission_rate=round(rate, 2),
+                commission_amount=order.agent_commission,
+                order_total=order.total_price
+            )
+
+    # --- EMAIL TRIGGERS ---
     try:
         if new_status == 'paid':
             send_payment_confirmed_email(order)
-        elif new_status == 'printing':
-            send_order_started_email(order)  # <--- ADDED THIS TRIGGER!
         elif new_status == 'ready':
             send_order_ready_email(order)
         elif new_status == 'collected':
             send_order_collected_email(order)
     except Exception as e:
-        # This prevents the site from crashing if PythonAnywhere blocks the email
-        print(f"⚠️ Email notification failed for Order #{order.id}: {e}")
+        print(f"Email notification failed for Order #{order.id}: {e}")
     
     return True
