@@ -14,13 +14,12 @@ from django.urls import reverse
 
 from stations.models import Station
 
-# UPDATED IMPORT: Added DeliveryZone
 from .models import Order, SystemSettings, DeliveryZone
 from .utils import apply_order_status_change, send_delayed_order_email
 
 User = get_user_model()
 
-ALLOWED_EXTENSIONS = {'.pdf', '.docx', '.doc', '.txt', '.png', '.jpg', '.jpeg'}
+ALLOWED_EXTENSIONS = {'.pdf', '.docx', '.doc', '.txt', '.png', '.jpg', '.jpeg', '.pptx'}
 MAX_UPLOAD_SIZE = 10 * 1024 * 1024
 
 
@@ -54,12 +53,9 @@ def dashboard_view(request):
     return render(request, 'orders/dashboard.html', {'orders': orders})
 
 
-# ==========================================
-# --- UPDATED UPLOAD VIEW (Delivery & Binding) ---
-# ==========================================
 def upload_view(request):
     stations = Station.objects.all()
-    delivery_zones = DeliveryZone.objects.filter(is_active=True) # NEW: Get active delivery zones
+    delivery_zones = DeliveryZone.objects.filter(is_active=True)
     upload_error = None
 
     if request.method == 'POST':
@@ -73,7 +69,6 @@ def upload_view(request):
         is_double_sided = request.POST.get('is_double_sided') == 'on'
         station_id = request.POST.get('station')
         
-        # NEW: Get binding and delivery data from the form
         binding = request.POST.get('binding', 'none')
         delivery_type = request.POST.get('delivery_type', 'pickup')
         delivery_zone_id = request.POST.get('delivery_zone')
@@ -86,13 +81,12 @@ def upload_view(request):
         if upload_error:
             return render(request, 'orders/upload.html', {
                 'stations': stations,
-                'delivery_zones': delivery_zones, # NEW: Pass zones to template on error
+                'delivery_zones': delivery_zones,
                 'upload_error': upload_error,
             })
 
         station = Station.objects.filter(id=station_id).first() if station_id else None
         
-        # NEW: Attach delivery zone if they chose delivery
         delivery_zone = None
         if delivery_type == 'delivery' and delivery_zone_id:
             delivery_zone = DeliveryZone.objects.filter(id=delivery_zone_id).first()
@@ -106,9 +100,9 @@ def upload_view(request):
                 page_count=int(page_count),
                 is_color=is_color,
                 is_double_sided=is_double_sided,
-                binding=binding,             # NEW
-                delivery_type=delivery_type, # NEW
-                delivery_zone=delivery_zone, # NEW
+                binding=binding,
+                delivery_type=delivery_type,
+                delivery_zone=delivery_zone,
                 status='pending',
             )
             messages.success(
@@ -120,13 +114,13 @@ def upload_view(request):
             upload_error = f'Error creating order: {str(e)}'
             return render(request, 'orders/upload.html', {
                 'stations': stations,
-                'delivery_zones': delivery_zones, # NEW
+                'delivery_zones': delivery_zones,
                 'upload_error': upload_error,
             })
 
     return render(request, 'orders/upload.html', {
         'stations': stations,
-        'delivery_zones': delivery_zones, # NEW: Pass zones to template on GET
+        'delivery_zones': delivery_zones,
     })
 
 
@@ -186,6 +180,7 @@ def _order_summary_counts():
         'total': Order.objects.count(),
         'pending': Order.objects.filter(status='pending').count(),
         'printing': Order.objects.filter(status='printing').count(),
+        'in_transit': Order.objects.filter(status='in_transit').count(), # <--- NEW
         'ready': Order.objects.filter(status='ready').count(),
         'collected_today': Order.objects.filter(
             status='collected', collected_at__gte=today_start
@@ -214,7 +209,7 @@ def admin_dashboard_view(request):
         if action == 'bulk_status':
             new_status = request.POST.get('bulk_status')
             order_ids = request.POST.getlist('order_ids')
-            valid = ['printing', 'ready', 'collected']
+            valid = ['printing', 'in_transit', 'ready', 'collected'] # <--- UPDATED
             if new_status in valid and order_ids:
                 for oid in order_ids:
                     order = Order.objects.filter(id=oid).first()
@@ -232,7 +227,6 @@ def admin_dashboard_view(request):
     agents = User.objects.filter(role='agent').select_related('station')
     stations = Station.objects.all()
     
-    # NEW: Load system settings for the template
     system_settings = SystemSettings.load()
 
     active_filters = []
@@ -259,13 +253,12 @@ def admin_dashboard_view(request):
         'filter_date': request.GET.get('date', ''),
         'filter_search': request.GET.get('search', ''),
         'total_filtered': orders_qs.count(),
-        'system_settings': system_settings,  # <--- PASS TO TEMPLATE
+        'system_settings': system_settings,
     })
 
 
 @login_required
 def toggle_system_pause_view(request):
-    """Allows Admin to pause or resume all order timers."""
     if _user_role(request.user) != 'admin':
         return HttpResponseForbidden("Admin access only.")
         
@@ -295,14 +288,12 @@ def toggle_system_pause_view(request):
 
 
 def is_agent_or_admin(user):
-    """Helper to check if user is agent or admin"""
     return user.is_authenticated and (user.role == 'agent' or user.is_staff)
 
 
 @login_required
 @user_passes_test(is_agent_or_admin, login_url='login')
 def agent_dashboard_view(request):
-    """Agent dashboard with status updates, delay, cancel, and postpone actions"""
     if request.user.role == 'agent' and request.user.station:
         orders = Order.objects.filter(station=request.user.station).order_by('-created_at')
     else:
@@ -328,7 +319,6 @@ def agent_dashboard_view(request):
             send_delayed_order_email(order, reason)
             messages.success(request, f'Delay notification sent for Order #{order.id}.')
             
-        # NEW: Cancel Order Action
         elif action == 'cancel_order':
             order = get_object_or_404(Order, id=order_id)
             if order.status not in ['collected', 'cancelled']:
@@ -338,7 +328,6 @@ def agent_dashboard_view(request):
             else:
                 messages.error(request, 'Cannot cancel this order.')
                 
-        # NEW: Postpone Order Action
         elif action == 'postpone_order':
             order = get_object_or_404(Order, id=order_id)
             if order.status not in ['collected', 'cancelled']:
@@ -373,7 +362,8 @@ def update_order_status_view(request, order_id):
 
     if request.method == 'POST':
         new_status = request.POST.get('status')
-        valid_statuses = ['pending', 'paid', 'printing', 'ready', 'collected', 'cancelled']
+        # <--- UPDATED VALID STATUSES (Changed 'in transit' to 'in_transit')
+        valid_statuses = ['pending', 'paid', 'printing', 'in_transit', 'ready', 'collected', 'cancelled']
         if new_status not in valid_statuses:
             messages.error(request, 'Invalid status.')
             return redirect('dashboard')
@@ -439,17 +429,20 @@ def order_track_view(request):
                 lookup_error = 'No orders found for that email address.'
                 orders = None
 
+    # <--- UPDATED TIMELINE STEPS
     timeline_steps = [
         ('submitted', 'Submitted', 'created_at'),
         ('paid', 'Paid', 'paid_at'),
         ('printing', 'Printing', 'printing_at'),
+        ('in_transit', 'In Transit', 'in_transit_at'), # <--- NEW STEP
         ('ready', 'Ready for Pickup', 'ready_at'),
         ('collected', 'Collected', 'collected_at'),
     ]
 
     order_timelines = []
     if orders:
-        status_step_map = {'pending': 0, 'paid': 1, 'printing': 2, 'ready': 3, 'collected': 4}
+        # <--- UPDATED STATUS MAP
+        status_step_map = {'pending': 0, 'paid': 1, 'printing': 2, 'in_transit': 3, 'ready': 4, 'collected': 5}
         for order in orders:
             current_step = status_step_map.get(order.status, 0)
             steps = []
@@ -483,23 +476,16 @@ def order_track_view(request):
     })
 
 
-# ==========================================
-# --- LIVE BOARD & HOMEPAGE VIEWS ---
-# ==========================================
-
 def home_view(request):
-    """Renders the new homepage with the live departures board."""
     return render(request, 'home.html')
 
 @login_required
 def live_board_view(request):
-    """Renders the real-time airport-style flight board HTML page."""
     return render(request, 'orders/live_board.html')
 
 def live_board_api_view(request):
-    """API endpoint for JavaScript to poll real-time updates."""
-    # Include 'cancelled' so they show up on the board like cancelled flights
-    active_statuses = ['paid', 'printing', 'ready', 'cancelled'] 
+    # <--- UPDATED ACTIVE STATUSES
+    active_statuses = ['paid', 'printing', 'in_transit', 'ready', 'cancelled'] 
     orders = Order.objects.filter(status__in=active_statuses).select_related('station', 'client')
     
     board_data = []
@@ -517,10 +503,8 @@ def live_board_api_view(request):
             'priority_level': priority['level'],
         })
         
-    # Sort so most urgent orders are at the top, but cancelled orders go to the bottom
     board_data.sort(key=lambda x: (x['status_raw'] == 'cancelled', x['remaining_seconds']))
     
-    # NEW: Get system pause status
     sys_settings = SystemSettings.load()
     
     return JsonResponse({
@@ -530,12 +514,7 @@ def live_board_api_view(request):
     })
 
 
-# ==========================================
-# --- ALL LINKS INDEX VIEW ---
-# ==========================================
-
 def all_links_view(request):
-    """A cheat-sheet page that lists all available URLs in the app."""
     links_data = [
         ('home', 'Home (Live Board)', 'Live departures board'),
         ('dashboard', 'Client Dashboard', 'View your past orders'),
