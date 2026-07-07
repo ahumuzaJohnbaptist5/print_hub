@@ -34,6 +34,20 @@ class SystemSettings(models.Model):
         return total
 
 
+# ==========================================
+# --- NEW DELIVERY ZONE MODEL ---
+# ==========================================
+class DeliveryZone(models.Model):
+    """Defines different delivery areas and their transport costs."""
+    name = models.CharField(max_length=100, help_text="e.g., Main Campus, City Center")
+    description = models.CharField(max_length=255, blank=True, null=True)
+    delivery_fee = models.IntegerField(default=0, help_text="Delivery fee in UGX")
+    is_active = models.BooleanField(default=True)
+
+    def __str__(self):
+        return f"{self.name} ({self.delivery_fee:,} UGX)"
+
+
 class Order(models.Model):
     STATUS_CHOICES = (
         ('pending', 'Pending'),
@@ -41,7 +55,19 @@ class Order(models.Model):
         ('printing', 'Printing'),
         ('ready', 'Ready for Pickup'),
         ('collected', 'Collected'),
-        ('cancelled', 'Cancelled'), # NEW STATUS
+        ('cancelled', 'Cancelled'),
+    )
+
+    # --- NEW CHOICES ---
+    DELIVERY_TYPE_CHOICES = (
+        ('pickup', 'Pickup at Station'),
+        ('delivery', 'Deliver to Me'),
+    )
+
+    BINDING_CHOICES = (
+        ('none', 'No Binding'),
+        ('staple', 'Staple (Corner)'),
+        ('spiral', 'Spiral Binding'),
     )
 
     client = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE)
@@ -51,6 +77,11 @@ class Order(models.Model):
     page_count = models.IntegerField()
     is_color = models.BooleanField(default=False)
     is_double_sided = models.BooleanField(default=False)
+
+    # --- NEW FIELDS ---
+    binding = models.CharField(max_length=20, choices=BINDING_CHOICES, default='none')
+    delivery_type = models.CharField(max_length=20, choices=DELIVERY_TYPE_CHOICES, default='pickup')
+    delivery_zone = models.ForeignKey(DeliveryZone, on_delete=models.SET_NULL, null=True, blank=True)
 
     total_price = models.IntegerField(default=0)
     status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='pending')
@@ -68,18 +99,31 @@ class Order(models.Model):
 
     BASE_PRICE_BW = 200
     COLOR_SURCHARGE = 100
+    SPIRAL_BINDING_FEE = 1000  # Added for binding calculation
 
     @classmethod
-    def compute_price(cls, page_count, is_color=False, is_double_sided=False):
+    def compute_price(cls, page_count, is_color=False, is_double_sided=False, binding='none', delivery_fee=0):
         price_per_page = cls.BASE_PRICE_BW + (cls.COLOR_SURCHARGE if is_color else 0)
         effective_pages = page_count
         if is_double_sided:
             effective_pages = math.ceil(page_count / 2)
-        return price_per_page * effective_pages, effective_pages, price_per_page
+            
+        printing_cost = price_per_page * effective_pages
+        
+        binding_cost = 0
+        if binding == 'spiral':
+            binding_cost = cls.SPIRAL_BINDING_FEE
+            
+        # Total includes printing + binding + delivery
+        total_price = printing_cost + binding_cost + delivery_fee
+        return total_price, effective_pages, price_per_page
 
     def calculate_price(self):
+        # Get delivery fee from the selected zone, or 0 if pickup
+        delivery_fee = self.delivery_zone.delivery_fee if self.delivery_zone and self.delivery_type == 'delivery' else 0
+        
         total, _, _ = self.compute_price(
-            self.page_count, self.is_color, self.is_double_sided
+            self.page_count, self.is_color, self.is_double_sided, self.binding, delivery_fee
         )
         self.total_price = total
         return self.total_price
