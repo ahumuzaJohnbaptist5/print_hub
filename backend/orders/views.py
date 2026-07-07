@@ -14,7 +14,8 @@ from django.urls import reverse
 
 from stations.models import Station
 
-from .models import Order, SystemSettings
+# UPDATED IMPORT: Added DeliveryZone
+from .models import Order, SystemSettings, DeliveryZone
 from .utils import apply_order_status_change, send_delayed_order_email
 
 User = get_user_model()
@@ -53,8 +54,12 @@ def dashboard_view(request):
     return render(request, 'orders/dashboard.html', {'orders': orders})
 
 
+# ==========================================
+# --- UPDATED UPLOAD VIEW (Delivery & Binding) ---
+# ==========================================
 def upload_view(request):
     stations = Station.objects.all()
+    delivery_zones = DeliveryZone.objects.filter(is_active=True) # NEW: Get active delivery zones
     upload_error = None
 
     if request.method == 'POST':
@@ -67,6 +72,11 @@ def upload_view(request):
         is_color = request.POST.get('is_color', 'False') == 'True'
         is_double_sided = request.POST.get('is_double_sided') == 'on'
         station_id = request.POST.get('station')
+        
+        # NEW: Get binding and delivery data from the form
+        binding = request.POST.get('binding', 'none')
+        delivery_type = request.POST.get('delivery_type', 'pickup')
+        delivery_zone_id = request.POST.get('delivery_zone')
 
         if not file:
             upload_error = 'Please select a file.'
@@ -76,10 +86,16 @@ def upload_view(request):
         if upload_error:
             return render(request, 'orders/upload.html', {
                 'stations': stations,
+                'delivery_zones': delivery_zones, # NEW: Pass zones to template on error
                 'upload_error': upload_error,
             })
 
         station = Station.objects.filter(id=station_id).first() if station_id else None
+        
+        # NEW: Attach delivery zone if they chose delivery
+        delivery_zone = None
+        if delivery_type == 'delivery' and delivery_zone_id:
+            delivery_zone = DeliveryZone.objects.filter(id=delivery_zone_id).first()
 
         try:
             order = Order.objects.create(
@@ -90,6 +106,9 @@ def upload_view(request):
                 page_count=int(page_count),
                 is_color=is_color,
                 is_double_sided=is_double_sided,
+                binding=binding,             # NEW
+                delivery_type=delivery_type, # NEW
+                delivery_zone=delivery_zone, # NEW
                 status='pending',
             )
             messages.success(
@@ -101,10 +120,14 @@ def upload_view(request):
             upload_error = f'Error creating order: {str(e)}'
             return render(request, 'orders/upload.html', {
                 'stations': stations,
+                'delivery_zones': delivery_zones, # NEW
                 'upload_error': upload_error,
             })
 
-    return render(request, 'orders/upload.html', {'stations': stations})
+    return render(request, 'orders/upload.html', {
+        'stations': stations,
+        'delivery_zones': delivery_zones, # NEW: Pass zones to template on GET
+    })
 
 
 @login_required
