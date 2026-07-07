@@ -29,8 +29,9 @@
                     <label class="flex flex-col items-center justify-center w-full h-36 border-2 border-dashed border-indigo-300 rounded-2xl cursor-pointer bg-indigo-50 hover:bg-indigo-100 transition-all duration-200 group">
                         <svg class="w-10 h-10 text-indigo-400 group-hover:scale-110 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12"></path></svg>
                         <span class="text-sm text-indigo-600 font-semibold mt-2" id="dropzone-text">Click to upload your document</span>
-                        <span class="text-xs text-gray-500 mt-1">PDF, DOCX, TXT, PNG, JPG (Max 10MB)</span>
-                        <input type="file" class="hidden" id="file" name="file" accept=".pdf,.docx,.doc,.txt,.png,.jpg,.jpeg" required>
+                        <span class="text-xs text-gray-500 mt-1">PDF, PPTX, DOCX, TXT, PNG, JPG (Max 10MB)</span>
+                        <!-- Added .pptx to accept -->
+                        <input type="file" class="hidden" id="file" name="file" accept=".pdf,.pptx,.docx,.doc,.txt,.png,.jpg,.jpeg" required>
                     </label>
                     <div id="page-count-status" class="text-sm mt-2 text-gray-500 text-center h-5"></div>
                 </div>
@@ -43,7 +44,7 @@
 
                 <!-- 3. Page Count -->
                 <div class="mb-6">
-                    <label for="page_count" class="block text-sm font-bold text-gray-700 mb-2">Number of Pages</label>
+                    <label for="page_count" class="block text-sm font-bold text-gray-700 mb-2">Number of Pages / Slides</label>
                     <input type="number" class="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-all outline-none text-gray-700" id="page_count" name="page_count" min="1" value="1" required>
                 </div>
 
@@ -92,7 +93,7 @@
                     </select>
                 </div>
 
-                <!-- 7. NEW: Delivery Options -->
+                <!-- 7. Delivery Options -->
                 <div class="mb-6 bg-gray-50 p-5 rounded-2xl border border-gray-200">
                     <label class="block text-sm font-bold text-gray-700 mb-3">How do you want to get it?</label>
                     <div class="grid grid-cols-2 gap-3 mb-4">
@@ -106,13 +107,11 @@
                         </label>
                     </div>
 
-                    <!-- Delivery Zone Dropdown (Hidden by default) -->
                     <div id="delivery-zone-container" class="hidden transition-all">
                         <label for="delivery_zone" class="block text-sm font-medium text-gray-600 mb-1">Select your delivery zone:</label>
                         <select class="price-trigger w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-indigo-500 outline-none text-gray-700 bg-white" id="delivery_zone" name="delivery_zone">
                             <option value="" disabled selected>Choose a zone...</option>
                             {% for zone in delivery_zones %}
-                                <!-- data-fee is used by JS to calculate live price -->
                                 <option value="{{ zone.id }}" data-fee="{{ zone.delivery_fee }}">
                                     {{ zone.name }} (+{{ zone.delivery_fee|default:0 }} UGX)
                                 </option>
@@ -135,8 +134,11 @@
     </div>
 </div>
 
+<!-- JS Libraries -->
 <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/mammoth/1.6.0/mammoth.browser.min.js"></script>
+<!-- NEW: JSZip for reading PPTX files -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
 
 <script>
     pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
@@ -160,15 +162,10 @@
     const deliveryZoneContainer = document.getElementById('delivery-zone-container');
     const deliveryZoneSelect = document.getElementById('delivery_zone');
 
-    // Toggle Delivery Zone Dropdown
     deliveryTriggers.forEach(trigger => {
         trigger.addEventListener('change', function() {
-            if (this.value === 'delivery') {
-                deliveryZoneContainer.classList.remove('hidden');
-            } else {
-                deliveryZoneContainer.classList.add('hidden');
-                deliveryZoneSelect.value = ''; // Reset zone if pickup is selected
-            }
+            if (this.value === 'delivery') deliveryZoneContainer.classList.remove('hidden');
+            else { deliveryZoneContainer.classList.add('hidden'); deliveryZoneSelect.value = ''; }
             calculatePrice();
         });
     });
@@ -206,26 +203,144 @@
         const ext = file.name.toLowerCase().split('.').pop();
         const fileURL = URL.createObjectURL(file);
 
-        if (['png', 'jpg', 'jpeg'].includes(ext)) showPreview(`<img src="${fileURL}" class="max-h-64 rounded-lg shadow-md mx-auto block">`);
-        else if (ext === 'pdf') showPreview(`<iframe src="${fileURL}" class="w-full h-64 rounded-lg shadow-md border bg-white"></iframe>`);
-        else if (ext === 'txt') { const r = new FileReader(); r.onload = (ev) => showPreview(`<pre class="text-sm text-gray-700 whitespace-pre-wrap font-mono">${ev.target.result.replace(/</g, "&lt;")}</pre>`); r.readAsText(file); }
-        else if (ext === 'docx') { const r = new FileReader(); r.onload = (ev) => mammoth.convertToHtml({arrayBuffer: ev.target.result}).then(res => showPreview(`<div class="prose prose-sm max-w-none text-gray-700">${res.value}</div>`)); r.readAsArrayBuffer(file); }
+        // ==========================================
+        // --- PREVIEW LOGIC ---
+        // ==========================================
+        if (['png', 'jpg', 'jpeg'].includes(ext)) {
+            showPreview(`<img src="${fileURL}" class="max-h-64 rounded-lg shadow-md mx-auto block">`);
+        } else if (ext === 'pdf') {
+            showPreview(`<iframe src="${fileURL}" class="w-full h-64 rounded-lg shadow-md border bg-white"></iframe>`);
+        } else if (ext === 'txt') {
+            const r = new FileReader(); 
+            r.onload = (ev) => showPreview(`<pre class="text-sm text-gray-700 whitespace-pre-wrap font-mono">${ev.target.result.replace(/</g, "&lt;")}</pre>`); 
+            r.readAsText(file);
+        } else if (ext === 'docx') {
+            const r = new FileReader(); 
+            r.onload = (ev) => mammoth.convertToHtml({arrayBuffer: ev.target.result}).then(res => showPreview(`<div class="prose prose-sm max-w-none text-gray-700">${res.value}</div>`)); 
+            r.readAsArrayBuffer(file);
+        } 
+        // --- NEW: PPTX PREVIEW (Extracts text from slides) ---
+        else if (ext === 'pptx') {
+            const reader = new FileReader();
+            reader.onload = function(event) {
+                JSZip.loadAsync(event.target.result).then(function(zip) {
+                    let slideTexts = [];
+                    const promises = [];
+                    
+                    // Extract text from first 3 slides for preview
+                    for (let i = 1; i <= 3; i++) {
+                        const slideFile = zip.file(`ppt/slides/slide${i}.xml`);
+                        if (slideFile) {
+                            promises.push(
+                                slideFile.async("string").then(content => {
+                                    // Extract text between <a:t> tags
+                                    const matches = content.match(/<a:t>([^<]*)<\/a:t>/g);
+                                    if (matches) {
+                                        const text = matches.map(m => m.replace(/<\/?a:t>/g, '')).join(' ');
+                                        slideTexts.push(`<div class="mb-3 pb-3 border-b border-gray-200"><span class="font-bold text-indigo-600 text-xs uppercase">Slide ${i}</span><p class="text-sm text-gray-700 mt-1">${text}</p></div>`);
+                                    }
+                                })
+                            );
+                        }
+                    }
+                    
+                    Promise.all(promises).then(() => {
+                        if (slideTexts.length > 0) {
+                            showPreview(`<div class="bg-white p-4 rounded-lg text-left">${slideTexts.join('')}<p class="text-xs text-gray-400 text-center mt-2">Showing text from first ${slideTexts.length} slides...</p></div>`);
+                        } else {
+                            showPreview(`<div class="text-center py-8 text-gray-500"><p class="font-bold text-lg">PowerPoint Presentation</p><p>No text could be extracted.</p></div>`);
+                        }
+                    });
+                }).catch(() => {
+                    showPreview(`<div class="text-center py-8 text-gray-500"><p class="font-bold text-lg">PowerPoint Presentation</p><p>Could not read file.</p></div>`);
+                });
+            };
+            reader.readAsArrayBuffer(file);
+        }
 
-        if (ext === 'pdf') { const r = new FileReader(); r.onload = function() { pdfjsLib.getDocument(new Uint8Array(this.result)).promise.then(pdf => animateCountUp(pdf.numPages, () => { statusText.innerText = `✅ Exact PDF: ${pdf.numPages} pages.`; statusText.className = 'text-sm mt-2 text-green-600 text-center h-5 font-medium'; })); }; r.readAsArrayBuffer(file); }
-        else if (['png', 'jpg', 'jpeg'].includes(ext)) animateCountUp(1, () => { statusText.innerText = '✅ Image: 1 page.'; statusText.className = 'text-sm mt-2 text-green-600 text-center h-5 font-medium'; });
-        else if (ext === 'docx') { const r = new FileReader(); r.onload = (ev) => mammoth.extractRawText({arrayBuffer: ev.target.result}).then(res => { const p = Math.max(1, Math.ceil(countWords(res.value)/WORDS_PER_PAGE)); animateCountUp(p, () => { statusText.innerText = `✅ DOCX: Est. ${p} pages.`; statusText.className = 'text-sm mt-2 text-green-600 text-center h-5 font-medium'; }); }); r.readAsArrayBuffer(file); }
-        else if (ext === 'txt') { const r = new FileReader(); r.onload = (ev) => { const p = Math.max(1, Math.ceil(countWords(ev.target.result)/WORDS_PER_PAGE)); animateCountUp(p, () => { statusText.innerText = `✅ TXT: Est. ${p} pages.`; statusText.className = 'text-sm mt-2 text-green-600 text-center h-5 font-medium'; }); }; r.readAsText(file); }
-        else { statusText.innerText = 'ℹ️ Enter pages manually.'; statusText.className = 'text-sm mt-2 text-yellow-600 text-center h-5 font-medium'; pageCountInput.value = 1; calculatePrice(); }
+        // ==========================================
+        // --- PAGE COUNTING LOGIC ---
+        // ==========================================
+        if (ext === 'pdf') {
+            const r = new FileReader(); 
+            r.onload = function() { 
+                pdfjsLib.getDocument(new Uint8Array(this.result)).promise.then(pdf => animateCountUp(pdf.numPages, () => { 
+                    statusText.innerText = `✅ Exact PDF: ${pdf.numPages} pages.`; 
+                    statusText.className = 'text-sm mt-2 text-green-600 text-center h-5 font-medium'; 
+                })); 
+            }; 
+            r.readAsArrayBuffer(file);
+        } else if (['png', 'jpg', 'jpeg'].includes(ext)) {
+            animateCountUp(1, () => { 
+                statusText.innerText = '✅ Image: 1 page.'; 
+                statusText.className = 'text-sm mt-2 text-green-600 text-center h-5 font-medium'; 
+            });
+        } 
+        // --- NEW: PPTX SLIDE COUNTING (100% Accurate) ---
+        else if (ext === 'pptx') {
+            const reader = new FileReader();
+            reader.onload = function(event) {
+                JSZip.loadAsync(event.target.result).then(function(zip) {
+                    let slideCount = 0;
+                    // Count exactly how many slide XML files exist in the ZIP
+                    zip.forEach(function (relativePath, zipEntry) {
+                        if (zipEntry.name.match(/ppt\/slides\/slide\d+\.xml$/)) {
+                            slideCount++;
+                        }
+                    });
+                    
+                    if (slideCount > 0) {
+                        animateCountUp(slideCount, () => {
+                            statusText.innerText = `✅ Exact PPTX: ${slideCount} slides.`;
+                            statusText.className = 'text-sm mt-2 text-green-600 text-center h-5 font-medium';
+                        });
+                    } else {
+                        throw new Error("No slides found");
+                    }
+                }).catch(() => {
+                    statusText.innerText = '❌ Could not read PPTX. Enter manually.';
+                    statusText.className = 'text-sm mt-2 text-red-500 text-center h-5 font-medium';
+                    pageCountInput.value = 1;
+                    calculatePrice();
+                });
+            };
+            reader.readAsArrayBuffer(file);
+        } 
+        else if (ext === 'docx') {
+            const r = new FileReader(); 
+            r.onload = (ev) => mammoth.extractRawText({arrayBuffer: ev.target.result}).then(res => { 
+                const p = Math.max(1, Math.ceil(countWords(res.value)/WORDS_PER_PAGE)); 
+                animateCountUp(p, () => { 
+                    statusText.innerText = `✅ DOCX: Est. ${p} pages.`; 
+                    statusText.className = 'text-sm mt-2 text-green-600 text-center h-5 font-medium'; 
+                }); 
+            }); 
+            r.readAsArrayBuffer(file);
+        } else if (ext === 'txt') {
+            const r = new FileReader(); 
+            r.onload = (ev) => { 
+                const p = Math.max(1, Math.ceil(countWords(ev.target.result)/WORDS_PER_PAGE)); 
+                animateCountUp(p, () => { 
+                    statusText.innerText = `✅ TXT: Est. ${p} pages.`; 
+                    statusText.className = 'text-sm mt-2 text-green-600 text-center h-5 font-medium'; 
+                }); 
+            }; 
+            r.readAsText(file);
+        } else {
+            statusText.innerText = 'ℹ️ Enter pages manually.'; 
+            statusText.className = 'text-sm mt-2 text-yellow-600 text-center h-5 font-medium'; 
+            pageCountInput.value = 1; 
+            calculatePrice();
+        }
     });
 
-    // 💰 LIVE PRICE CALCULATOR (Now includes delivery!)
+    // 💰 LIVE PRICE CALCULATOR
     function calculatePrice() {
         let pages = parseInt(pageCountInput.value) || 0;
         let isColor = document.querySelector('input[name="is_color"]:checked').value === 'True';
         let isDoubleSided = document.getElementById('double_sided').checked;
         let binding = document.getElementById('binding').value;
         
-        // Delivery Logic
         let deliveryType = document.querySelector('input[name="delivery_type"]:checked').value;
         let deliveryFee = 0;
         if (deliveryType === 'delivery') {
