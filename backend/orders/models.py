@@ -1,5 +1,6 @@
 import math
 from datetime import timedelta
+from decimal import Decimal
 
 from django.db import models
 from django.conf import settings
@@ -48,7 +49,7 @@ class Order(models.Model):
         ('pending', 'Pending'),
         ('paid', 'Paid'),
         ('printing', 'Printing'),
-        ('in_transit', 'In Transit'), # <--- NEW STATUS
+        ('in_transit', 'In Transit'),
         ('ready', 'Ready for Pickup'),
         ('collected', 'Collected'),
         ('cancelled', 'Cancelled'),
@@ -84,13 +85,21 @@ class Order(models.Model):
     
     paid_at = models.DateTimeField(blank=True, null=True)
     printing_at = models.DateTimeField(blank=True, null=True)
-    in_transit_at = models.DateTimeField(blank=True, null=True) # <--- NEW TIMESTAMP
+    in_transit_at = models.DateTimeField(blank=True, null=True)
     ready_at = models.DateTimeField(blank=True, null=True)
     collected_at = models.DateTimeField(blank=True, null=True)
     created_at = models.DateTimeField(auto_now_add=True)
     
     sla_minutes = models.IntegerField(default=120, help_text="Target time to complete order in minutes.")
     postponed_minutes = models.IntegerField(default=0, help_text="Extra minutes added if the order is postponed.")
+
+    # ==========================================
+    # --- NEW FINANCIAL TRACKING FIELDS ---
+    # ==========================================
+    paper_used = models.IntegerField(default=0, help_text="Number of physical sheets consumed")
+    cost_of_goods = models.DecimalField(max_digits=10, decimal_places=2, default=0, help_text="Cost of paper used")
+    agent_commission = models.DecimalField(max_digits=10, decimal_places=2, default=0, help_text="Commission paid to agent")
+    profit = models.DecimalField(max_digits=10, decimal_places=2, default=0, help_text="Net profit for this order")
 
     BASE_PRICE_BW = 200
     COLOR_SURCHARGE = 100
@@ -120,6 +129,39 @@ class Order(models.Model):
         self.total_price = total
         return self.total_price
 
+    def calculate_financials(self):
+        """Calculates paper used, cost of goods, commission, and profit."""
+        # 1. Calculate physical paper used (effective pages)
+        _, effective_pages, _ = self.compute_price(
+            self.page_count, self.is_color, self.is_double_sided, self.binding
+        )
+        self.paper_used = effective_pages
+
+        # 2. Calculate Cost of Goods (Safely fetch from finances app)
+        try:
+            from finances.models import PaperInventory
+            paper = PaperInventory.objects.first()
+            if paper:
+                self.cost_of_goods = effective_pages * paper.cost_per_sheet
+            else:
+                self.cost_of_goods = 0
+        except Exception:
+            self.cost_of_goods = 0
+
+        # 3. Calculate Agent Commission (Safely fetch from finances app)
+        try:
+            from finances.models import CommissionRate
+            rate = CommissionRate.get_active_rate()
+            if rate:
+                self.agent_commission = (Decimal(self.total_price) * rate.rate_percentage) / 100
+            else:
+                self.agent_commission = 0
+        except Exception:
+            self.agent_commission = 0
+
+        # 4. Calculate Net Profit
+        self.profit = Decimal(self.total_price) - self.cost_of_goods - self.agent_commission
+
     def estimated_ready_at(self):
         if self.paid_at:
             total_minutes = self.sla_minutes + self.postponed_minutes
@@ -130,55 +172,3 @@ class Order(models.Model):
     def priority_info(self):
         if self.status == 'cancelled':
             return {
-                'level': 'cancelled', 'display': 'CANCELLED',
-                'remaining_seconds': 0, 'time_display': '--:--:--', 'is_overdue': False
-            }
-
-        start_time = self.paid_at or self.created_at
-        total_minutes = self.sla_minutes + self.postponed_minutes
-        deadline = start_time + timedelta(minutes=total_minutes)
-        now = timezone.now()
-        
-        try:
-            sys_settings = SystemSettings.load()
-            paused_seconds = sys_settings.get_current_paused_seconds()
-        except Exception:
-            paused_seconds = 0
-            
-        effective_deadline = deadline + timedelta(seconds=paused_seconds)
-        
-        remaining_td = effective_deadline - now
-        remaining_seconds = max(0, int(remaining_td.total_seconds()))
-        is_overdue = now > effective_deadline
-        
-        is_postponed = self.postponed_minutes > 0
-        
-        if is_postponed:
-            level, display = 'postponed', 'POSTPONED'
-        elif is_overdue:
-            level, display = 'overdue', 'OVERDUE'
-        elif remaining_seconds < 600:
-            level, display = 'critical', 'CRITICAL'
-        elif remaining_seconds < 1800:
-            level, display = 'urgent', 'URGENT'
-        elif remaining_seconds < 3600:
-            level, display = 'high', 'HIGH'
-        else:
-            level, display = 'normal', 'NORMAL'
-            
-        hours, remainder = divmod(remaining_seconds, 3600)
-        minutes, seconds = divmod(remainder, 60)
-        time_display = f"{hours:02d}:{minutes:02d}:{seconds:02d}"
-        
-        return {
-            'level': level, 'display': display,
-            'remaining_seconds': remaining_seconds,
-            'time_display': time_display, 'is_overdue': is_overdue
-        }
-
-    def save(self, *args, **kwargs):
-        self.calculate_price()
-        super().save(*args, **kwargs)
-
-    def __str__(self):
-        return f"Order #{self.id} by {self.client.username}"
