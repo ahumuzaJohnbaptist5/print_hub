@@ -67,16 +67,14 @@
                             <td class="p-4 text-right">
                                 {% if order.status != 'collected' and order.status != 'cancelled' %}
                                 <div class="flex justify-end gap-2">
-                                    <!-- Update Status Button -->
-                                    <button onclick="openModal('status-modal-{{ order.id }}')" class="px-3 py-1.5 bg-indigo-600 text-white text-xs font-medium rounded-lg hover:bg-indigo-500 transition">Status</button>
+                                    <button onclick="document.getElementById('status-modal-{{ order.id }}').classList.remove('hidden')" class="px-3 py-1.5 bg-indigo-600 text-white text-xs font-medium rounded-lg hover:bg-indigo-500 transition">Status</button>
                                     
-                                    <!-- More Actions Dropdown -->
                                     <div class="relative inline-block text-left">
-                                        <button onclick="toggleDropdown('dropdown-{{ order.id }}')" class="px-2 py-1.5 bg-slate-600 text-white text-xs font-medium rounded-lg hover:bg-slate-500 transition">⋮</button>
+                                        <button onclick="document.getElementById('dropdown-{{ order.id }}').classList.toggle('hidden')" class="px-2 py-1.5 bg-slate-600 text-white text-xs font-medium rounded-lg hover:bg-slate-500 transition">⋮</button>
                                         <div id="dropdown-{{ order.id }}" class="hidden absolute right-0 mt-2 w-48 bg-slate-700 border border-slate-600 rounded-lg shadow-lg z-10">
-                                            <button onclick="openModal('delay-modal-{{ order.id }}'); toggleDropdown('dropdown-{{ order.id }}')" class="block w-full text-left px-4 py-2 text-sm text-yellow-400 hover:bg-slate-600">⏰ Notify Delay</button>
-                                            <button onclick="openModal('postpone-modal-{{ order.id }}'); toggleDropdown('dropdown-{{ order.id }}')" class="block w-full text-left px-4 py-2 text-sm text-blue-400 hover:bg-slate-600">⏳ Postpone Timer</button>
-                                            <button onclick="openModal('cancel-modal-{{ order.id }}'); toggleDropdown('dropdown-{{ order.id }}')" class="block w-full text-left px-4 py-2 text-sm text-red-400 hover:bg-slate-600">❌ Cancel Order</button>
+                                            <button onclick="document.getElementById('delay-modal-{{ order.id }}').classList.remove('hidden'); document.getElementById('dropdown-{{ order.id }}').classList.add('hidden')" class="block w-full text-left px-4 py-2 text-sm text-yellow-400 hover:bg-slate-600">⏰ Notify Delay</button>
+                                            <button onclick="document.getElementById('postpone-modal-{{ order.id }}').classList.remove('hidden'); document.getElementById('dropdown-{{ order.id }}').classList.add('hidden')" class="block w-full text-left px-4 py-2 text-sm text-blue-400 hover:bg-slate-600">⏳ Postpone Timer</button>
+                                            <button onclick="document.getElementById('cancel-modal-{{ order.id }}').classList.remove('hidden'); document.getElementById('dropdown-{{ order.id }}').classList.add('hidden')" class="block w-full text-left px-4 py-2 text-sm text-red-400 hover:bg-slate-600">❌ Cancel Order</button>
                                         </div>
                                     </div>
                                 </div>
@@ -85,37 +83,103 @@
                                 {% endif %}
                             </td>
                         </tr>
+                        {% empty %}
+                        <tr>
+                            <td colspan="6" class="p-12 text-center text-gray-500">No orders found for your station.</td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
 
-                        <!-- ========================================== -->
-                        <!-- MODALS FOR THIS ORDER                      -->
-                        <!-- ========================================== -->
-                        
-                        <!-- 1. Update Status Modal -->
-                        <div id="status-modal-{{ order.id }}" class="hidden fixed inset-0 bg-black/70 flex items-center justify-center z-50 p-4">
-                            <div class="bg-slate-800 border border-slate-600 rounded-2xl shadow-2xl p-6 w-full max-w-md">
-                                <h3 class="text-lg font-bold text-white mb-4">Update Order #{{ order.id }} Status</h3>
-                                <form method="post">
-                                    {% csrf_token %}
-                                    <input type="hidden" name="action" value="update_status">
-                                    <input type="hidden" name="order_id" value="{{ order.id }}">
-                                    <label class="block text-sm font-bold text-gray-300 mb-2">New Status</label>
-                                    <select name="status" class="w-full px-4 py-3 bg-slate-700 border border-slate-600 text-white rounded-xl focus:ring-2 focus:ring-indigo-500 outline-none mb-6">
-                                        <option value="pending" {% if order.status == 'pending' %}selected{% endif %}>Pending</option>
-                                        <option value="paid" {% if order.status == 'paid' %}selected{% endif %}>Paid</option>
-                                        <option value="printing" {% if order.status == 'printing' %}selected{% endif %}>Printing</option>
-                                        <option value="in_transit" {% if order.status == 'in_transit' %}selected{% endif %}>In Transit</option>
-                                        <option value="ready" {% if order.status == 'ready' %}selected{% endif %}>Ready for Pickup</option>
-                                        <option value="collected" {% if order.status == 'collected' %}selected{% endif %}>Collected</option>
-                                    </select>
-                                    <div class="flex justify-end gap-3">
-                                        <button type="button" onclick="closeModal('status-modal-{{ order.id }}')" class="px-4 py-2 bg-slate-700 text-gray-300 rounded-lg hover:bg-slate-600">Cancel</button>
-                                        <button type="submit" class="px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-500 font-medium">Update</button>
-                                    </div>
-                                </form>
-                            </div>
-                        </div>
+<!-- ========================================== -->
+<!-- MODALS (Placed outside the table loop)     -->
+<!-- ========================================== -->
+{% for order in orders %}
+    {% if order.status != 'collected' and order.status != 'cancelled' %}
+        
+        <!-- 1. Update Status Modal -->
+        <div id="status-modal-{{ order.id }}" class="hidden fixed inset-0 bg-black/70 flex items-center justify-center z-50 p-4">
+            <div class="bg-slate-800 border border-slate-600 rounded-2xl shadow-2xl p-6 w-full max-w-md">
+                <h3 class="text-lg font-bold text-white mb-4">Update Order #{{ order.id }} Status</h3>
+                <form method="post">
+                    {% csrf_token %}
+                    <input type="hidden" name="action" value="update_status">
+                    <input type="hidden" name="order_id" value="{{ order.id }}">
+                    <label class="block text-sm font-bold text-gray-300 mb-2">New Status</label>
+                    <select name="status" class="w-full px-4 py-3 bg-slate-700 border border-slate-600 text-white rounded-xl focus:ring-2 focus:ring-indigo-500 outline-none mb-6">
+                        <option value="pending" {% if order.status == 'pending' %}selected{% endif %}>Pending</option>
+                        <option value="paid" {% if order.status == 'paid' %}selected{% endif %}>Paid</option>
+                        <option value="printing" {% if order.status == 'printing' %}selected{% endif %}>Printing</option>
+                        <option value="in_transit" {% if order.status == 'in_transit' %}selected{% endif %}>In Transit</option>
+                        <option value="ready" {% if order.status == 'ready' %}selected{% endif %}>Ready for Pickup</option>
+                        <option value="collected" {% if order.status == 'collected' %}selected{% endif %}>Collected</option>
+                    </select>
+                    <div class="flex justify-end gap-3">
+                        <button type="button" onclick="document.getElementById('status-modal-{{ order.id }}').classList.add('hidden')" class="px-4 py-2 bg-slate-700 text-gray-300 rounded-lg hover:bg-slate-600">Cancel</button>
+                        <button type="submit" class="px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-500 font-medium">Update</button>
+                    </div>
+                </form>
+            </div>
+        </div>
 
-                        <!-- 2. Delay Modal -->
-                        <div id="delay-modal-{{ order.id }}" class="hidden fixed inset-0 bg-black/70 flex items-center justify-center z-50 p-4">
-                            <div class="bg-slate-800 border border-slate-600 rounded-2xl shadow-2xl p-6 w-full max-w-md">
-                                <h
+        <!-- 2. Delay Modal -->
+        <div id="delay-modal-{{ order.id }}" class="hidden fixed inset-0 bg-black/70 flex items-center justify-center z-50 p-4">
+            <div class="bg-slate-800 border border-slate-600 rounded-2xl shadow-2xl p-6 w-full max-w-md">
+                <h3 class="text-lg font-bold text-white mb-4">Notify Delay for #{{ order.id }}</h3>
+                <form method="post">
+                    {% csrf_token %}
+                    <input type="hidden" name="action" value="notify_delay">
+                    <input type="hidden" name="order_id" value="{{ order.id }}">
+                    <label class="block text-sm font-bold text-gray-300 mb-2">Reason for delay (sent to client)</label>
+                    <textarea name="delay_reason" rows="3" class="w-full px-4 py-3 bg-slate-700 border border-slate-600 text-white rounded-xl focus:ring-2 focus:ring-yellow-500 outline-none mb-6" placeholder="e.g., Power outage, heavy workload..."></textarea>
+                    <div class="flex justify-end gap-3">
+                        <button type="button" onclick="document.getElementById('delay-modal-{{ order.id }}').classList.add('hidden')" class="px-4 py-2 bg-slate-700 text-gray-300 rounded-lg hover:bg-slate-600">Cancel</button>
+                        <button type="submit" class="px-4 py-2 bg-yellow-600 text-white rounded-lg hover:bg-yellow-500 font-medium">Send Email</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+
+        <!-- 3. Postpone Modal -->
+        <div id="postpone-modal-{{ order.id }}" class="hidden fixed inset-0 bg-black/70 flex items-center justify-center z-50 p-4">
+            <div class="bg-slate-800 border border-slate-600 rounded-2xl shadow-2xl p-6 w-full max-w-md">
+                <h3 class="text-lg font-bold text-white mb-4">Postpone Timer for #{{ order.id }}</h3>
+                <form method="post">
+                    {% csrf_token %}
+                    <input type="hidden" name="action" value="postpone_order">
+                    <input type="hidden" name="order_id" value="{{ order.id }}">
+                    <label class="block text-sm font-bold text-gray-300 mb-2">Add extra minutes to deadline</label>
+                    <input type="number" name="extra_minutes" min="1" value="30" class="w-full px-4 py-3 bg-slate-700 border border-slate-600 text-white rounded-xl focus:ring-2 focus:ring-blue-500 outline-none mb-6">
+                    <div class="flex justify-end gap-3">
+                        <button type="button" onclick="document.getElementById('postpone-modal-{{ order.id }}').classList.add('hidden')" class="px-4 py-2 bg-slate-700 text-gray-300 rounded-lg hover:bg-slate-600">Cancel</button>
+                        <button type="submit" class="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-500 font-medium">Postpone</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+
+        <!-- 4. Cancel Modal -->
+        <div id="cancel-modal-{{ order.id }}" class="hidden fixed inset-0 bg-black/70 flex items-center justify-center z-50 p-4">
+            <div class="bg-slate-800 border border-slate-600 rounded-2xl shadow-2xl p-6 w-full max-w-md">
+                <h3 class="text-lg font-bold text-red-400 mb-4">Cancel Order #{{ order.id }}?</h3>
+                <p class="text-gray-400 text-sm mb-6">This action cannot be undone. The client will be notified.</p>
+                <form method="post">
+                    {% csrf_token %}
+                    <input type="hidden" name="action" value="cancel_order">
+                    <input type="hidden" name="order_id" value="{{ order.id }}">
+                    <div class="flex justify-end gap-3">
+                        <button type="button" onclick="document.getElementById('cancel-modal-{{ order.id }}').classList.add('hidden')" class="px-4 py-2 bg-slate-700 text-gray-300 rounded-lg hover:bg-slate-600">Keep Order</button>
+                        <button type="submit" class="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-500 font-medium">Yes, Cancel</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+
+    {% endif %}
+{% endfor %}
+
+{% endblock %}
