@@ -1,0 +1,86 @@
+{% extends 'base.html' %}
+{% block title %}Financial Dashboard{% endblock %}
+{% block content %}
+<script src="https://cdn.tailwindcss.com"></script>
+<div class="min-h-screen bg-gradient-to-br from-indigo-50 via-white to-purple-50 py-12 px-4 sm:px-6 lg:px-8">
+    <div class="max-w-7xl mx-auto">
+        <div class="flex flex-col md:flex-row justify-between items-start md:items-center mb-8 gap-4">
+            <h1 class="text-3xl font-bold text-gray-800">Financial Dashboard</h1>
+            <div class="flex gap-3">
+                <a href="?date=today" class="px-4 py-2 bg-white rounded-lg shadow {% if date_filter == 'today' %}ring-2 ring-indigo-500{% endif %}">Today</a>
+                <a href="?date=week" class="px-4 py-2 bg-white rounded-lg shadow {% if date_filter == 'week' %}ring-2 ring-indigo-500{% endif %}">This Week</a>
+                <a href="?date=month" class="px-4 py-2 bg-white rounded-lg shadow {% if date_filter == 'month' %}ring-2 ring-indigo-500{% endif %}">This Month</a>
+            </div>
+        </div>
+
+        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+            <div class="bg-white p-6 rounded-2xl shadow-lg border-l-4 border-green-500">
+                <p class="text-sm font-bold text-gray-500 uppercase">Total Revenue</p>
+                <p class="text-3xl font-extrabold text-gray-800 mt-2">{{ total_revenue|floatformat:0 }} UGX</p>
+            </div>
+            <div class="bg-white p-6 rounded-2xl shadow-lg border-l-4 border-red-500">
+                <p class="text-sm font-bold text-gray-500 uppercase">Total Expenses</p>
+                <p class="text-3xl font-extrabold text-gray-800 mt-2">{{ total_costs|floatformat:0 }} UGX</p>
+                <button onclick="document.getElementById('expense-modal').classList.remove('hidden')" class="text-xs text-indigo-600 font-semibold mt-2 hover:underline">+ Add Expense</button>
+            </div>
+            <div class="bg-white p-6 rounded-2xl shadow-lg border-l-4 border-yellow-500">
+                <p class="text-sm font-bold text-gray-500 uppercase">Commissions Paid</p>
+                <p class="text-3xl font-extrabold text-gray-800 mt-2">{{ total_commissions|floatformat:0 }} UGX</p>
+            </div>
+            <div class="bg-white p-6 rounded-2xl shadow-lg border-l-4 border-indigo-500">
+                <p class="text-sm font-bold text-gray-500 uppercase">Net Profit</p>
+                <p class="text-3xl font-extrabold text-gray-800 mt-2">{{ total_profit|floatformat:0 }} UGX</p>
+                <p class="text-xs text-gray-500 mt-1">Margin: {{ profit_margin|floatformat:1 }}%</p>
+            </div>
+        </div>
+
+        <div class="flex gap-4 mb-8">
+            <a href="{% url 'manage_commission_rates' %}" class="px-6 py-3 bg-indigo-600 text-white rounded-xl shadow hover:bg-indigo-700 transition">Manage Commission Rates</a>
+            <a href="{% url 'manage_paper_inventory' %}" class="px-6 py-3 bg-purple-600 text-white rounded-xl shadow hover:bg-purple-700 transition">Manage Paper Inventory</a>
+        </div>
+
+        <div class="grid grid-cols-1 lg:grid-cols-2 gap-8">
+            <div class="bg-white rounded-2xl shadow-lg p-6">
+                <h2 class="text-xl font-bold text-gray-800 mb-4">Recent Expenses</h2>
+                <table class="w-full text-left">
+                    <thead class="bg-gray-50"><tr><th class="p-3 text-xs font-semibold text-gray-500 uppercase">Description</th><th class="p-3 text-xs font-semibold text-gray-500 uppercase">Amount</th></tr></thead>
+                    <tbody>
+                        {% for tx in recent_transactions %}
+                        <tr class="border-b border-gray-100"><td class="p-3 text-sm text-gray-700">{{ tx.description }}</td><td class="p-3 text-sm font-bold text-red-600">{{ tx.amount|floatformat:0 }} UGX</td></tr>
+                        {% empty %}<tr><td colspan="2" class="p-4 text-center text-gray-400">No expenses recorded.</td></tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+            <div class="bg-white rounded-2xl shadow-lg p-6">
+                <h2 class="text-xl font-bold text-gray-800 mb-4">Top Earning Agents</h2>
+                <table class="w-full text-left">
+                    <thead class="bg-gray-50"><tr><th class="p-3 text-xs font-semibold text-gray-500 uppercase">Agent</th><th class="p-3 text-xs font-semibold text-gray-500 uppercase">Earned</th></tr></thead>
+                    <tbody>
+                        {% for agent in top_agents %}
+                        <tr class="border-b border-gray-100"><td class="p-3 text-sm font-medium text-gray-700">{{ agent.agent__first_name|default:agent.agent__username }}</td><td class="p-3 text-sm font-bold text-green-600">{{ agent.total_earnings|floatformat:0 }} UGX</td></tr>
+                        {% empty %}<tr><td colspan="2" class="p-4 text-center text-gray-400">No agent earnings yet.</td></tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <!-- Expense Modal -->
+    <div id="expense-modal" class="hidden fixed inset-0 bg-gray-900 bg-opacity-50 flex items-center justify-center z-50">
+        <div class="bg-white rounded-2xl shadow-2xl p-8 w-full max-w-md">
+            <h3 class="text-xl font-bold text-gray-800 mb-4">Add New Expense</h3>
+            <form method="post" action="{% url 'add_expense' %}">
+                {% csrf_token %}
+                <div class="mb-4"><label class="block text-sm font-bold text-gray-700 mb-2">Description</label>{{ expense_form.description }}</div>
+                <div class="mb-6"><label class="block text-sm font-bold text-gray-700 mb-2">Amount (UGX)</label>{{ expense_form.amount }}</div>
+                <div class="flex justify-end gap-3">
+                    <button type="button" onclick="document.getElementById('expense-modal').classList.add('hidden')" class="px-4 py-2 bg-gray-200 text-gray-700 rounded-lg">Cancel</button>
+                    <button type="submit" class="px-4 py-2 bg-indigo-600 text-white rounded-lg">Save Expense</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %}
