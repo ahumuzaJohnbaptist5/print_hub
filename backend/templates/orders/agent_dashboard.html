@@ -1,184 +1,121 @@
 {% extends 'base.html' %}
 {% block title %}Agent Dashboard{% endblock %}
+
 {% block content %}
-<div class="max-w-7xl mx-auto px-2 sm:px-6 py-4 sm:py-12">
-    <h1 class="text-2xl sm:text-3xl font-bold text-white mb-4 sm:mb-8">Station Dashboard</h1>
-    
-    <div class="bg-white/5 border border-white/10 rounded-2xl overflow-hidden">
-        <div class="overflow-x-auto">
-            <table class="w-full text-left min-w-[800px]">
-                <thead class="bg-white/10 text-gray-300 uppercase text-xs">
-                    <tr>
-                        <th class="p-3 sm:p-4 whitespace-nowrap">Order ID</th>
-                        <th class="p-3 sm:p-4 whitespace-nowrap">Client</th>
-                        <th class="p-3 sm:p-4 whitespace-nowrap">File</th>
-                        <th class="p-3 sm:p-4 whitespace-nowrap">Details</th>
-                        <th class="p-3 sm:p-4 whitespace-nowrap">Status</th>
-                        <th class="p-3 sm:p-4 whitespace-nowrap">Actions</th>
-                    </tr>
-                </thead>
-                <tbody class="divide-y divide-white/10 text-sm">
-                    {% for order in orders %}
-                    <tr class="hover:bg-white/5 {% if order.status == 'cancelled' %}opacity-50{% endif %}">
-                        <td class="p-3 sm:p-4 text-white font-bold text-xs sm:text-sm whitespace-nowrap {% if order.status == 'cancelled' %}line-through{% endif %}">#{{ order.id }}</td>
-                        <td class="p-3 sm:p-4 text-gray-300 text-xs sm:text-sm whitespace-nowrap {% if order.status == 'cancelled' %}line-through{% endif %}">{{ order.client.get_full_name|default:order.client.username }}</td>
-                        <td class="p-3 sm:p-4 text-gray-300 truncate max-w-[150px] text-xs sm:text-sm whitespace-nowrap">{{ order.file_name }}</td>
-                        <td class="p-3 sm:p-4 text-gray-400 text-xs sm:text-sm whitespace-nowrap">
-                            {{ order.page_count }} pages • 
-                            {% if order.is_color %}<span class="text-orange-400">Color</span>{% else %}B&W{% endif %}
-                        </td>
-                        <td class="p-3 sm:p-4 whitespace-nowrap">
-                            <span class="px-2 py-1 rounded text-xs font-bold 
-                                {% if order.status == 'collected' %}bg-green-500/20 text-green-300
-                                {% elif order.status == 'ready' %}bg-blue-500/20 text-blue-300
-                                {% elif order.status == 'printing' %}bg-purple-500/20 text-purple-300
-                                {% elif order.status == 'paid' %}bg-yellow-500/20 text-yellow-300
-                                {% elif order.status == 'cancelled' %}bg-red-500/20 text-red-300
-                                {% else %}bg-gray-500/20 text-gray-300{% endif %}">
-                                {{ order.get_status_display }}
-                            </span>
-                        </td>
-                        <td class="p-3 sm:p-4 whitespace-nowrap">
-                            <div class="flex gap-2 flex-wrap">
-                                <!-- Status Update Form -->
-                                {% if order.status != 'cancelled' and order.status != 'collected' %}
-                                <form method="POST" class="flex gap-2">
+<div class="min-h-screen bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 py-12 px-4 sm:px-6 lg:px-8">
+    <div class="max-w-7xl mx-auto">
+
+        <!-- Header & Earnings Link -->
+        <div class="flex flex-col md:flex-row justify-between items-start md:items-center mb-8 gap-4">
+            <div>
+                <h1 class="text-3xl font-bold text-white">🖨️ Agent Dashboard</h1>
+                <p class="text-gray-400 mt-1">Manage orders for your station</p>
+            </div>
+            
+            <!-- EARNINGS LINK -->
+            <a href="{% url 'agent_earnings' %}" class="inline-flex items-center px-6 py-3 bg-gradient-to-r from-green-600 to-emerald-600 text-white font-bold rounded-xl shadow-lg hover:shadow-green-500/20 hover:scale-105 transition-all duration-200">
+                <span class="mr-2 text-xl">💵</span>
+                View My Earnings
+            </a>
+        </div>
+
+        <!-- Orders Table -->
+        <div class="bg-slate-800 border border-slate-700 rounded-2xl shadow-lg overflow-hidden">
+            <div class="px-6 py-4 border-b border-slate-700 flex justify-between items-center">
+                <h2 class="text-lg font-bold text-white">Station Orders</h2>
+                <span class="text-sm text-gray-400">{{ orders|length }} Total Orders</span>
+            </div>
+            
+            <div class="overflow-x-auto">
+                <table class="w-full text-left">
+                    <thead class="bg-slate-700/50">
+                        <tr>
+                            <th class="p-4 text-xs font-semibold text-gray-400 uppercase tracking-wider">Order ID</th>
+                            <th class="p-4 text-xs font-semibold text-gray-400 uppercase tracking-wider">Client</th>
+                            <th class="p-4 text-xs font-semibold text-gray-400 uppercase tracking-wider">File</th>
+                            <th class="p-4 text-xs font-semibold text-gray-400 uppercase tracking-wider">Status</th>
+                            <th class="p-4 text-xs font-semibold text-gray-400 uppercase tracking-wider">Date</th>
+                            <th class="p-4 text-xs font-semibold text-gray-400 uppercase tracking-wider text-right">Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for order in orders %}
+                        <tr class="border-b border-slate-700/50 hover:bg-slate-700/30 transition">
+                            <td class="p-4 text-sm font-bold text-indigo-400">#{{ order.id }}</td>
+                            <td class="p-4 text-sm text-gray-200">{{ order.client.username }}</td>
+                            <td class="p-4 text-sm text-gray-300 max-w-[150px] truncate" title="{{ order.file_name }}">{{ order.file_name }}</td>
+                            <td class="p-4">
+                                {% if order.status == 'pending' %}
+                                    <span class="px-2 py-1 text-xs font-semibold rounded-full bg-gray-700 text-gray-300">Pending</span>
+                                {% elif order.status == 'paid' %}
+                                    <span class="px-2 py-1 text-xs font-semibold rounded-full bg-blue-900/50 text-blue-400 border border-blue-700">Paid</span>
+                                {% elif order.status == 'printing' %}
+                                    <span class="px-2 py-1 text-xs font-semibold rounded-full bg-purple-900/50 text-purple-400 border border-purple-700">Printing</span>
+                                {% elif order.status == 'in_transit' %}
+                                    <span class="px-2 py-1 text-xs font-semibold rounded-full bg-cyan-900/50 text-cyan-400 border border-cyan-700">In Transit</span>
+                                {% elif order.status == 'ready' %}
+                                    <span class="px-2 py-1 text-xs font-semibold rounded-full bg-green-900/50 text-green-400 border border-green-700">Ready</span>
+                                {% elif order.status == 'collected' %}
+                                    <span class="px-2 py-1 text-xs font-semibold rounded-full bg-slate-700 text-slate-400">Collected</span>
+                                {% elif order.status == 'cancelled' %}
+                                    <span class="px-2 py-1 text-xs font-semibold rounded-full bg-red-900/50 text-red-400 border border-red-700">Cancelled</span>
+                                {% endif %}
+                            </td>
+                            <td class="p-4 text-sm text-gray-400">{{ order.created_at|date:"M d, H:i" }}</td>
+                            
+                            <!-- Actions -->
+                            <td class="p-4 text-right">
+                                {% if order.status != 'collected' and order.status != 'cancelled' %}
+                                <div class="flex justify-end gap-2">
+                                    <!-- Update Status Button -->
+                                    <button onclick="openModal('status-modal-{{ order.id }}')" class="px-3 py-1.5 bg-indigo-600 text-white text-xs font-medium rounded-lg hover:bg-indigo-500 transition">Status</button>
+                                    
+                                    <!-- More Actions Dropdown -->
+                                    <div class="relative inline-block text-left">
+                                        <button onclick="toggleDropdown('dropdown-{{ order.id }}')" class="px-2 py-1.5 bg-slate-600 text-white text-xs font-medium rounded-lg hover:bg-slate-500 transition">⋮</button>
+                                        <div id="dropdown-{{ order.id }}" class="hidden absolute right-0 mt-2 w-48 bg-slate-700 border border-slate-600 rounded-lg shadow-lg z-10">
+                                            <button onclick="openModal('delay-modal-{{ order.id }}'); toggleDropdown('dropdown-{{ order.id }}')" class="block w-full text-left px-4 py-2 text-sm text-yellow-400 hover:bg-slate-600">⏰ Notify Delay</button>
+                                            <button onclick="openModal('postpone-modal-{{ order.id }}'); toggleDropdown('dropdown-{{ order.id }}')" class="block w-full text-left px-4 py-2 text-sm text-blue-400 hover:bg-slate-600">⏳ Postpone Timer</button>
+                                            <button onclick="openModal('cancel-modal-{{ order.id }}'); toggleDropdown('dropdown-{{ order.id }}')" class="block w-full text-left px-4 py-2 text-sm text-red-400 hover:bg-slate-600">❌ Cancel Order</button>
+                                        </div>
+                                    </div>
+                                </div>
+                                {% else %}
+                                <span class="text-xs text-gray-500">Completed</span>
+                                {% endif %}
+                            </td>
+                        </tr>
+
+                        <!-- ========================================== -->
+                        <!-- MODALS FOR THIS ORDER                      -->
+                        <!-- ========================================== -->
+                        
+                        <!-- 1. Update Status Modal -->
+                        <div id="status-modal-{{ order.id }}" class="hidden fixed inset-0 bg-black/70 flex items-center justify-center z-50 p-4">
+                            <div class="bg-slate-800 border border-slate-600 rounded-2xl shadow-2xl p-6 w-full max-w-md">
+                                <h3 class="text-lg font-bold text-white mb-4">Update Order #{{ order.id }} Status</h3>
+                                <form method="post">
                                     {% csrf_token %}
                                     <input type="hidden" name="action" value="update_status">
                                     <input type="hidden" name="order_id" value="{{ order.id }}">
-                                    <select name="status" class="bg-slate-800 border border-white/20 rounded px-2 py-1 text-white text-xs">
+                                    <label class="block text-sm font-bold text-gray-300 mb-2">New Status</label>
+                                    <select name="status" class="w-full px-4 py-3 bg-slate-700 border border-slate-600 text-white rounded-xl focus:ring-2 focus:ring-indigo-500 outline-none mb-6">
+                                        <option value="pending" {% if order.status == 'pending' %}selected{% endif %}>Pending</option>
                                         <option value="paid" {% if order.status == 'paid' %}selected{% endif %}>Paid</option>
                                         <option value="printing" {% if order.status == 'printing' %}selected{% endif %}>Printing</option>
-                                        <option value="ready" {% if order.status == 'ready' %}selected{% endif %}>Ready</option>
+                                        <option value="in_transit" {% if order.status == 'in_transit' %}selected{% endif %}>In Transit</option>
+                                        <option value="ready" {% if order.status == 'ready' %}selected{% endif %}>Ready for Pickup</option>
                                         <option value="collected" {% if order.status == 'collected' %}selected{% endif %}>Collected</option>
                                     </select>
-                                    <button class="bg-blue-600 hover:bg-blue-700 text-white px-3 py-1 rounded text-xs">Update</button>
+                                    <div class="flex justify-end gap-3">
+                                        <button type="button" onclick="closeModal('status-modal-{{ order.id }}')" class="px-4 py-2 bg-slate-700 text-gray-300 rounded-lg hover:bg-slate-600">Cancel</button>
+                                        <button type="submit" class="px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-500 font-medium">Update</button>
+                                    </div>
                                 </form>
-                                {% endif %}
-                                
-                                <!-- Postpone Button -->
-                                {% if order.status != 'collected' and order.status != 'cancelled' %}
-                                <button 
-                                    onclick="showPostponeModal({{ order.id }})"
-                                    class="bg-yellow-600 hover:bg-yellow-700 text-white px-3 py-1 rounded text-xs"
-                                >
-                                    Postpone
-                                </button>
-                                {% endif %}
-
-                                <!-- Cancel Button -->
-                                {% if order.status != 'collected' and order.status != 'cancelled' %}
-                                <form method="POST" onsubmit="return confirm('Are you sure you want to cancel this order? This cannot be undone.');" class="inline">
-                                    {% csrf_token %}
-                                    <input type="hidden" name="action" value="cancel_order">
-                                    <input type="hidden" name="order_id" value="{{ order.id }}">
-                                    <button type="submit" class="bg-red-600 hover:bg-red-700 text-white px-3 py-1 rounded text-xs">
-                                        Cancel
-                                    </button>
-                                </form>
-                                {% endif %}
-                                
-                                <!-- Delay Notification Button -->
-                                {% if order.status != 'collected' and order.status != 'cancelled' %}
-                                <button 
-                                    onclick="showDelayModal({{ order.id }})"
-                                    class="bg-gray-600 hover:bg-gray-700 text-white px-3 py-1 rounded text-xs"
-                                >
-                                    Delay
-                                </button>
-                                {% endif %}
-                                
-                                {% if order.status == 'cancelled' %}
-                                <span class="text-red-400 text-xs italic">Order Cancelled</span>
-                                {% endif %}
                             </div>
-                        </td>
-                    </tr>
-                    {% empty %}
-                    <tr>
-                        <td colspan="6" class="p-6 text-center text-gray-500">No orders found for this station.</td>
-                    </tr>
-                    {% endfor %}
-                </tbody>
-            </table>
-        </div>
-    </div>
-    
-    <p class="text-center text-gray-500 text-xs mt-3 sm:hidden">← Swipe left or right to see actions →</p>
-</div>
+                        </div>
 
-<!-- Postpone Modal -->
-<div id="postponeModal" class="hidden fixed inset-0 bg-black/50 flex items-center justify-center z-50">
-    <div class="bg-slate-800 rounded-xl p-6 max-w-md w-full mx-4">
-        <h3 class="text-xl font-bold text-white mb-4">Postpone Order</h3>
-        <form method="POST" id="postponeForm">
-            {% csrf_token %}
-            <input type="hidden" name="action" value="postpone_order">
-            <input type="hidden" name="order_id" id="postponeOrderId">
-            
-            <div class="mb-4">
-                <label class="block text-gray-300 text-sm mb-2">Add extra minutes to deadline</label>
-                <input type="number" name="extra_minutes" value="30" min="1" required
-                    class="w-full bg-white/10 border border-white/20 rounded-lg px-3 py-2 text-white focus:outline-none focus:ring-2 focus:ring-yellow-500">
-            </div>
-            
-            <div class="flex gap-2">
-                <button type="submit" class="flex-1 bg-yellow-600 hover:bg-yellow-700 text-white font-bold py-2 rounded-lg">
-                    Postpone
-                </button>
-                <button type="button" onclick="hidePostponeModal()" class="flex-1 bg-gray-600 hover:bg-gray-700 text-white font-bold py-2 rounded-lg">
-                    Cancel
-                </button>
-            </div>
-        </form>
-    </div>
-</div>
-
-<!-- Delay Notification Modal -->
-<div id="delayModal" class="hidden fixed inset-0 bg-black/50 flex items-center justify-center z-50">
-    <div class="bg-slate-800 rounded-xl p-6 max-w-md w-full mx-4">
-        <h3 class="text-xl font-bold text-white mb-4">Send Delay Notification</h3>
-        <form method="POST" id="delayForm">
-            {% csrf_token %}
-            <input type="hidden" name="action" value="notify_delay">
-            <input type="hidden" name="order_id" id="delayOrderId">
-            
-            <div class="mb-4">
-                <label class="block text-gray-300 text-sm mb-2">Reason for delay (optional)</label>
-                <textarea 
-                    name="delay_reason" 
-                    rows="3"
-                    placeholder="e.g., High volume of orders, equipment maintenance, etc."
-                    class="w-full bg-white/10 border border-white/20 rounded-lg px-3 py-2 text-white focus:outline-none focus:ring-2 focus:ring-yellow-500"
-                ></textarea>
-            </div>
-            
-            <div class="flex gap-2">
-                <button type="submit" class="flex-1 bg-yellow-600 hover:bg-yellow-700 text-white font-bold py-2 rounded-lg">
-                    Send Notification
-                </button>
-                <button type="button" onclick="hideDelayModal()" class="flex-1 bg-gray-600 hover:bg-gray-700 text-white font-bold py-2 rounded-lg">
-                    Cancel
-                </button>
-            </div>
-        </form>
-    </div>
-</div>
-
-<script>
-function showDelayModal(orderId) {
-    document.getElementById('delayOrderId').value = orderId;
-    document.getElementById('delayModal').classList.remove('hidden');
-}
-function hideDelayModal() {
-    document.getElementById('delayModal').classList.add('hidden');
-}
-function showPostponeModal(orderId) {
-    document.getElementById('postponeOrderId').value = orderId;
-    document.getElementById('postponeModal').classList.remove('hidden');
-}
-function hidePostponeModal() {
-    document.getElementById('postponeModal').classList.add('hidden');
-}
-</script>
-{% endblock %}
+                        <!-- 2. Delay Modal -->
+                        <div id="delay-modal-{{ order.id }}" class="hidden fixed inset-0 bg-black/70 flex items-center justify-center z-50 p-4">
+                            <div class="bg-slate-800 border border-slate-600 rounded-2xl shadow-2xl p-6 w-full max-w-md">
+                                <h
