@@ -1,14 +1,13 @@
 from django import forms
-from .models import CommissionRate, PaperInventory
+from .models import CommissionRate, PaperInventory, FinancialRecord
 
 class CommissionRateForm(forms.ModelForm):
     class Meta:
         model = CommissionRate
-        fields = ['rate_percentage', 'description', 'is_active']
+        fields = ['rate_percentage', 'description']
         widgets = {
-            'rate_percentage': forms.NumberInput(attrs={'class': 'w-full bg-white/10 border border-white/10 rounded-xl px-4 py-3 text-white focus:outline-none focus:ring-2 focus:ring-blue-500', 'step': '0.01'}),
-            'description': forms.TextInput(attrs={'class': 'w-full bg-white/10 border border-white/10 rounded-xl px-4 py-3 text-white focus:outline-none focus:ring-2 focus:ring-blue-500'}),
-            'is_active': forms.CheckboxInput(attrs={'class': 'form-check-input'}),
+            'rate_percentage': forms.NumberInput(attrs={'class': 'w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-indigo-500 outline-none', 'step': '0.01', 'placeholder': '10.00'}),
+            'description': forms.TextInput(attrs={'class': 'w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-indigo-500 outline-none', 'placeholder': 'e.g., Standard Agent Rate'}),
         }
 
 class PaperInventoryForm(forms.ModelForm):
@@ -16,7 +15,16 @@ class PaperInventoryForm(forms.ModelForm):
         model = PaperInventory
         fields = ['paper_type', 'quantity', 'cost_per_sheet']
         widgets = {
-            'paper_type': forms.TextInput(attrs={'class': 'w-full bg-white/10 border border-white/10 rounded-xl px-4 py-3 text-white focus:outline-none focus:ring-2 focus:ring-blue-500'}),
-            'quantity': forms.NumberInput(attrs={'class': 'w-full bg-white/10 border border-white/10 rounded-xl px-4 py-3 text-white focus:outline-none focus:ring-2 focus:ring-blue-500'}),
-            'cost_per_sheet': forms.NumberInput(attrs={'class': 'w-full bg-white/10 border border-white/10 rounded-xl px-4 py-3 text-white focus:outline-none focus:ring-2 focus:ring-blue-500', 'step': '0.01'}),
+            'paper_type': forms.TextInput(attrs={'class': 'w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-indigo-500 outline-none', 'placeholder': 'e.g., A4 White'}),
+            'quantity': forms.NumberInput(attrs={'class': 'w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-indigo-500 outline-none'}),
+            'cost_per_sheet': forms.NumberInput(attrs={'class': 'w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-indigo-500 outline-none', 'step': '0.01'}),
+        }
+
+class ExpenseForm(forms.ModelForm):
+    class Meta:
+        model = FinancialRecord
+        fields = ['amount', 'description']
+        widgets = {
+            'amount': forms.NumberInput(attrs={'class': 'w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-indigo-500 outline-none', 'step': '0.01'}),
+            'description': forms.TextInput(attrs={'class': 'w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-indigo-500 outline-none', 'placeholder': 'e.g., Bought ink, Paid rider'}),
         }
