@@ -159,3 +159,26 @@ if not DEBUG:
     SECURE_CONTENT_TYPE_NOSNIFF = True
     X_FRAME_OPTIONS = 'DENY'
     SESSION_COOKIE_HTTPONLY = True
+
+
+
+
+
+# ==========================================
+# CLOUD DATABASE CONFIGURATION (Neon + Render)
+# ==========================================
+
+# Check if we are running in a cloud environment (Render sets the RENDER env var)
+if os.environ.get('RENDER') or os.environ.get('DATABASE_URL'):
+    DATABASES['default'] = dj_database_url.config(
+        default=os.environ.get('DATABASE_URL'),
+        conn_max_age=600,
+        ssl_require=True  # Neon requires SSL
+    )
+    
+    # Security settings for production
+    DEBUG = False
+    ALLOWED_HOSTS = ['*'] # Update this to your actual Render URL and custom domain later
+    SECURE_SSL_REDIRECT = True
+    SESSION_COOKIE_SECURE = True
+    CSRF_COOKIE_SECURE = True
