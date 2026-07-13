@@ -2,6 +2,7 @@ import os
 from pathlib import Path
 from dotenv import load_dotenv
 import dj_database_url
+import cloudinary  # <-- ADDED THIS
 
 # Build paths
 BASE_DIR = Path(__file__).resolve().parent.parent
@@ -19,6 +20,7 @@ ALLOWED_HOSTS = [
     '127.0.0.1',
     'printlink.pythonanywhere.com',
     '.pythonanywhere.com',
+    '.onrender.com', # <-- ADDED FOR RENDER
 ]
 
 LOGIN_URL = '/auth/login/'
@@ -29,6 +31,7 @@ CSRF_TRUSTED_ORIGINS = [
     'http://printlink.pythonanywhere.com',
     'http://localhost:8000',
     'http://127.0.0.1:8000',
+    'https://*.onrender.com', # <-- ADDED FOR RENDER
 ]
 
 CSRF_COOKIE_SECURE = False
@@ -48,6 +51,8 @@ INSTALLED_APPS = [
     'rest_framework',
     'rest_framework.authtoken',
     'corsheaders',
+    'cloudinary',             # <-- ADDED THIS
+    'cloudinary_storage',     # <-- ADDED THIS
 
     # Local
     'accounts',
@@ -89,7 +94,7 @@ TEMPLATES = [
 
 WSGI_APPLICATION = 'core.wsgi.application'
 
-# Database
+# Database (Default to SQLite locally)
 DATABASES = {
     'default': dj_database_url.config(
         default=f'sqlite:///{BASE_DIR / "db.sqlite3"}',
@@ -116,7 +121,7 @@ REST_FRAMEWORK = {
 
 # Internationalization
 LANGUAGE_CODE = 'en-us'
-TIME_ZONE = 'UTC'
+TIME_ZONE = 'Africa/Kampala' # <-- UPDATED TO YOUR TIMEZONE
 USE_I18N = True
 USE_TZ = True
 
@@ -125,7 +130,7 @@ STATIC_URL = '/static/'
 STATIC_ROOT = BASE_DIR / 'staticfiles'
 STATICFILES_STORAGE = 'whitenoise.storage.CompressedManifestStaticFilesStorage'
 
-# Media files (User uploads)
+# Media files (User uploads - overridden by Cloudinary in production)
 MEDIA_URL = '/media/'
 MEDIA_ROOT = BASE_DIR / 'media'
 
@@ -138,20 +143,17 @@ AUTH_USER_MODEL = 'accounts.CustomUser'
 # ==========================================
 # EMAIL CONFIGURATION (SECURE)
 # ==========================================
-# This now safely reads from your .env file. 
-# NO HARDCODED PASSWORDS ALLOWED!
 EMAIL_BACKEND = 'django.core.mail.backends.smtp.EmailBackend'
 EMAIL_HOST = os.getenv('EMAIL_HOST', 'smtp.sendgrid.net')
 EMAIL_PORT = int(os.getenv('EMAIL_PORT', 587))
 EMAIL_USE_TLS = os.getenv('EMAIL_USE_TLS', 'True').lower() == 'true'
 EMAIL_HOST_USER = os.getenv('EMAIL_HOST_USER', 'apikey')
-EMAIL_HOST_PASSWORD = os.getenv('EMAIL_HOST_PASSWORD') # Put your NEW password in the .env file!
-DEFAULT_FROM_EMAIL = os.getenv('DEFAULT_FROM_EMAIL', 'PrintHub <PrintLink@pythonanywhere.com>')
+EMAIL_HOST_PASSWORD = os.getenv('EMAIL_HOST_PASSWORD')
+DEFAULT_FROM_EMAIL = os.getenv('DEFAULT_FROM_EMAIL', 'PrintHub <noreply@yourdomain.com>')
 
 # ==========================================
-# SECURITY & PYTHONANYWHERE PROXY FIX
+# SECURITY & PROXY FIX
 # ==========================================
-# THIS FIXES THE CSRF 403 ERROR ON PYTHONANYWHERE
 SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')
 
 if not DEBUG:
@@ -160,15 +162,9 @@ if not DEBUG:
     X_FRAME_OPTIONS = 'DENY'
     SESSION_COOKIE_HTTPONLY = True
 
-
-
-
-
 # ==========================================
 # CLOUD DATABASE CONFIGURATION (Neon + Render)
 # ==========================================
-
-# Check if we are running in a cloud environment (Render sets the RENDER env var)
 if os.environ.get('RENDER') or os.environ.get('DATABASE_URL'):
     DATABASES['default'] = dj_database_url.config(
         default=os.environ.get('DATABASE_URL'),
@@ -176,20 +172,16 @@ if os.environ.get('RENDER') or os.environ.get('DATABASE_URL'):
         ssl_require=True  # Neon requires SSL
     )
     
-    # Security settings for production
+    # Production Security Overrides
     DEBUG = False
-    ALLOWED_HOSTS = ['*'] # Update this to your actual Render URL and custom domain later
+    # Keep existing allowed hosts but ensure .onrender.com is covered
     SECURE_SSL_REDIRECT = True
     SESSION_COOKIE_SECURE = True
     CSRF_COOKIE_SECURE = True
 
-
-
-
 # ==========================================
 # CLOUDINARY FILE STORAGE (For Render)
 # ==========================================
-# This ensures uploaded files are saved to the cloud, not the local server
 if os.environ.get('CLOUDINARY_CLOUD_NAME'):
     DEFAULT_FILE_STORAGE = 'cloudinary_storage.storage.MediaCloudinaryStorage'
     
@@ -199,9 +191,3 @@ if os.environ.get('CLOUDINARY_CLOUD_NAME'):
         api_secret=os.environ.get('CLOUDINARY_API_SECRET'),
         secure=True
     )
-
-
-
-
-
-
