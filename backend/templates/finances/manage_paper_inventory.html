@@ -1,37 +1,65 @@
 {% extends 'base.html' %}
 {% block title %}Paper Inventory{% endblock %}
 {% block content %}
-<script src="https://cdn.tailwindcss.com"></script>
-<div class="min-h-screen bg-gradient-to-br from-indigo-50 via-white to-purple-50 py-12 px-4">
+<div class="min-h-screen bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 py-12 px-4 sm:px-6 lg:px-8">
     <div class="max-w-4xl mx-auto">
-        <h1 class="text-3xl font-bold text-gray-800 mb-8">Paper Inventory</h1>
-        <div class="bg-white rounded-2xl shadow-lg p-8 mb-8">
-            <h2 class="text-xl font-bold text-gray-800 mb-4">Add / Update Stock</h2>
+
+        <h1 class="text-3xl font-bold text-white mb-8">📦 Paper Inventory</h1>
+
+        <!-- Add / Update Form -->
+        <div class="bg-slate-800 border border-slate-700 rounded-2xl shadow-lg p-8 mb-8">
+            <h2 class="text-xl font-bold text-white mb-6">Add / Update Stock</h2>
             <form method="post">
                 {% csrf_token %}
-                <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
-                    <div><label class="block text-sm font-bold text-gray-700 mb-2">Paper Type</label>{{ form.paper_type }}</div>
-                    <div><label class="block text-sm font-bold text-gray-700 mb-2">Quantity (Sheets)</label>{{ form.quantity }}</div>
-                    <div><label class="block text-sm font-bold text-gray-700 mb-2">Cost per Sheet</label>{{ form.cost_per_sheet }}</div>
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-6">
+                    <div>
+                        <label class="block text-sm font-bold text-gray-300 mb-2">Paper Type</label>
+                        {{ form.paper_type }}
+                    </div>
+                    <div>
+                        <label class="block text-sm font-bold text-gray-300 mb-2">Quantity (Sheets)</label>
+                        {{ form.quantity }}
+                    </div>
+                    <div>
+                        <label class="block text-sm font-bold text-gray-300 mb-2">Cost per Sheet (UGX)</label>
+                        {{ form.cost_per_sheet }}
+                    </div>
                 </div>
-                <button type="submit" class="px-6 py-3 bg-purple-600 text-white rounded-xl shadow hover:bg-purple-700 transition">Update Inventory</button>
+                <button type="submit" class="px-6 py-3 bg-purple-600 text-white rounded-xl shadow hover:bg-purple-500 transition font-medium">Update Inventory</button>
             </form>
         </div>
-        <div class="bg-white rounded-2xl shadow-lg p-8">
-            <h2 class="text-xl font-bold text-gray-800 mb-4">Current Stock</h2>
-            <table class="w-full text-left">
-                <thead class="bg-gray-50"><tr><th class="p-3 text-xs font-semibold text-gray-500 uppercase">Type</th><th class="p-3 text-xs font-semibold text-gray-500 uppercase">Qty</th><th class="p-3 text-xs font-semibold text-gray-500 uppercase">Cost/Sheet</th><th class="p-3 text-xs font-semibold text-gray-500 uppercase">Total Value</th></tr></thead>
-                <tbody>
-                    {% for item in inventory %}
-                    <tr class="border-b border-gray-100">
-                        <td class="p-3 text-sm font-medium text-gray-700">{{ item.paper_type }}</td>
-                        <td class="p-3 text-sm text-gray-600">{{ item.quantity }}</td>
-                        <td class="p-3 text-sm text-gray-600">{{ item.cost_per_sheet }} UGX</td>
-                        <td class="p-3 text-sm font-bold text-indigo-600">{{ item.total_value|floatformat:0 }} UGX</td>
-                    </tr>
-                    {% endfor %}
-                </tbody>
-            </table>
+
+        <!-- Current Stock Table -->
+        <div class="bg-slate-800 border border-slate-700 rounded-2xl shadow-lg overflow-hidden">
+            <div class="px-6 py-4 border-b border-slate-700">
+                <h2 class="text-lg font-bold text-white">Current Stock</h2>
+            </div>
+            <div class="overflow-x-auto">
+                <table class="w-full text-left">
+                    <thead class="bg-slate-700/50">
+                        <tr>
+                            <th class="p-4 text-xs font-semibold text-gray-400 uppercase tracking-wider">Paper Type</th>
+                            <th class="p-4 text-xs font-semibold text-gray-400 uppercase tracking-wider">Quantity</th>
+                            <th class="p-4 text-xs font-semibold text-gray-400 uppercase tracking-wider">Cost / Sheet</th>
+                            <th class="p-4 text-xs font-semibold text-gray-400 uppercase tracking-wider text-right">Total Value</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for item in inventory %}
+                        <tr class="border-b border-slate-700/50 hover:bg-slate-700/30 transition">
+                            <td class="p-4 text-sm font-medium text-gray-200">{{ item.paper_type }}</td>
+                            <td class="p-4 text-sm text-gray-300">{{ item.quantity }} sheets</td>
+                            <td class="p-4 text-sm text-gray-300">{{ item.cost_per_sheet }} UGX</td>
+                            <td class="p-4 text-sm font-bold text-indigo-400 text-right">{{ item.total_value|floatformat:0 }} UGX</td>
+                        </tr>
+                        {% empty %}
+                        <tr>
+                            <td colspan="4" class="p-8 text-center text-gray-500">No inventory items yet. Add your first stock above.</td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
         </div>
     </div>
 </div>
