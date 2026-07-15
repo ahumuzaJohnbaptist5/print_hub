@@ -23,6 +23,7 @@ ALLOWED_HOSTS = [
     '127.0.0.1',
     'printlink.pythonanywhere.com',
     '.pythonanywhere.com',
+    '.onrender.com',
 ]
 
 LOGIN_URL = '/auth/login/'
