@@ -1,6 +1,7 @@
 from django.contrib.auth import get_user_model
+from django.conf import settings
 from django.core import mail
-from django.test import Client, TestCase, override_settings
+from django.test import Client, SimpleTestCase, TestCase, override_settings
 from django.urls import reverse
 
 User = get_user_model()
@@ -93,3 +94,11 @@ class EmailVerificationTests(TestCase):
         self.assertEqual(response.status_code, 200)
         self.user.refresh_from_db()
         self.assertTrue(self.user.email_verified)
+
+
+class DatabaseSettingsTests(SimpleTestCase):
+    def test_sqlite_database_has_no_sslmode_option(self):
+        default_db = settings.DATABASES['default']
+        if default_db.get('ENGINE') != 'django.db.backends.sqlite3':
+            self.skipTest('This assertion only applies to sqlite settings')
+        self.assertNotIn('sslmode', default_db.get('OPTIONS', {}))
