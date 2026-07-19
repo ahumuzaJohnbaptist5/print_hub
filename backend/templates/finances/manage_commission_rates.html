@@ -1,44 +1,103 @@
 {% extends 'base.html' %}
-{% block title %}Commission Rates{% endblock %}
+{% load humanize %}
+
+{% block title %}Commission Rates - PrintHub{% endblock %}
+
 {% block content %}
 <div class="min-h-screen bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 py-12 px-4 sm:px-6 lg:px-8">
     <div class="max-w-4xl mx-auto">
 
-        <h1 class="text-3xl font-bold text-white mb-8">⚙️ Manage Commission Rates</h1>
+        <!-- Header -->
+        <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-8">
+            <div>
+                <h1 class="text-3xl font-bold text-white">Commission Rates</h1>
+                <p class="text-gray-400 text-sm mt-1">Manage agent commission percentages.</p>
+            </div>
+            <a href="{% url 'financial_dashboard' %}" class="text-gray-400 hover:text-white text-sm transition-colors">
+                Back to Dashboard
+            </a>
+        </div>
 
+        <!-- Active Rate Card -->
         {% if active_rate %}
-        <div class="bg-green-900/30 border border-green-700 rounded-2xl p-6 mb-8">
-            <p class="text-sm text-green-400 font-semibold uppercase tracking-wider">Currently Active Rate</p>
-            <p class="text-4xl font-extrabold text-green-300 mt-2">{{ active_rate.rate_percentage }}%</p>
-            <p class="text-sm text-green-400/70 mt-1">{{ active_rate.description|default:"No description" }}</p>
+        <div class="bg-gradient-to-r from-green-900/40 to-emerald-900/40 border border-green-700 rounded-2xl p-6 mb-6">
+            <div class="flex items-center justify-between">
+                <div>
+                    <p class="text-sm text-green-400 font-semibold uppercase tracking-wider">Active Rate</p>
+                    <p class="text-4xl font-extrabold text-green-300 mt-1">{{ active_rate.rate_percentage }}%</p>
+                    <p class="text-sm text-green-400/70 mt-1">{{ active_rate.description|default:"No description" }}</p>
+                </div>
+                <div class="text-right">
+                    <p class="text-green-400/60 text-xs">Set on {{ active_rate.created_at|date:"M d, Y" }}</p>
+                    {% if active_rate.created_by %}
+                    <p class="text-green-400/50 text-xs">by {{ active_rate.created_by.username }}</p>
+                    {% endif %}
+                </div>
+            </div>
+            
+            {% if affected_earnings.count > 0 %}
+            <div class="mt-4 bg-green-500/10 border border-green-500/20 rounded-xl p-3">
+                <p class="text-green-300 text-sm">
+                    {{ affected_earnings.count }} pending earnings totaling 
+                    <strong>{{ affected_earnings.total|floatformat:0|intcomma }} UGX</strong> 
+                    use this rate.
+                </p>
+            </div>
+            {% endif %}
         </div>
         {% else %}
-        <div class="bg-yellow-900/30 border border-yellow-700 rounded-2xl p-6 mb-8">
-            <p class="text-yellow-400 font-semibold">⚠️ No active commission rate set. Agents will not earn commissions until you set one below.</p>
+        <div class="bg-yellow-500/10 border border-yellow-500/30 rounded-2xl p-6 mb-6">
+            <p class="text-yellow-400 font-semibold">No active commission rate set. Agents will not earn commissions until you create one.</p>
         </div>
         {% endif %}
 
         <!-- Set New Rate Form -->
-        <div class="bg-slate-800 border border-slate-700 rounded-2xl shadow-lg p-8 mb-8">
-            <h2 class="text-xl font-bold text-white mb-6">Set New Rate</h2>
-            <form method="post">
+        <div class="bg-slate-800 border border-slate-700 rounded-2xl p-8 mb-6">
+            <h2 class="text-xl font-bold text-white mb-6">Set New Commission Rate</h2>
+            <form method="post" class="space-y-6">
                 {% csrf_token %}
-                <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
+                
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
                     <div>
-                        <label class="block text-sm font-bold text-gray-300 mb-2">Percentage (%)</label>
+                        <label class="block text-sm font-bold text-gray-300 mb-2">Rate Percentage (%)</label>
                         {{ form.rate_percentage }}
+                        {% if form.rate_percentage.errors %}
+                        <p class="text-red-400 text-xs mt-1">{{ form.rate_percentage.errors.0 }}</p>
+                        {% endif %}
+                        <p class="text-gray-500 text-xs mt-1">Enter a value between 0 and 100</p>
                     </div>
                     <div>
                         <label class="block text-sm font-bold text-gray-300 mb-2">Description</label>
                         {{ form.description }}
+                        <p class="text-gray-500 text-xs mt-1">e.g., "Standard rate for all agents"</p>
                     </div>
                 </div>
-                <button type="submit" class="px-6 py-3 bg-indigo-600 text-white rounded-xl shadow hover:bg-indigo-500 transition font-medium">Save &amp; Activate Rate</button>
+                
+                <div class="flex items-center gap-3">
+                    {{ form.is_active }}
+                    <label class="text-gray-300 text-sm">Activate immediately (deactivates all other rates)</label>
+                </div>
+                
+                <div class="bg-blue-500/10 border border-blue-500/20 rounded-xl p-4">
+                    <p class="text-blue-300 text-sm">
+                        <strong>Note:</strong> Activating a new rate will update all pending agent earnings to use this percentage.
+                        Previously paid earnings will not be affected.
+                    </p>
+                </div>
+                
+                <div class="flex gap-3">
+                    <button type="submit" class="px-6 py-3 bg-indigo-600 hover:bg-indigo-500 text-white rounded-xl font-medium transition-all">
+                        Save & Activate Rate
+                    </button>
+                    <a href="{% url 'financial_dashboard' %}" class="px-6 py-3 bg-slate-700 hover:bg-slate-600 text-gray-300 rounded-xl font-medium transition-all">
+                        Cancel
+                    </a>
+                </div>
             </form>
         </div>
 
-        <!-- Rate History -->
-        <div class="bg-slate-800 border border-slate-700 rounded-2xl shadow-lg overflow-hidden">
+        <!-- Rate History Table -->
+        <div class="bg-slate-800 border border-slate-700 rounded-2xl overflow-hidden">
             <div class="px-6 py-4 border-b border-slate-700">
                 <h2 class="text-lg font-bold text-white">Rate History</h2>
             </div>
@@ -49,30 +108,57 @@
                             <th class="p-4 text-xs font-semibold text-gray-400 uppercase tracking-wider">Rate</th>
                             <th class="p-4 text-xs font-semibold text-gray-400 uppercase tracking-wider">Description</th>
                             <th class="p-4 text-xs font-semibold text-gray-400 uppercase tracking-wider">Created</th>
+                            <th class="p-4 text-xs font-semibold text-gray-400 uppercase tracking-wider">Created By</th>
                             <th class="p-4 text-xs font-semibold text-gray-400 uppercase tracking-wider">Status</th>
                         </tr>
                     </thead>
                     <tbody>
                         {% for rate in all_rates %}
                         <tr class="border-b border-slate-700/50 hover:bg-slate-700/30 transition">
-                            <td class="p-4 text-sm font-bold text-gray-200">{{ rate.rate_percentage }}%</td>
-                            <td class="p-4 text-sm text-gray-400">{{ rate.description|default:"—" }}</td>
-                            <td class="p-4 text-sm text-gray-400">{{ rate.created_at|date:"M d, Y" }}</td>
+                            <td class="p-4 text-sm font-bold text-white">{{ rate.rate_percentage }}%</td>
+                            <td class="p-4 text-sm text-gray-400 max-w-[200px] truncate">{{ rate.description|default:"--" }}</td>
+                            <td class="p-4 text-sm text-gray-400 whitespace-nowrap">{{ rate.created_at|date:"M d, Y H:i" }}</td>
+                            <td class="p-4 text-sm text-gray-400">{{ rate.created_by.username|default:"--" }}</td>
                             <td class="p-4">
                                 {% if rate.is_active %}
-                                    <span class="px-3 py-1 text-xs font-semibold rounded-full bg-green-900/50 text-green-400 border border-green-700">Active</span>
+                                <span class="px-3 py-1 text-xs font-semibold rounded-full bg-green-500/20 text-green-400 border border-green-500/30">Active</span>
                                 {% else %}
-                                    <span class="px-3 py-1 text-xs font-semibold rounded-full bg-slate-700 text-gray-400 border border-slate-600">Inactive</span>
+                                <span class="px-3 py-1 text-xs font-semibold rounded-full bg-slate-700 text-gray-500 border border-slate-600">Inactive</span>
                                 {% endif %}
                             </td>
                         </tr>
                         {% empty %}
                         <tr>
-                            <td colspan="4" class="p-8 text-center text-gray-500">No commission rates have been set yet.</td>
+                            <td colspan="5" class="p-12 text-center text-gray-500">No commission rates have been created yet.</td>
                         </tr>
                         {% endfor %}
                     </tbody>
                 </table>
+            </div>
+        </div>
+        
+        <!-- Commission Calculation Example -->
+        <div class="bg-slate-800 border border-slate-700 rounded-2xl p-6 mt-6">
+            <h3 class="text-lg font-bold text-white mb-4">How Commissions Work</h3>
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-4 text-sm">
+                <div class="bg-white/5 rounded-xl p-4">
+                    <p class="text-gray-400 mb-1">Order Total</p>
+                    <p class="text-white font-bold">10,000 UGX</p>
+                </div>
+                <div class="bg-white/5 rounded-xl p-4">
+                    <p class="text-gray-400 mb-1">Commission Rate</p>
+                    <p class="text-indigo-400 font-bold">{% if active_rate %}{{ active_rate.rate_percentage }}%{% else %}--%{% endif %}</p>
+                </div>
+                <div class="bg-white/5 rounded-xl p-4">
+                    <p class="text-gray-400 mb-1">Agent Earns</p>
+                    <p class="text-green-400 font-bold">
+                        {% if active_rate %}
+                        {{ 10000|multiply:active_rate.rate_percentage|divide:100|floatformat:0|intcomma }} UGX
+                        {% else %}
+                        -- UGX
+                        {% endif %}
+                    </p>
+                </div>
             </div>
         </div>
     </div>
