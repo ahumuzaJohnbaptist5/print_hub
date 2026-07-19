@@ -1,5 +1,5 @@
 # orders/signals.py
-from django.db.models.signals import post_save, pre_save
+from django.db.models.signals import post_save
 from django.dispatch import receiver
 from django.utils import timezone
 from decimal import Decimal
@@ -14,21 +14,20 @@ def handle_order_status_change(sender, instance, created, **kwargs):
     - Set timestamps for status changes
     - Deduct paper inventory when printing
     - Create financial records when collected
+    - Create notifications for status changes
     """
     
-    # Skip if this is a new order (handled in save method)
     if created:
         return
     
-    # Get old status (stored in save method)
     old_status = getattr(instance, '_old_status', None)
     
     if old_status == instance.status:
-        return  # Status didn't change
+        return
     
     now = timezone.now()
     
-    # Set timestamps based on status
+    # Set timestamps
     if instance.status == 'paid' and not instance.paid_at:
         instance.paid_at = now
         instance.save(update_fields=['paid_at'])
@@ -37,7 +36,6 @@ def handle_order_status_change(sender, instance, created, **kwargs):
         if not instance.printing_at:
             instance.printing_at = now
             instance.save(update_fields=['printing_at'])
-        # Deduct paper from inventory when printing starts
         instance.deduct_paper_inventory()
     
     elif instance.status == 'in_transit' and not instance.in_transit_at:
@@ -47,14 +45,59 @@ def handle_order_status_change(sender, instance, created, **kwargs):
     elif instance.status == 'ready' and not instance.ready_at:
         instance.ready_at = now
         instance.save(update_fields=['ready_at'])
+        # Notify client
+        create_order_notification(instance, 'ready')
     
     elif instance.status == 'collected':
         if not instance.collected_at:
             instance.collected_at = now
             instance.save(update_fields=['collected_at'])
-        
-        # Create financial records only once
         create_financial_records(instance)
+    
+    elif instance.status == 'cancelled':
+        create_order_notification(instance, 'cancelled')
+
+
+def create_order_notification(order, status_type):
+    """Create notification for order status changes."""
+    try:
+        from notifications.models import Notification
+        
+        notifications_map = {
+            'paid': {
+                'title': 'Payment Confirmed',
+                'message': f'Payment received for Order #{order.id}. Your order is being processed.',
+            },
+            'printing': {
+                'title': 'Printing Started',
+                'message': f'Order #{order.id} ({order.file_name}) is now printing.',
+            },
+            'in_transit': {
+                'title': 'Order In Transit',
+                'message': f'Order #{order.id} is on its way to {order.station.name if order.station else "the station"}.',
+            },
+            'ready': {
+                'title': 'Order Ready for Pickup',
+                'message': f'Order #{order.id} ({order.file_name}) is ready at {order.station.name if order.station else "the station"}.',
+            },
+            'cancelled': {
+                'title': 'Order Cancelled',
+                'message': f'Order #{order.id} has been cancelled. {order.cancellation_reason or ""}',
+            },
+        }
+        
+        info = notifications_map.get(status_type)
+        if info:
+            Notification.create_notification(
+                user=order.client,
+                notification_type='order_status',
+                title=info['title'],
+                message=info['message'],
+                link=f'/orders/{order.id}/receipt/'
+            )
+    except Exception as e:
+        import logging
+        logging.getLogger(__name__).error(f"Notification failed for Order #{order.id}: {e}")
 
 
 def create_financial_records(order):
@@ -62,11 +105,9 @@ def create_financial_records(order):
     try:
         from finances.models import FinancialRecord, AgentEarning, CommissionRate
         
-        # Check if records already exist
         if FinancialRecord.objects.filter(order=order, transaction_type='income').exists():
-            return  # Already processed
+            return
         
-        # 1. Income record
         FinancialRecord.objects.create(
             transaction_type='income',
             amount=order.total_price,
@@ -74,7 +115,6 @@ def create_financial_records(order):
             order=order
         )
         
-        # 2. Commission record (if agent commission exists)
         if order.agent_commission > 0:
             FinancialRecord.objects.create(
                 transaction_type='commission',
@@ -84,10 +124,9 @@ def create_financial_records(order):
                 agent=order.station.agent if order.station and hasattr(order.station, 'agent') else None
             )
             
-            # 3. Create AgentEarning
             rate = CommissionRate.get_active_rate()
             if order.station and hasattr(order.station, 'agent') and order.station.agent:
-                AgentEarning.objects.get_or_create(
+                earning, created = AgentEarning.objects.get_or_create(
                     order=order,
                     agent=order.station.agent,
                     defaults={
@@ -96,9 +135,17 @@ def create_financial_records(order):
                         'order_total': order.total_price,
                     }
                 )
+                # Notify agent
+                if created:
+                    from notifications.models import Notification
+                    Notification.create_notification(
+                        user=order.station.agent,
+                        notification_type='commission_paid',
+                        title='Commission Earned',
+                        message=f'You earned {order.agent_commission} UGX from Order #{order.id}.',
+                        link=f'/finances/agent-earnings/'
+                    )
                 
     except Exception as e:
-        # Log the error but don't break the save
         import logging
-        logger = logging.getLogger(__name__)
-        logger.error(f"Failed to create financial records for Order #{order.id}: {e}")
+        logging.getLogger(__name__).error(f"Financial records failed for Order #{order.id}: {e}")
