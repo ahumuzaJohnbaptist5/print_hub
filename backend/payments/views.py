@@ -34,19 +34,13 @@ def payment_page(request, order_id):
         client=request.user
     )
     
-    # Check if order can be paid
     if order.status not in ['pending']:
         messages.warning(request, f'This order is already {order.get_status_display().lower()}.')
         return redirect('order_receipt', order_id=order.id)
     
-    # Check for existing pending payment
-    existing_payment = Payment.objects.filter(
-        order=order, 
-        status='pending'
-    ).first()
+    existing_payment = Payment.objects.filter(order=order, status='pending').first()
     
     if existing_payment:
-        # Check if payment is expired (older than 30 minutes)
         time_diff = timezone.now() - existing_payment.created_at
         if time_diff > timedelta(minutes=30):
             existing_payment.mark_as_expired()
@@ -54,11 +48,7 @@ def payment_page(request, order_id):
             messages.info(request, 'You have a pending payment waiting for approval.')
             return redirect('payment_status', payment_id=existing_payment.id)
     
-    # Get user's saved payment methods
-    saved_methods = PaymentMethod.objects.filter(
-        user=request.user, 
-        is_verified=True
-    )
+    saved_methods = PaymentMethod.objects.filter(user=request.user, is_verified=True)
     
     if request.method == 'POST':
         payment_method = request.POST.get('payment_method')
@@ -67,7 +57,6 @@ def payment_page(request, order_id):
         transaction_message = request.POST.get('transaction_message', '').strip()
         save_method = request.POST.get('save_method') == 'on'
         
-        # Validate input
         errors = []
         if not payment_method or payment_method not in ['mtn', 'airtel']:
             errors.append('Please select a valid payment method.')
@@ -86,17 +75,14 @@ def payment_page(request, order_id):
                 'saved_methods': saved_methods,
             })
         
-        # Get merchant details from settings
         merchant = MerchantSettings.get_merchant(payment_method)
         if merchant:
             merchant_phone = merchant.merchant_phone
             merchant_name = merchant.merchant_name
         else:
-            # Fallback to defaults
             merchant_phone = '0765511075' if payment_method == 'mtn' else '0775523720'
             merchant_name = 'Matovu Evaristo' if payment_method == 'mtn' else 'Ezra Nasaasira'
         
-        # Clean phone number
         customer_phone = re.sub(r'[^\d+]', '', customer_phone)
         if not customer_phone.startswith('+'):
             if customer_phone.startswith('0'):
@@ -105,7 +91,6 @@ def payment_page(request, order_id):
                 customer_phone = '+256' + customer_phone
         
         try:
-            # Create payment record
             payment = Payment.objects.create(
                 order=order,
                 user=request.user,
@@ -123,7 +108,6 @@ def payment_page(request, order_id):
                 user_agent=request.META.get('HTTP_USER_AGENT', ''),
             )
             
-            # Save payment method if requested
             if save_method:
                 PaymentMethod.objects.get_or_create(
                     user=request.user,
@@ -134,13 +118,9 @@ def payment_page(request, order_id):
                     }
                 )
             
-            # Send notification to admin
             send_payment_notification(payment)
             
-            messages.success(
-                request, 
-                'Payment submitted successfully! Waiting for admin verification.'
-            )
+            messages.success(request, 'Payment submitted successfully! Waiting for admin verification.')
             return redirect('payment_status', payment_id=payment.id)
             
         except Exception as e:
@@ -161,84 +141,76 @@ def payment_status(request, payment_id):
         id=payment_id
     )
     
-    # Check permissions
     if payment.user != request.user and not request.user.is_staff:
         messages.error(request, 'Access denied.')
         return redirect('dashboard')
     
-    # Check for expiry
     if payment.status == 'pending':
         time_diff = timezone.now() - payment.created_at
         if time_diff > timedelta(minutes=30):
             payment.mark_as_expired()
     
-    # Get order timeline
     order = payment.order
-    timeline_steps = [
-        ('submitted', 'Order Submitted', order.created_at),
-        ('payment_submitted', 'Payment Submitted', payment.created_at),
-        ('payment_verified', 'Payment Verified', payment.approved_at),
-        ('printing', 'Printing', order.printing_at),
-        ('ready', 'Ready', order.ready_at),
-        ('collected', 'Collected', order.collected_at),
-    ]
     
     return render(request, 'payments/payment_status.html', {
         'payment': payment,
         'order': order,
-        'timeline_steps': timeline_steps,
         'estimated_ready': order.estimated_ready_at(),
+    })
+
+
+@login_required
+def payment_check_api(request, payment_id):
+    """API endpoint for auto-refreshing payment status."""
+    payment = get_object_or_404(Payment.objects.select_related('order'), id=payment_id)
+    
+    if payment.user != request.user and not request.user.is_staff:
+        return JsonResponse({'error': 'Access denied'}, status=403)
+    
+    return JsonResponse({
+        'status': payment.status,
+        'order_status': payment.order.status,
+        'approved_at': payment.approved_at.isoformat() if payment.approved_at else None,
+        'rejected_at': payment.rejected_at.isoformat() if payment.rejected_at else None,
     })
 
 
 @login_required
 @require_POST
 def extract_transaction_id(request):
-    """
-    AJAX endpoint to extract Transaction ID from pasted SMS/message.
-    Supports MTN and Airtel formats.
-    """
+    """AJAX endpoint to extract Transaction ID from pasted SMS/message."""
     message = request.POST.get('message', '')
     payment_method = request.POST.get('payment_method', '')
     
     if not message:
-        return JsonResponse({
-            'success': False,
-            'error': 'No message provided'
-        })
+        return JsonResponse({'success': False, 'error': 'No message provided'})
     
-    # Extract transaction ID based on payment method
     transaction_id = None
     amount = None
     sender_name = None
     
     if payment_method == 'mtn':
-        # MTN format: "Transaction ID: NP12345678"
         patterns = [
             r'(?:Transaction\s*ID|Trans\s*ID|Txn\s*ID)[:\s]*([A-Z0-9]+)',
             r'\b(NP[A-Z0-9]+)\b',
         ]
     else:
-        # Airtel format: "Ref: ABC123XYZ"
         patterns = [
             r'(?:Ref|Reference|Transaction\s*ID)[:\s]*([A-Z0-9]+)',
             r'\b([A-Z]{2,}[0-9]{6,})\b',
         ]
     
-    # Common patterns
     common_patterns = [
-        r'\b([A-Z]{2,}[0-9]{6,})\b',  # General transaction ID
-        r'\b([0-9]{10,})\b',  # Numeric ID
+        r'\b([A-Z]{2,}[0-9]{6,})\b',
+        r'\b([0-9]{10,})\b',
     ]
     
-    # Try specific patterns first
     for pattern in patterns + common_patterns:
         match = re.search(pattern, message, re.IGNORECASE)
         if match:
             transaction_id = match.group(1).upper()
             break
     
-    # Extract amount
     amount_patterns = [
         r'(?:Amount|Amt|UGX)[:\s]*([\d,]+)',
         r'(?:UGX|UG\.?X\.?)\s*([\d,]+)',
@@ -253,7 +225,6 @@ def extract_transaction_id(request):
                 pass
             break
     
-    # Extract sender name
     name_patterns = [
         r'(?:From|Sender)[:\s]*([A-Za-z\s]+)',
         r'(?:paid by|sent by)\s*([A-Za-z\s]+)',
@@ -276,11 +247,7 @@ def extract_transaction_id(request):
 @login_required
 @user_passes_test(lambda u: u.is_staff)
 def admin_approve_payments(request):
-    """
-    Admin page to approve/reject payments.
-    Shows pending payments with transaction details.
-    """
-    # Handle actions
+    """Admin page to approve/reject payments."""
     if request.method == 'POST':
         action = request.POST.get('action')
         payment_id = request.POST.get('payment_id')
@@ -289,15 +256,11 @@ def admin_approve_payments(request):
             messages.error(request, 'No payment selected.')
             return redirect('admin_approve_payments')
         
-        payment = get_object_or_404(
-            Payment.objects.select_related('order', 'user'), 
-            id=payment_id
-        )
+        payment = get_object_or_404(Payment.objects.select_related('order', 'user'), id=payment_id)
         
         if action == 'approve':
             reason = request.POST.get('approve_reason', '').strip()
             if payment.approve(approved_by=request.user):
-                # ADDED: In-app notification
                 Notification.create_notification(
                     user=payment.user,
                     notification_type='payment_approved',
@@ -305,16 +268,11 @@ def admin_approve_payments(request):
                     message=f'Your payment of {payment.amount} UGX for Order #{payment.order.id} has been approved.',
                     link=f'/orders/{payment.order.id}/receipt/'
                 )
-                # Send confirmation email
                 try:
                     send_payment_confirmation(payment)
                 except Exception as e:
                     logger.error(f"Failed to send confirmation email: {e}")
-                
-                messages.success(
-                    request, 
-                    f'Payment #{payment.id} approved! Order #{payment.order.id} is now paid.'
-                )
+                messages.success(request, f'Payment #{payment.id} approved! Order #{payment.order.id} is now paid.')
             else:
                 messages.error(request, 'Could not approve this payment.')
                 
@@ -323,9 +281,7 @@ def admin_approve_payments(request):
             if not reason:
                 messages.error(request, 'Please provide a reason for rejection.')
                 return redirect('admin_approve_payments')
-            
             if payment.reject(rejected_by=request.user, reason=reason):
-                # ADDED: In-app notification
                 Notification.create_notification(
                     user=payment.user,
                     notification_type='payment_rejected',
@@ -333,16 +289,11 @@ def admin_approve_payments(request):
                     message=f'Your payment for Order #{payment.order.id} was not verified. Reason: {reason}',
                     link=f'/payments/order/{payment.order.id}/'
                 )
-                # Send rejection notification
                 try:
                     send_payment_rejection(payment)
                 except Exception as e:
                     logger.error(f"Failed to send rejection email: {e}")
-                
-                messages.warning(
-                    request, 
-                    f'Payment #{payment.id} rejected. Customer will be notified.'
-                )
+                messages.warning(request, f'Payment #{payment.id} rejected. Customer will be notified.')
             else:
                 messages.error(request, 'Could not reject this payment.')
         
@@ -362,7 +313,6 @@ def admin_approve_payments(request):
                         p = Payment.objects.get(id=pid, status='pending')
                         if p.approve(approved_by=request.user):
                             approved_count += 1
-                            # ADDED: In-app notification
                             Notification.create_notification(
                                 user=p.user,
                                 notification_type='payment_approved',
@@ -372,23 +322,17 @@ def admin_approve_payments(request):
                             )
                     except Payment.DoesNotExist:
                         pass
-                
-                messages.success(
-                    request, 
-                    f'{approved_count} payment(s) approved successfully.'
-                )
+                messages.success(request, f'{approved_count} payment(s) approved successfully.')
             else:
                 messages.error(request, 'No payments selected.')
         
         return redirect('admin_approve_payments')
     
-    # GET - Show pending payments
     status_filter = request.GET.get('status', 'pending')
     payment_method = request.GET.get('method', '')
     date_filter = request.GET.get('date', 'today')
     search = request.GET.get('search', '').strip()
     
-    # Date filtering
     now = timezone.now()
     if date_filter == 'today':
         start_date = now.replace(hour=0, minute=0, second=0)
@@ -399,10 +343,7 @@ def admin_approve_payments(request):
     else:
         start_date = now - timedelta(days=1)
     
-    # Build queryset
-    payments = Payment.objects.select_related(
-        'order', 'user', 'approved_by', 'rejected_by'
-    ).filter(created_at__gte=start_date)
+    payments = Payment.objects.select_related('order', 'user', 'approved_by', 'rejected_by').filter(created_at__gte=start_date)
     
     if status_filter:
         payments = payments.filter(status=status_filter)
@@ -416,7 +357,6 @@ def admin_approve_payments(request):
             Q(order__id__icontains=search)
         )
     
-    # Summary statistics
     summary = Payment.objects.filter(created_at__gte=start_date).aggregate(
         total_amount=Sum('amount'),
         total_count=Count('id'),
@@ -426,13 +366,9 @@ def admin_approve_payments(request):
         refunded_count=Count('id', filter=Q(status='refunded')),
     )
     
-    # Today's stats
     today_stats = Payment.get_today_summary()
-    
-    # Success rate
     success_rate = Payment.get_success_rate(days=30)
     
-    # Pagination
     paginator = Paginator(payments, 25)
     page_number = request.GET.get('page')
     page_obj = paginator.get_page(page_number)
@@ -453,11 +389,8 @@ def admin_approve_payments(request):
 @login_required
 def payment_history(request):
     """User's payment history."""
-    payments = Payment.objects.filter(
-        user=request.user
-    ).select_related('order').order_by('-created_at')
+    payments = Payment.objects.filter(user=request.user).select_related('order').order_by('-created_at')
     
-    # Summary
     summary = payments.aggregate(
         total_paid=Sum('amount', filter=Q(status='approved')),
         total_pending=Sum('amount', filter=Q(status='pending')),
@@ -465,7 +398,6 @@ def payment_history(request):
         count=Count('id'),
     )
     
-    # Pagination
     paginator = Paginator(payments, 20)
     page_number = request.GET.get('page')
     page_obj = paginator.get_page(page_number)
@@ -485,21 +417,16 @@ def save_payment_method(request):
         phone_number = request.POST.get('phone_number', '').strip()
         is_default = request.POST.get('is_default') == 'on'
         
-        # Clean phone number
         phone_number = re.sub(r'[^\d+]', '', phone_number)
         
         if not payment_type or not phone_number:
             messages.error(request, 'Please provide payment type and phone number.')
             return redirect('payment_methods')
         
-        # Check if already exists
         method, created = PaymentMethod.objects.get_or_create(
             user=request.user,
             phone_number=phone_number,
-            defaults={
-                'payment_type': payment_type,
-                'is_default': is_default,
-            }
+            defaults={'payment_type': payment_type, 'is_default': is_default}
         )
         
         if created:
@@ -526,7 +453,6 @@ def payment_methods(request):
             method.is_default = True
             method.save()
             messages.success(request, 'Default payment method updated.')
-        
         elif action == 'delete':
             method = get_object_or_404(PaymentMethod, id=method_id, user=request.user)
             method.delete()
@@ -534,23 +460,15 @@ def payment_methods(request):
         
         return redirect('payment_methods')
     
-    return render(request, 'payments/payment_methods.html', {
-        'methods': methods,
-    })
+    return render(request, 'payments/payment_methods.html', {'methods': methods})
 
 
 @login_required
 @require_POST
 def resubmit_payment(request, payment_id):
     """Allow user to resubmit a rejected/failed payment."""
-    payment = get_object_or_404(
-        Payment, 
-        id=payment_id, 
-        user=request.user,
-        status__in=['rejected', 'failed']
-    )
+    payment = get_object_or_404(Payment, id=payment_id, user=request.user, status__in=['rejected', 'failed'])
     
-    # Create new payment with same details
     new_payment = Payment.objects.create(
         order=payment.order,
         user=request.user,
@@ -575,16 +493,11 @@ def resubmit_payment(request, payment_id):
 def payment_detail(request, payment_id):
     """Admin view for detailed payment information."""
     payment = get_object_or_404(
-        Payment.objects.select_related(
-            'order', 'user', 'approved_by', 'rejected_by'
-        ),
+        Payment.objects.select_related('order', 'user', 'approved_by', 'rejected_by'),
         id=payment_id
     )
     
-    # Get related payments for same order
-    related_payments = Payment.objects.filter(
-        order=payment.order
-    ).exclude(id=payment.id).order_by('-created_at')
+    related_payments = Payment.objects.filter(order=payment.order).exclude(id=payment.id).order_by('-created_at')
     
     return render(request, 'payments/payment_detail.html', {
         'payment': payment,
@@ -598,11 +511,7 @@ def payment_detail(request, payment_id):
 def expire_pending_payments(request):
     """Expire all pending payments older than 30 minutes."""
     cutoff_time = timezone.now() - timedelta(minutes=30)
-    
-    expired_payments = Payment.objects.filter(
-        status='pending',
-        created_at__lte=cutoff_time
-    )
+    expired_payments = Payment.objects.filter(status='pending', created_at__lte=cutoff_time)
     
     expired_count = 0
     for payment in expired_payments:
@@ -620,19 +529,13 @@ def payment_stats_api(request):
     days = int(request.GET.get('days', 7))
     start_date = timezone.now() - timedelta(days=days)
     
-    # Daily breakdown
     daily_stats = []
     for i in range(days):
         day = timezone.now().date() - timedelta(days=i)
-        day_start = timezone.make_aware(
-            timezone.datetime.combine(day, timezone.datetime.min.time())
-        )
+        day_start = timezone.make_aware(timezone.datetime.combine(day, timezone.datetime.min.time()))
         day_end = day_start + timedelta(days=1)
         
-        stats = Payment.objects.filter(
-            created_at__gte=day_start,
-            created_at__lt=day_end
-        ).aggregate(
+        stats = Payment.objects.filter(created_at__gte=day_start, created_at__lt=day_end).aggregate(
             total=Count('id'),
             approved=Count('id', filter=Q(status='approved')),
             rejected=Count('id', filter=Q(status='rejected')),
@@ -653,8 +556,6 @@ def payment_stats_api(request):
     })
 
 
-# Helper functions
-
 def send_payment_notification(payment):
     """Send notification to admin about new payment."""
     subject = f'New Payment - Order #{payment.order.id}'
@@ -674,13 +575,7 @@ def send_payment_notification(payment):
     admin_emails = settings.ADMIN_EMAILS if hasattr(settings, 'ADMIN_EMAILS') else [admin[1] for admin in settings.ADMINS]
     
     try:
-        send_mail(
-            subject,
-            message,
-            settings.DEFAULT_FROM_EMAIL,
-            admin_emails,
-            fail_silently=True,
-        )
+        send_mail(subject, message, settings.DEFAULT_FROM_EMAIL, admin_emails, fail_silently=True)
     except Exception as e:
         logger.error(f"Failed to send payment notification: {e}")
 
@@ -707,13 +602,7 @@ def send_payment_confirmation(payment):
     """
     
     try:
-        send_mail(
-            subject,
-            message,
-            settings.DEFAULT_FROM_EMAIL,
-            [payment.user.email],
-            fail_silently=True,
-        )
+        send_mail(subject, message, settings.DEFAULT_FROM_EMAIL, [payment.user.email], fail_silently=True)
     except Exception as e:
         logger.error(f"Failed to send payment confirmation: {e}")
 
@@ -737,12 +626,6 @@ def send_payment_rejection(payment):
     """
     
     try:
-        send_mail(
-            subject,
-            message,
-            settings.DEFAULT_FROM_EMAIL,
-            [payment.user.email],
-            fail_silently=True,
-        )
+        send_mail(subject, message, settings.DEFAULT_FROM_EMAIL, [payment.user.email], fail_silently=True)
     except Exception as e:
         logger.error(f"Failed to send payment rejection: {e}")
