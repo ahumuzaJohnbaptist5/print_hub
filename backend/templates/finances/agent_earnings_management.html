@@ -1,0 +1,184 @@
+{% extends 'base.html' %}
+{% load humanize %}
+
+{% block title %}Agent Earnings Management - PrintHub{% endblock %}
+
+{% block content %}
+<div class="max-w-6xl mx-auto px-4 py-12">
+    
+    <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-8">
+        <div>
+            <h1 class="text-3xl font-bold text-white">Agent Earnings</h1>
+            <p class="text-gray-400 text-sm mt-1">Manage and pay agent commissions.</p>
+        </div>
+        <a href="{% url 'financial_dashboard' %}" class="text-gray-400 hover:text-white text-sm transition-colors">
+            Back to Dashboard
+        </a>
+    </div>
+
+    <!-- Filters -->
+    <form method="GET" class="bg-white/5 border border-white/10 rounded-2xl p-4 mb-6">
+        <div class="grid grid-cols-2 md:grid-cols-4 gap-3">
+            <div>
+                <label class="block text-xs text-gray-400 mb-1">Agent</label>
+                <select name="agent" class="w-full bg-white/10 border border-white/10 rounded-lg px-3 py-2 text-white text-sm" onchange="this.form.submit()">
+                    <option value="">All Agents</option>
+                    {% for agent in agents %}
+                    <option value="{{ agent.id }}" {% if filter_agent == agent.id|stringformat:"s" %}selected{% endif %}>{{ agent.username }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div>
+                <label class="block text-xs text-gray-400 mb-1">Status</label>
+                <select name="status" class="w-full bg-white/10 border border-white/10 rounded-lg px-3 py-2 text-white text-sm" onchange="this.form.submit()">
+                    <option value="pending" {% if filter_status == 'pending' %}selected{% endif %}>Pending</option>
+                    <option value="paid" {% if filter_status == 'paid' %}selected{% endif %}>Paid</option>
+                    <option value="all" {% if filter_status == 'all' %}selected{% endif %}>All</option>
+                </select>
+            </div>
+            <div>
+                <label class="block text-xs text-gray-400 mb-1">Date</label>
+                <select name="date" class="w-full bg-white/10 border border-white/10 rounded-lg px-3 py-2 text-white text-sm" onchange="this.form.submit()">
+                    <option value="month" {% if filter_date == 'month' %}selected{% endif %}>This Month</option>
+                    <option value="week" {% if filter_date == 'week' %}selected{% endif %}>This Week</option>
+                    <option value="today" {% if filter_date == 'today' %}selected{% endif %}>Today</option>
+                    <option value="all" {% if filter_date == 'all' %}selected{% endif %}>All Time</option>
+                </select>
+            </div>
+            <div class="flex items-end">
+                <button type="submit" class="w-full bg-blue-600 hover:bg-blue-700 text-white font-medium py-2 rounded-lg text-sm transition-all">Filter</button>
+            </div>
+        </div>
+    </form>
+
+    <!-- Summary -->
+    <div class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
+        <div class="bg-white/5 border border-white/10 rounded-xl p-4 text-center">
+            <p class="text-gray-400 text-xs uppercase">Total</p>
+            <p class="text-xl font-bold text-white">{{ summary.total|default:0|floatformat:0|intcomma }} UGX</p>
+        </div>
+        <div class="bg-yellow-500/10 border border-yellow-500/30 rounded-xl p-4 text-center">
+            <p class="text-yellow-400 text-xs uppercase">Pending</p>
+            <p class="text-xl font-bold text-yellow-300">{{ summary.pending|default:0|floatformat:0|intcomma }} UGX</p>
+        </div>
+        <div class="bg-green-500/10 border border-green-500/30 rounded-xl p-4 text-center">
+            <p class="text-green-400 text-xs uppercase">Paid</p>
+            <p class="text-xl font-bold text-green-300">{{ summary.paid|default:0|floatformat:0|intcomma }} UGX</p>
+        </div>
+        <div class="bg-blue-500/10 border border-blue-500/30 rounded-xl p-4 text-center">
+            <p class="text-blue-400 text-xs uppercase">Count</p>
+            <p class="text-xl font-bold text-blue-300">{{ summary.count|default:0 }}</p>
+        </div>
+    </div>
+
+    <!-- Bulk Pay Button -->
+    {% if earnings and filter_status == 'pending' %}
+    <form method="POST" class="mb-4">
+        {% csrf_token %}
+        <input type="hidden" name="action" value="bulk_pay">
+        <div id="bulk-actions" class="hidden flex items-center gap-3 bg-white/5 border border-white/10 rounded-xl p-3">
+            <span id="selected-count" class="text-gray-400 text-sm">0 selected</span>
+            <button type="submit" class="bg-green-600 hover:bg-green-700 text-white text-sm px-6 py-2 rounded-lg transition-all">
+                Pay Selected
+            </button>
+        </div>
+    </form>
+    {% endif %}
+
+    <!-- Earnings Table -->
+    {% if page_obj.object_list %}
+    <div class="bg-white/5 border border-white/10 rounded-2xl overflow-hidden">
+        <div class="overflow-x-auto">
+            <table class="w-full text-left">
+                <thead class="bg-white/10">
+                    <tr>
+                        {% if filter_status == 'pending' %}
+                        <th class="px-4 py-3 text-left">
+                            <input type="checkbox" id="select-all" class="rounded" onchange="toggleAll(this)">
+                        </th>
+                        {% endif %}
+                        <th class="px-4 py-3 text-xs font-medium text-gray-300 uppercase">Agent</th>
+                        <th class="px-4 py-3 text-xs font-medium text-gray-300 uppercase">Order</th>
+                        <th class="px-4 py-3 text-xs font-medium text-gray-300 uppercase">Rate</th>
+                        <th class="px-4 py-3 text-xs font-medium text-gray-300 uppercase">Earned</th>
+                        <th class="px-4 py-3 text-xs font-medium text-gray-300 uppercase">Order Total</th>
+                        <th class="px-4 py-3 text-xs font-medium text-gray-300 uppercase">Date</th>
+                        <th class="px-4 py-3 text-xs font-medium text-gray-300 uppercase">Status</th>
+                        <th class="px-4 py-3 text-xs font-medium text-gray-300 uppercase">Actions</th>
+                    </tr>
+                </thead>
+                <tbody class="divide-y divide-white/10">
+                    {% for earning in page_obj.object_list %}
+                    <tr class="hover:bg-white/5 transition">
+                        {% if filter_status == 'pending' %}
+                        <td class="px-4 py-3">
+                            <input type="checkbox" name="earning_ids" value="{{ earning.id }}" class="earning-checkbox rounded" onchange="updateBulkActions()">
+                        </td>
+                        {% endif %}
+                        <td class="px-4 py-3 text-white text-sm font-medium">{{ earning.agent.username }}</td>
+                        <td class="px-4 py-3">
+                            <a href="{% url 'order_receipt' earning.order.id %}" class="text-blue-400 hover:text-blue-300 text-sm">
+                                #{{ earning.order.id }}
+                            </a>
+                        </td>
+                        <td class="px-4 py-3 text-gray-300 text-sm">{{ earning.commission_rate }}%</td>
+                        <td class="px-4 py-3 text-green-400 font-bold text-sm">{{ earning.commission_amount|floatformat:0|intcomma }} UGX</td>
+                        <td class="px-4 py-3 text-gray-300 text-sm">{{ earning.order_total|floatformat:0|intcomma }} UGX</td>
+                        <td class="px-4 py-3 text-gray-400 text-sm whitespace-nowrap">{{ earning.created_at|date:"M d, Y" }}</td>
+                        <td class="px-4 py-3">
+                            {% if earning.is_paid %}
+                            <span class="px-2 py-0.5 rounded-full text-xs font-semibold bg-green-500/20 text-green-400">Paid</span>
+                            {% else %}
+                            <span class="px-2 py-0.5 rounded-full text-xs font-semibold bg-yellow-500/20 text-yellow-400">Pending</span>
+                            {% endif %}
+                        </td>
+                        <td class="px-4 py-3">
+                            {% if not earning.is_paid %}
+                            <form method="POST" action="{% url 'mark_earning_paid' earning.id %}">
+                                {% csrf_token %}
+                                <button class="text-green-400 hover:text-green-300 text-xs">Mark Paid</button>
+                            </form>
+                            {% else %}
+                            <span class="text-gray-500 text-xs">{{ earning.paid_at|date:"M d" }}</span>
+                            {% endif %}
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <!-- Pagination -->
+    {% if page_obj.has_other_pages %}
+    <div class="flex justify-center gap-2 mt-6">
+        {% if page_obj.has_previous %}
+        <a href="?page={{ page_obj.previous_page_number }}&agent={{ filter_agent }}&status={{ filter_status }}&date={{ filter_date }}" class="px-4 py-2 bg-white/10 text-white rounded-lg hover:bg-white/20">Previous</a>
+        {% endif %}
+        <span class="px-4 py-2 text-gray-400">Page {{ page_obj.number }} of {{ page_obj.paginator.num_pages }}</span>
+        {% if page_obj.has_next %}
+        <a href="?page={{ page_obj.next_page_number }}&agent={{ filter_agent }}&status={{ filter_status }}&date={{ filter_date }}" class="px-4 py-2 bg-white/10 text-white rounded-lg hover:bg-white/20">Next</a>
+        {% endif %}
+    </div>
+    {% endif %}
+
+    {% else %}
+    <div class="bg-white/5 border border-white/10 rounded-2xl p-12 text-center">
+        <p class="text-gray-400 text-lg">No earnings found.</p>
+    </div>
+    {% endif %}
+</div>
+
+<script>
+function toggleAll(source) {
+    document.querySelectorAll('.earning-checkbox').forEach(cb => cb.checked = source.checked);
+    updateBulkActions();
+}
+
+function updateBulkActions() {
+    const checked = document.querySelectorAll('.earning-checkbox:checked').length;
+    document.getElementById('selected-count').textContent = checked + ' selected';
+    document.getElementById('bulk-actions').classList.toggle('hidden', checked === 0);
+}
+</script>
+{% endblock %}
