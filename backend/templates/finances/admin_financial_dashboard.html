@@ -1,123 +1,210 @@
 {% extends 'base.html' %}
-{% block title %}Financial Dashboard{% endblock %}
+{% load humanize %}
+
+{% block title %}Financial Dashboard - PrintHub{% endblock %}
+
 {% block content %}
 <div class="min-h-screen bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 py-12 px-4 sm:px-6 lg:px-8">
     <div class="max-w-7xl mx-auto">
 
         <!-- Header -->
         <div class="flex flex-col md:flex-row justify-between items-start md:items-center mb-8 gap-4">
-            <h1 class="text-3xl font-bold text-white">💰 Financial Dashboard</h1>
+            <div>
+                <h1 class="text-3xl font-bold text-white">Financial Dashboard</h1>
+                <p class="text-gray-400 text-sm mt-1">
+                    {{ start_date|date:"M d, Y" }} - {{ end_date|date:"M d, Y"|default:"Today" }}
+                </p>
+            </div>
             <div class="flex gap-3 flex-wrap">
-                <a href="?date=today" class="px-4 py-2 rounded-lg text-sm font-medium transition-all {% if date_filter == 'today' %}bg-indigo-600 text-white shadow-lg{% else %}bg-slate-700 text-gray-300 hover:bg-slate-600{% endif %}">Today</a>
-                <a href="?date=week" class="px-4 py-2 rounded-lg text-sm font-medium transition-all {% if date_filter == 'week' %}bg-indigo-600 text-white shadow-lg{% else %}bg-slate-700 text-gray-300 hover:bg-slate-600{% endif %}">This Week</a>
-                <a href="?date=month" class="px-4 py-2 rounded-lg text-sm font-medium transition-all {% if date_filter == 'month' %}bg-indigo-600 text-white shadow-lg{% else %}bg-slate-700 text-gray-300 hover:bg-slate-600{% endif %}">This Month</a>
+                <a href="?date=today" class="px-4 py-2 rounded-lg text-sm font-medium transition-all {% if date_filter == 'today' %}bg-indigo-600 text-white{% else %}bg-slate-700 text-gray-300 hover:bg-slate-600{% endif %}">Today</a>
+                <a href="?date=week" class="px-4 py-2 rounded-lg text-sm font-medium transition-all {% if date_filter == 'week' %}bg-indigo-600 text-white{% else %}bg-slate-700 text-gray-300 hover:bg-slate-600{% endif %}">Week</a>
+                <a href="?date=month" class="px-4 py-2 rounded-lg text-sm font-medium transition-all {% if date_filter == 'month' %}bg-indigo-600 text-white{% else %}bg-slate-700 text-gray-300 hover:bg-slate-600{% endif %}">Month</a>
+                <a href="?date=year" class="px-4 py-2 rounded-lg text-sm font-medium transition-all {% if date_filter == 'year' %}bg-indigo-600 text-white{% else %}bg-slate-700 text-gray-300 hover:bg-slate-600{% endif %}">Year</a>
+                <a href="{% url 'export_financial_data' %}?type=transactions&date={{ date_filter }}" class="px-4 py-2 rounded-lg text-sm font-medium bg-emerald-600 text-white hover:bg-emerald-500 transition-all">
+                    Export CSV
+                </a>
             </div>
         </div>
 
-        <!-- Revenue / Expense / Commission / Profit Cards -->
-        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
-            <!-- Revenue -->
-            <div class="bg-slate-800 border border-slate-700 rounded-2xl p-6 shadow-lg">
-                <div class="flex items-center justify-between mb-2">
-                    <p class="text-sm font-semibold text-gray-400 uppercase tracking-wider">Total Revenue</p>
-                    <span class="text-2xl">📈</span>
-                </div>
-                <p class="text-3xl font-extrabold text-green-400">{{ total_revenue|floatformat:0 }}</p>
-                <p class="text-xs text-gray-500 mt-1">UGX</p>
+        <!-- Main Stats Cards -->
+        <div class="grid grid-cols-2 lg:grid-cols-5 gap-4 mb-8">
+            <div class="bg-slate-800 border border-slate-700 rounded-2xl p-5">
+                <p class="text-gray-400 text-xs uppercase tracking-wider mb-1">Revenue</p>
+                <p class="text-2xl font-extrabold text-green-400">{{ total_revenue|floatformat:0|intcomma }}</p>
+                <p class="text-gray-500 text-xs mt-1">UGX</p>
             </div>
-            <!-- Expenses -->
-            <div class="bg-slate-800 border border-slate-700 rounded-2xl p-6 shadow-lg">
-                <div class="flex items-center justify-between mb-2">
-                    <p class="text-sm font-semibold text-gray-400 uppercase tracking-wider">Total Expenses</p>
-                    <span class="text-2xl">📉</span>
-                </div>
-                <p class="text-3xl font-extrabold text-red-400">{{ total_costs|floatformat:0 }}</p>
-                <p class="text-xs text-gray-500 mt-1">UGX</p>
-                <button onclick="document.getElementById('expense-modal').classList.remove('hidden')" class="text-xs text-indigo-400 font-semibold mt-2 hover:text-indigo-300 hover:underline">+ Add Expense</button>
+            <div class="bg-slate-800 border border-slate-700 rounded-2xl p-5">
+                <p class="text-gray-400 text-xs uppercase tracking-wider mb-1">Costs</p>
+                <p class="text-2xl font-extrabold text-red-400">{{ total_costs|floatformat:0|intcomma }}</p>
+                <p class="text-gray-500 text-xs mt-1">UGX</p>
             </div>
-            <!-- Commissions -->
-            <div class="bg-slate-800 border border-slate-700 rounded-2xl p-6 shadow-lg">
-                <div class="flex items-center justify-between mb-2">
-                    <p class="text-sm font-semibold text-gray-400 uppercase tracking-wider">Commissions Paid</p>
-                    <span class="text-2xl">🤝</span>
-                </div>
-                <p class="text-3xl font-extrabold text-yellow-400">{{ total_commissions|floatformat:0 }}</p>
-                <p class="text-xs text-gray-500 mt-1">UGX</p>
+            <div class="bg-slate-800 border border-slate-700 rounded-2xl p-5">
+                <p class="text-gray-400 text-xs uppercase tracking-wider mb-1">Commissions</p>
+                <p class="text-2xl font-extrabold text-yellow-400">{{ total_commissions|floatformat:0|intcomma }}</p>
+                <p class="text-gray-500 text-xs mt-1">UGX</p>
             </div>
-            <!-- Profit -->
-            <div class="bg-slate-800 border border-slate-700 rounded-2xl p-6 shadow-lg">
-                <div class="flex items-center justify-between mb-2">
-                    <p class="text-sm font-semibold text-gray-400 uppercase tracking-wider">Net Profit</p>
-                    <span class="text-2xl">💎</span>
-                </div>
-                <p class="text-3xl font-extrabold {% if total_profit >= 0 %}text-green-400{% else %}text-red-400{% endif %}">{{ total_profit|floatformat:0 }}</p>
-                <p class="text-xs text-gray-500 mt-1">UGX &middot; Margin: {{ profit_margin|floatformat:1 }}%</p>
+            <div class="bg-slate-800 border border-slate-700 rounded-2xl p-5">
+                <p class="text-gray-400 text-xs uppercase tracking-wider mb-1">Profit</p>
+                <p class="text-2xl font-extrabold {% if total_profit >= 0 %}text-green-400{% else %}text-red-400{% endif %}">{{ total_profit|floatformat:0|intcomma }}</p>
+                <p class="text-gray-500 text-xs mt-1">UGX</p>
+            </div>
+            <div class="bg-slate-800 border border-slate-700 rounded-2xl p-5">
+                <p class="text-gray-400 text-xs uppercase tracking-wider mb-1">Margin</p>
+                <p class="text-2xl font-extrabold {% if profit_margin >= 0 %}text-green-400{% else %}text-red-400{% endif %}">{{ profit_margin|floatformat:1 }}%</p>
+                <p class="text-gray-500 text-xs mt-1">{{ order_count }} orders</p>
             </div>
         </div>
 
         <!-- Quick Links -->
-        <div class="flex flex-wrap gap-4 mb-8">
-            <a href="{% url 'manage_commission_rates' %}" class="px-6 py-3 bg-indigo-600 text-white rounded-xl shadow hover:bg-indigo-500 transition font-medium">⚙️ Manage Commission Rates</a>
-            <a href="{% url 'manage_paper_inventory' %}" class="px-6 py-3 bg-purple-600 text-white rounded-xl shadow hover:bg-purple-500 transition font-medium">📦 Manage Paper Inventory</a>
+        <div class="flex flex-wrap gap-3 mb-8">
+            <a href="{% url 'manage_commission_rates' %}" class="px-5 py-2.5 bg-indigo-600 hover:bg-indigo-500 text-white rounded-xl text-sm font-medium transition-all">
+                Commission Rates
+            </a>
+            <a href="{% url 'manage_paper_inventory' %}" class="px-5 py-2.5 bg-purple-600 hover:bg-purple-500 text-white rounded-xl text-sm font-medium transition-all">
+                Paper Inventory
+            </a>
+            <a href="{% url 'manage_discount_codes' %}" class="px-5 py-2.5 bg-pink-600 hover:bg-pink-500 text-white rounded-xl text-sm font-medium transition-all">
+                Discount Codes
+            </a>
+            <a href="{% url 'manage_merchant_settings' %}" class="px-5 py-2.5 bg-teal-600 hover:bg-teal-500 text-white rounded-xl text-sm font-medium transition-all">
+                Merchant Settings
+            </a>
+            <a href="{% url 'agent_earnings_management' %}" class="px-5 py-2.5 bg-orange-600 hover:bg-orange-500 text-white rounded-xl text-sm font-medium transition-all">
+                Agent Earnings
+            </a>
+            <a href="{% url 'expense_list' %}" class="px-5 py-2.5 bg-red-600 hover:bg-red-500 text-white rounded-xl text-sm font-medium transition-all">
+                All Expenses
+            </a>
+            <button onclick="document.getElementById('expense-modal').classList.remove('hidden')" class="px-5 py-2.5 bg-red-700 hover:bg-red-600 text-white rounded-xl text-sm font-medium transition-all">
+                + Add Expense
+            </button>
         </div>
 
-        <!-- Two Column Layout: Expenses + Top Agents -->
-        <div class="grid grid-cols-1 lg:grid-cols-2 gap-8">
+        <!-- Low Stock Alerts -->
+        {% if low_stock_items %}
+        <div class="bg-red-500/10 border border-red-500/30 rounded-2xl p-4 mb-8">
+            <p class="text-red-400 font-bold text-sm mb-2">Low Stock Alerts ({{ low_stock_count }} items)</p>
+            <div class="flex flex-wrap gap-3">
+                {% for item in low_stock_items %}
+                <span class="bg-red-500/20 text-red-300 text-xs px-3 py-1 rounded-full">
+                    {{ item.get_paper_type_display }}: {{ item.quantity }} left
+                </span>
+                {% endfor %}
+            </div>
+        </div>
+        {% endif %}
+
+        <!-- Charts Row -->
+        <div class="grid grid-cols-1 lg:grid-cols-2 gap-8 mb-8">
+            
+            <!-- Revenue Trend -->
+            <div class="bg-slate-800 border border-slate-700 rounded-2xl p-6">
+                <h2 class="text-lg font-bold text-white mb-4">Revenue Trend (30 Days)</h2>
+                <div class="space-y-2">
+                    {% for day in revenue_trend %}
+                    <div class="flex items-center gap-3">
+                        <span class="text-gray-500 text-xs w-16">{{ day.label }}</span>
+                        <div class="flex-1 bg-slate-700 rounded-full h-5 overflow-hidden">
+                            <div class="bg-gradient-to-r from-indigo-500 to-purple-500 h-full rounded-full transition-all" style="width: {% widthratio day.revenue revenue_max 100 %}%"></div>
+                        </div>
+                        <span class="text-gray-400 text-xs w-20 text-right">{{ day.revenue|floatformat:0|intcomma }}</span>
+                    </div>
+                    {% empty %}
+                    <p class="text-gray-500 text-sm">No data available</p>
+                    {% endfor %}
+                </div>
+            </div>
+
+            <!-- Expenses by Category -->
+            <div class="bg-slate-800 border border-slate-700 rounded-2xl p-6">
+                <h2 class="text-lg font-bold text-white mb-4">Expenses by Category</h2>
+                {% if expenses_by_category %}
+                <div class="space-y-3">
+                    {% for cat in expenses_by_category %}
+                    <div class="flex items-center justify-between">
+                        <span class="text-gray-300 text-sm">{{ cat.get_category_display }}</span>
+                        <span class="text-red-400 font-bold text-sm">{{ cat.total|floatformat:0|intcomma }} UGX</span>
+                    </div>
+                    <div class="w-full bg-slate-700 rounded-full h-2">
+                        <div class="bg-red-500 h-2 rounded-full" style="width: {% widthratio cat.total total_expenses 100 %}%"></div>
+                    </div>
+                    {% endfor %}
+                </div>
+                {% else %}
+                <p class="text-gray-500 text-sm">No expenses recorded</p>
+                {% endif %}
+            </div>
+        </div>
+
+        <!-- Two Column: Expenses + Agents -->
+        <div class="grid grid-cols-1 lg:grid-cols-2 gap-8 mb-8">
 
             <!-- Recent Expenses -->
-            <div class="bg-slate-800 border border-slate-700 rounded-2xl shadow-lg overflow-hidden">
-                <div class="px-6 py-4 border-b border-slate-700">
-                    <h2 class="text-lg font-bold text-white">Recent Expenses</h2>
+            <div class="bg-slate-800 border border-slate-700 rounded-2xl overflow-hidden">
+                <div class="px-6 py-4 border-b border-slate-700 flex justify-between items-center">
+                    <h2 class="text-lg font-bold text-white">Recent Transactions</h2>
+                    <a href="{% url 'expense_list' %}" class="text-indigo-400 hover:text-indigo-300 text-xs">View All</a>
                 </div>
                 <div class="overflow-x-auto">
                     <table class="w-full text-left">
                         <thead class="bg-slate-700/50">
                             <tr>
-                                <th class="p-4 text-xs font-semibold text-gray-400 uppercase tracking-wider">Description</th>
-                                <th class="p-4 text-xs font-semibold text-gray-400 uppercase tracking-wider text-right">Amount</th>
+                                <th class="p-4 text-xs font-semibold text-gray-400 uppercase">Type</th>
+                                <th class="p-4 text-xs font-semibold text-gray-400 uppercase">Description</th>
+                                <th class="p-4 text-xs font-semibold text-gray-400 uppercase text-right">Amount</th>
                             </tr>
                         </thead>
                         <tbody>
                             {% for tx in recent_transactions %}
                             <tr class="border-b border-slate-700/50 hover:bg-slate-700/30 transition">
-                                <td class="p-4 text-sm text-gray-300">{{ tx.description }}</td>
-                                <td class="p-4 text-sm font-bold text-red-400 text-right">{{ tx.amount|floatformat:0 }} UGX</td>
+                                <td class="p-4">
+                                    <span class="px-2 py-0.5 rounded text-xs font-semibold
+                                        {% if tx.transaction_type == 'income' %}bg-green-500/20 text-green-400
+                                        {% elif tx.transaction_type == 'expense' %}bg-red-500/20 text-red-400
+                                        {% elif tx.transaction_type == 'commission' %}bg-yellow-500/20 text-yellow-400
+                                        {% else %}bg-gray-500/20 text-gray-400{% endif %}">
+                                        {{ tx.get_transaction_type_display }}
+                                    </span>
+                                </td>
+                                <td class="p-4 text-sm text-gray-300">{{ tx.description|truncatechars:40 }}</td>
+                                <td class="p-4 text-sm font-bold text-right {% if tx.is_income %}text-green-400{% else %}text-red-400{% endif %}">
+                                    {{ tx.amount|floatformat:0|intcomma }}
+                                </td>
                             </tr>
                             {% empty %}
-                            <tr>
-                                <td colspan="2" class="p-8 text-center text-gray-500">No expenses recorded for this period.</td>
-                            </tr>
+                            <tr><td colspan="3" class="p-8 text-center text-gray-500">No transactions yet.</td></tr>
                             {% endfor %}
                         </tbody>
                     </table>
                 </div>
             </div>
 
-            <!-- Top Earning Agents -->
-            <div class="bg-slate-800 border border-slate-700 rounded-2xl shadow-lg overflow-hidden">
-                <div class="px-6 py-4 border-b border-slate-700">
-                    <h2 class="text-lg font-bold text-white">Top Earning Agents</h2>
+            <!-- Top Agents -->
+            <div class="bg-slate-800 border border-slate-700 rounded-2xl overflow-hidden">
+                <div class="px-6 py-4 border-b border-slate-700 flex justify-between items-center">
+                    <h2 class="text-lg font-bold text-white">Top Agents</h2>
+                    <a href="{% url 'agent_earnings_management' %}" class="text-indigo-400 hover:text-indigo-300 text-xs">View All</a>
                 </div>
                 <div class="overflow-x-auto">
                     <table class="w-full text-left">
                         <thead class="bg-slate-700/50">
                             <tr>
-                                <th class="p-4 text-xs font-semibold text-gray-400 uppercase tracking-wider">Agent</th>
-                                <th class="p-4 text-xs font-semibold text-gray-400 uppercase tracking-wider">Orders</th>
-                                <th class="p-4 text-xs font-semibold text-gray-400 uppercase tracking-wider text-right">Earned</th>
+                                <th class="p-4 text-xs font-semibold text-gray-400 uppercase">Agent</th>
+                                <th class="p-4 text-xs font-semibold text-gray-400 uppercase">Orders</th>
+                                <th class="p-4 text-xs font-semibold text-gray-400 uppercase text-right">Earned</th>
                             </tr>
                         </thead>
                         <tbody>
                             {% for agent in top_agents %}
                             <tr class="border-b border-slate-700/50 hover:bg-slate-700/30 transition">
-                                <td class="p-4 text-sm font-medium text-gray-200">{{ agent.agent__first_name|default:agent.agent__username }}</td>
+                                <td class="p-4 text-sm font-medium text-gray-200">
+                                    {{ agent.agent__first_name|default:agent.agent__username }}
+                                </td>
                                 <td class="p-4 text-sm text-gray-400">{{ agent.orders_count }}</td>
-                                <td class="p-4 text-sm font-bold text-green-400 text-right">{{ agent.total_earnings|floatformat:0 }} UGX</td>
+                                <td class="p-4 text-sm font-bold text-green-400 text-right">{{ agent.total_earnings|floatformat:0|intcomma }} UGX</td>
                             </tr>
                             {% empty %}
-                            <tr>
-                                <td colspan="3" class="p-8 text-center text-gray-500">No agent earnings yet.</td>
-                            </tr>
+                            <tr><td colspan="3" class="p-8 text-center text-gray-500">No agent earnings yet.</td></tr>
                             {% endfor %}
                         </tbody>
                     </table>
@@ -125,30 +212,40 @@
             </div>
         </div>
 
-        <!-- Paper Inventory Summary -->
+        <!-- Paper Inventory -->
         {% if paper_inventory %}
-        <div class="mt-8 bg-slate-800 border border-slate-700 rounded-2xl shadow-lg overflow-hidden">
+        <div class="bg-slate-800 border border-slate-700 rounded-2xl overflow-hidden">
             <div class="px-6 py-4 border-b border-slate-700 flex justify-between items-center">
                 <h2 class="text-lg font-bold text-white">Paper Inventory</h2>
-                <span class="text-sm text-gray-400">Total Value: <span class="text-indigo-400 font-bold">{{ total_paper_value|floatformat:0 }} UGX</span></span>
+                <span class="text-sm text-gray-400">Total Value: <span class="text-indigo-400 font-bold">{{ total_paper_value|floatformat:0|intcomma }} UGX</span></span>
             </div>
             <div class="overflow-x-auto">
                 <table class="w-full text-left">
                     <thead class="bg-slate-700/50">
                         <tr>
-                            <th class="p-4 text-xs font-semibold text-gray-400 uppercase tracking-wider">Type</th>
-                            <th class="p-4 text-xs font-semibold text-gray-400 uppercase tracking-wider">Sheets in Stock</th>
-                            <th class="p-4 text-xs font-semibold text-gray-400 uppercase tracking-wider">Cost/Sheet</th>
-                            <th class="p-4 text-xs font-semibold text-gray-400 uppercase tracking-wider text-right">Total Value</th>
+                            <th class="p-4 text-xs font-semibold text-gray-400 uppercase">Type</th>
+                            <th class="p-4 text-xs font-semibold text-gray-400 uppercase">Stock</th>
+                            <th class="p-4 text-xs font-semibold text-gray-400 uppercase">Cost/Sheet</th>
+                            <th class="p-4 text-xs font-semibold text-gray-400 uppercase">Status</th>
+                            <th class="p-4 text-xs font-semibold text-gray-400 uppercase text-right">Value</th>
                         </tr>
                     </thead>
                     <tbody>
                         {% for item in paper_inventory %}
-                        <tr class="border-b border-slate-700/50 hover:bg-slate-700/30 transition">
-                            <td class="p-4 text-sm font-medium text-gray-200">{{ item.paper_type }}</td>
-                            <td class="p-4 text-sm text-gray-300">{{ item.quantity }}</td>
+                        <tr class="border-b border-slate-700/50 hover:bg-slate-700/30 transition {% if item.is_low_stock %}bg-red-500/5{% endif %}">
+                            <td class="p-4 text-sm font-medium text-gray-200">{{ item.get_paper_type_display }}</td>
+                            <td class="p-4 text-sm text-gray-300">{{ item.quantity|intcomma }}</td>
                             <td class="p-4 text-sm text-gray-300">{{ item.cost_per_sheet }} UGX</td>
-                            <td class="p-4 text-sm font-bold text-indigo-400 text-right">{{ item.total_value|floatformat:0 }} UGX</td>
+                            <td class="p-4">
+                                {% if item.stock_status == 'out_of_stock' %}
+                                <span class="px-2 py-0.5 rounded text-xs font-semibold bg-red-500/20 text-red-400">Out of Stock</span>
+                                {% elif item.stock_status == 'low_stock' %}
+                                <span class="px-2 py-0.5 rounded text-xs font-semibold bg-yellow-500/20 text-yellow-400">Low</span>
+                                {% else %}
+                                <span class="px-2 py-0.5 rounded text-xs font-semibold bg-green-500/20 text-green-400">In Stock</span>
+                                {% endif %}
+                            </td>
+                            <td class="p-4 text-sm font-bold text-indigo-400 text-right">{{ item.total_value|floatformat:0|intcomma }} UGX</td>
                         </tr>
                         {% endfor %}
                     </tbody>
@@ -161,9 +258,16 @@
     <!-- Add Expense Modal -->
     <div id="expense-modal" class="hidden fixed inset-0 bg-black/70 flex items-center justify-center z-50 p-4">
         <div class="bg-slate-800 border border-slate-600 rounded-2xl shadow-2xl p-8 w-full max-w-md">
-            <h3 class="text-xl font-bold text-white mb-6">Add New Expense</h3>
+            <div class="flex justify-between items-center mb-6">
+                <h3 class="text-xl font-bold text-white">Add New Expense</h3>
+                <button onclick="document.getElementById('expense-modal').classList.add('hidden')" class="text-gray-400 hover:text-white text-2xl">&times;</button>
+            </div>
             <form method="post" action="{% url 'add_expense' %}">
                 {% csrf_token %}
+                <div class="mb-4">
+                    <label class="block text-sm font-bold text-gray-300 mb-2">Category</label>
+                    {{ expense_form.category }}
+                </div>
                 <div class="mb-4">
                     <label class="block text-sm font-bold text-gray-300 mb-2">Description</label>
                     {{ expense_form.description }}
