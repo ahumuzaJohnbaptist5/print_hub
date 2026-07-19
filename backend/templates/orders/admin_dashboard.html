@@ -1,132 +1,217 @@
 {% extends 'base.html' %}
+{% load humanize %}
 
 {% block title %}Admin Dashboard - PrintHub{% endblock %}
 
 {% block content %}
 <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
-    <h1 class="text-4xl font-bold text-white mb-2">Admin Dashboard</h1>
-    <p class="text-gray-400 text-sm mb-8">Clients pay in person at pickup. Mark orders as <strong class="text-white">Paid</strong> after they pay, then <strong class="text-white">Collected</strong> when done.</p>
+    
+    <!-- Header -->
+    <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-8">
+        <div>
+            <h1 class="text-4xl font-bold text-white mb-1">Admin Dashboard</h1>
+            <p class="text-gray-400 text-sm">Manage orders, agents, and system settings.</p>
+        </div>
+        <div class="flex gap-2">
+            <a href="{% url 'financial_dashboard' %}" class="bg-emerald-600 hover:bg-emerald-700 text-white font-medium px-4 py-2 rounded-lg text-sm transition-all">
+                Financial Dashboard
+            </a>
+            <a href="{% url 'live_board' %}" class="bg-purple-600 hover:bg-purple-700 text-white font-medium px-4 py-2 rounded-lg text-sm transition-all">
+                Live Board
+            </a>
+        </div>
+    </div>
 
-    <!-- Summary cards -->
-    <div class="grid grid-cols-2 md:grid-cols-5 gap-4 mb-8">
+    <!-- System Pause Control -->
+    <div class="bg-white/5 border {% if system_settings.is_paused %}border-red-500/50{% else %}border-white/10{% endif %} rounded-2xl p-6 mb-8">
+        <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+            <div>
+                <h2 class="text-lg font-bold text-white">System Timer Control</h2>
+                <p class="text-gray-400 text-sm mt-1">
+                    {% if system_settings.is_paused %}
+                    <span class="text-red-400">System is paused</span>
+                    {% if system_settings.pause_reason %} - {{ system_settings.pause_reason }}{% endif %}
+                    {% else %}
+                    <span class="text-green-400">System is running normally</span>
+                    {% endif %}
+                </p>
+            </div>
+            <form method="POST" action="{% url 'toggle_system_pause' %}" class="flex gap-2">
+                {% csrf_token %}
+                {% if system_settings.is_paused %}
+                <input type="hidden" name="action" value="resume">
+                <button type="submit" class="bg-green-600 hover:bg-green-700 text-white font-medium px-6 py-2 rounded-lg transition-all">
+                    Resume Timers
+                </button>
+                {% else %}
+                <input type="text" name="reason" placeholder="Reason for pause..." class="bg-white/10 border border-white/10 rounded-lg px-3 py-2 text-white text-sm w-48">
+                <input type="hidden" name="action" value="pause">
+                <button type="submit" class="bg-red-600 hover:bg-red-700 text-white font-medium px-6 py-2 rounded-lg transition-all">
+                    Pause Timers
+                </button>
+                {% endif %}
+            </form>
+        </div>
+    </div>
+
+    <!-- Summary Cards -->
+    <div class="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-8 gap-3 mb-8">
         <div class="bg-white/5 border border-white/10 rounded-xl p-4 text-center">
-            <p class="text-gray-400 text-xs uppercase">Total Orders</p>
+            <p class="text-gray-400 text-xs uppercase">Total</p>
             <p class="text-2xl font-bold text-white">{{ summary.total }}</p>
         </div>
         <div class="bg-yellow-500/10 border border-yellow-500/30 rounded-xl p-4 text-center">
-            <p class="text-yellow-400 text-xs uppercase">Submitted</p>
+            <p class="text-yellow-400 text-xs uppercase">Pending</p>
             <p class="text-2xl font-bold text-yellow-300">{{ summary.pending }}</p>
+        </div>
+        <div class="bg-blue-500/10 border border-blue-500/30 rounded-xl p-4 text-center">
+            <p class="text-blue-400 text-xs uppercase">Paid</p>
+            <p class="text-2xl font-bold text-blue-300">{{ summary.paid }}</p>
         </div>
         <div class="bg-purple-500/10 border border-purple-500/30 rounded-xl p-4 text-center">
             <p class="text-purple-400 text-xs uppercase">Printing</p>
             <p class="text-2xl font-bold text-purple-300">{{ summary.printing }}</p>
         </div>
+        <div class="bg-orange-500/10 border border-orange-500/30 rounded-xl p-4 text-center">
+            <p class="text-orange-400 text-xs uppercase">In Transit</p>
+            <p class="text-2xl font-bold text-orange-300">{{ summary.in_transit }}</p>
+        </div>
         <div class="bg-green-500/10 border border-green-500/30 rounded-xl p-4 text-center">
-            <p class="text-green-400 text-xs uppercase">Ready for Pickup</p>
+            <p class="text-green-400 text-xs uppercase">Ready</p>
             <p class="text-2xl font-bold text-green-300">{{ summary.ready }}</p>
         </div>
-        <div class="bg-blue-500/10 border border-blue-500/30 rounded-xl p-4 text-center">
-            <p class="text-blue-400 text-xs uppercase">Collected Today</p>
-            <p class="text-2xl font-bold text-blue-300">{{ summary.collected_today }}</p>
+        <div class="bg-teal-500/10 border border-teal-500/30 rounded-xl p-4 text-center">
+            <p class="text-teal-400 text-xs uppercase">Collected Today</p>
+            <p class="text-2xl font-bold text-teal-300">{{ summary.collected_today }}</p>
+        </div>
+        <div class="bg-red-500/10 border border-red-500/30 rounded-xl p-4 text-center">
+            <p class="text-red-400 text-xs uppercase">Overdue</p>
+            <p class="text-2xl font-bold text-red-300">{{ summary.overdue }}</p>
         </div>
     </div>
 
     <!-- Filters -->
-    <form method="GET" class="bg-white/5 border border-white/10 rounded-2xl p-6 mb-6 grid grid-cols-1 md:grid-cols-5 gap-4">
-        <div>
-            <label class="block text-xs text-gray-400 mb-1">Status</label>
-            <select name="status" class="w-full bg-white/10 border border-white/10 rounded-lg px-3 py-2 text-white text-sm">
-                <option value="" class="bg-slate-800">All</option>
-                {% for val, label in status_choices %}
-                <option value="{{ val }}" {% if filter_status == val %}selected{% endif %} class="bg-slate-800">{{ label }}</option>
-                {% endfor %}
-            </select>
-        </div>
-        <div>
-            <label class="block text-xs text-gray-400 mb-1">Station</label>
-            <select name="station" class="w-full bg-white/10 border border-white/10 rounded-lg px-3 py-2 text-white text-sm">
-                <option value="" class="bg-slate-800">All</option>
-                {% for s in stations %}
-                <option value="{{ s.id }}" {% if filter_station == s.id|stringformat:"s" %}selected{% endif %} class="bg-slate-800">{{ s.name }}</option>
-                {% endfor %}
-            </select>
-        </div>
-        <div>
-            <label class="block text-xs text-gray-400 mb-1">Date</label>
-            <select name="date" class="w-full bg-white/10 border border-white/10 rounded-lg px-3 py-2 text-white text-sm">
-                <option value="" class="bg-slate-800">All time</option>
-                <option value="today" {% if filter_date == 'today' %}selected{% endif %} class="bg-slate-800">Today</option>
-                <option value="week" {% if filter_date == 'week' %}selected{% endif %} class="bg-slate-800">This week</option>
-                <option value="month" {% if filter_date == 'month' %}selected{% endif %} class="bg-slate-800">This month</option>
-            </select>
-        </div>
-        <div>
-            <label class="block text-xs text-gray-400 mb-1">Search</label>
-            <input type="text" name="search" value="{{ filter_search }}" placeholder="Order ID or email"
-                class="w-full bg-white/10 border border-white/10 rounded-lg px-3 py-2 text-white text-sm" />
-        </div>
-        <div class="flex items-end">
-            <button type="submit" class="w-full bg-blue-600 text-white font-semibold py-2 rounded-lg hover:bg-blue-700">Filter</button>
+    <form method="GET" class="bg-white/5 border border-white/10 rounded-2xl p-6 mb-6">
+        <div class="grid grid-cols-1 md:grid-cols-5 gap-4">
+            <div>
+                <label class="block text-xs text-gray-400 mb-1">Status</label>
+                <select name="status" class="w-full bg-white/10 border border-white/10 rounded-lg px-3 py-2 text-white text-sm">
+                    <option value="">All Statuses</option>
+                    {% for val, label in status_choices %}
+                    <option value="{{ val }}" {% if filter_status == val %}selected{% endif %}>{{ label }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div>
+                <label class="block text-xs text-gray-400 mb-1">Station</label>
+                <select name="station" class="w-full bg-white/10 border border-white/10 rounded-lg px-3 py-2 text-white text-sm">
+                    <option value="">All Stations</option>
+                    {% for s in stations %}
+                    <option value="{{ s.id }}" {% if filter_station == s.id|stringformat:"s" %}selected{% endif %}>{{ s.name }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div>
+                <label class="block text-xs text-gray-400 mb-1">Date</label>
+                <select name="date" class="w-full bg-white/10 border border-white/10 rounded-lg px-3 py-2 text-white text-sm">
+                    <option value="">All Time</option>
+                    <option value="today" {% if filter_date == 'today' %}selected{% endif %}>Today</option>
+                    <option value="week" {% if filter_date == 'week' %}selected{% endif %}>This Week</option>
+                    <option value="month" {% if filter_date == 'month' %}selected{% endif %}>This Month</option>
+                </select>
+            </div>
+            <div>
+                <label class="block text-xs text-gray-400 mb-1">Search</label>
+                <input type="text" name="search" value="{{ filter_search }}" placeholder="Order ID, email, or file name" class="w-full bg-white/10 border border-white/10 rounded-lg px-3 py-2 text-white text-sm placeholder-gray-500" />
+            </div>
+            <div class="flex items-end gap-2">
+                <button type="submit" class="flex-1 bg-blue-600 hover:bg-blue-700 text-white font-semibold py-2 rounded-lg transition-all">Filter</button>
+                {% if active_filters %}
+                <a href="{% url 'admin_dashboard' %}" class="bg-white/10 hover:bg-white/20 text-gray-400 px-3 py-2 rounded-lg transition-all">Clear</a>
+                {% endif %}
+            </div>
         </div>
     </form>
 
+    <!-- Active Filters -->
     {% if active_filters %}
     <div class="flex flex-wrap gap-2 mb-4">
         {% for f in active_filters %}
-        <a href="?{% for af in active_filters %}{% if af.key != f.key %}{{ af.key }}={{ af.value }}&{% endif %}{% endfor %}"
-           class="inline-flex items-center gap-1 bg-white/10 text-gray-300 text-sm px-3 py-1 rounded-full hover:bg-white/20">
-            {{ f.label }}: {{ f.value }} &times;
-        </a>
+        <span class="inline-flex items-center gap-2 bg-white/10 text-gray-300 text-sm px-3 py-1 rounded-full">
+            {{ f.label }}: <strong>{{ f.value }}</strong>
+            <a href="?{% for af in active_filters %}{% if af.key != f.key %}{{ af.key }}={{ af.value }}&{% endif %}{% endfor %}" class="text-gray-500 hover:text-white">&times;</a>
+        </span>
         {% endfor %}
-        <a href="{% url 'admin_dashboard' %}" class="text-blue-400 text-sm hover:text-blue-300">Clear all</a>
     </div>
     {% endif %}
 
-    <p class="text-gray-400 text-sm mb-4">{{ total_filtered }} order(s) found</p>
+    <p class="text-gray-400 text-sm mb-6">{{ total_filtered }} order(s) found</p>
 
-    <!-- Agent management -->
+    <!-- Agent Management -->
     <div class="bg-white/5 border border-white/10 rounded-2xl p-6 mb-8">
-        <h2 class="text-xl font-bold text-white mb-4">Manage Agents</h2>
+        <h2 class="text-xl font-bold text-white mb-4">Agent Station Assignments</h2>
         {% if agents %}
-        <div class="space-y-3">
+        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
             {% for agent in agents %}
-            <form method="POST" class="flex flex-wrap items-center gap-3">
+            <form method="POST" class="bg-white/5 border border-white/10 rounded-xl p-4">
                 {% csrf_token %}
                 <input type="hidden" name="action" value="assign_agent" />
                 <input type="hidden" name="agent_id" value="{{ agent.id }}" />
-                <span class="text-white font-medium w-32">{{ agent.username }}</span>
-                <select name="agent_station_id" class="bg-white/10 border border-white/20 rounded-lg px-3 py-2 text-white text-sm">
-                    <option value="" class="bg-slate-800">No station</option>
+                <div class="flex items-center gap-3 mb-3">
+                    <div class="w-10 h-10 bg-purple-500/20 rounded-full flex items-center justify-center text-purple-400 font-bold">
+                        {{ agent.username|slice:":1"|upper }}
+                    </div>
+                    <div>
+                        <p class="text-white font-medium">{{ agent.username }}</p>
+                        <p class="text-gray-500 text-xs">{{ agent.email }}</p>
+                    </div>
+                </div>
+                <select name="agent_station_id" class="w-full bg-white/10 border border-white/20 rounded-lg px-3 py-2 text-white text-sm mb-2">
+                    <option value="">No station assigned</option>
                     {% for s in stations %}
-                    <option value="{{ s.id }}" {% if agent.station_id == s.id %}selected{% endif %} class="bg-slate-800">{{ s.name }}</option>
+                    <option value="{{ s.id }}" {% if agent.station_id == s.id %}selected{% endif %}>{{ s.name }}</option>
                     {% endfor %}
                 </select>
-                <button type="submit" class="bg-purple-600 text-white text-sm px-4 py-2 rounded-lg hover:bg-purple-700">Assign</button>
+                <button type="submit" class="w-full bg-purple-600 hover:bg-purple-700 text-white text-sm py-2 rounded-lg transition-all">Assign Station</button>
             </form>
             {% endfor %}
         </div>
         {% else %}
-        <p class="text-gray-400">No agents registered yet.</p>
+        <p class="text-gray-400 text-center py-8">No agents registered yet.</p>
         {% endif %}
     </div>
 
-    <!-- Orders table -->
+    <!-- Bulk Actions -->
     {% if orders %}
-    <form method="POST" id="bulk-form" class="mb-4 flex gap-3">
+    <form method="POST" id="bulk-form" class="bg-white/5 border border-white/10 rounded-2xl p-4 mb-4">
         {% csrf_token %}
         <input type="hidden" name="action" value="bulk_status" />
-        <select name="bulk_status" class="bg-white/10 border border-white/20 rounded-lg px-3 py-2 text-white text-sm">
-            <option value="printing" class="bg-slate-800">Mark as Printing</option>
-            <option value="ready" class="bg-slate-800">Mark as Ready</option>
-            <option value="collected" class="bg-slate-800">Mark as Collected</option>
-        </select>
-        <button type="submit" class="bg-blue-600 text-white text-sm px-4 py-2 rounded-lg hover:bg-blue-700">Apply to Selected</button>
+        <div class="flex flex-col sm:flex-row gap-3 items-center">
+            <span class="text-gray-400 text-sm whitespace-nowrap">Bulk update selected:</span>
+            <select name="bulk_status" class="bg-white/10 border border-white/20 rounded-lg px-3 py-2 text-white text-sm flex-1">
+                <option value="printing">Mark as Printing</option>
+                <option value="in_transit">Mark as In Transit</option>
+                <option value="ready">Mark as Ready</option>
+                <option value="collected">Mark as Collected</option>
+                <option value="cancelled">Cancel Orders</option>
+            </select>
+            <button type="submit" class="bg-blue-600 hover:bg-blue-700 text-white text-sm px-6 py-2 rounded-lg transition-all whitespace-nowrap">
+                Apply to Selected
+            </button>
+        </div>
     </form>
+    {% endif %}
+
+    <!-- Orders Table -->
+    {% if orders %}
     <div class="bg-white/5 border border-white/10 backdrop-blur-md rounded-2xl overflow-hidden">
-        <table class="w-full">
-            <thead class="bg-white/10">
-                <tr>
-                    <th class="px-4 py-3 text-left"><input type="checkbox" id="select-all" /></th>
+        <div class="overflow-x-auto">
+            <table class="w-full">
+                <thead class="bg-white/10">
+                    <tr>
+                        <th class="px-4 py-3 text-left">
+                            <input type="checkbox" id="select-all" class="rounded" />
+                        </th>
                         <th class="px-4 py-3 text-left text-xs font-medium text-gray-300 uppercase">ID</th>
                         <th class="px-4 py-3 text-left text-xs font-medium text-gray-300 uppercase">Student</th>
                         <th class="px-4 py-3 text-left text-xs font-medium text-gray-300 uppercase">File</th>
@@ -134,59 +219,85 @@
                         <th class="px-4 py-3 text-left text-xs font-medium text-gray-300 uppercase">Pages</th>
                         <th class="px-4 py-3 text-left text-xs font-medium text-gray-300 uppercase">Price</th>
                         <th class="px-4 py-3 text-left text-xs font-medium text-gray-300 uppercase">Status</th>
-                        <th class="px-4 py-3 text-left text-xs font-medium text-gray-300 uppercase">Paid At</th>
+                        <th class="px-4 py-3 text-left text-xs font-medium text-gray-300 uppercase">SLA</th>
                         <th class="px-4 py-3 text-left text-xs font-medium text-gray-300 uppercase">Actions</th>
                     </tr>
                 </thead>
                 <tbody class="divide-y divide-white/10">
                     {% for order in orders %}
-                    <tr class="hover:bg-white/5">
-                        <td class="px-4 py-3"><input type="checkbox" form="bulk-form" name="order_ids" value="{{ order.id }}" class="order-checkbox" />
-                        <td class="px-4 py-3 text-white">#{{ order.id }}</td>
+                    <tr class="hover:bg-white/5 {% if order.is_overdue and order.status not in 'collected,cancelled' %}bg-red-500/5{% endif %}">
+                        <td class="px-4 py-3">
+                            <input type="checkbox" form="bulk-form" name="order_ids" value="{{ order.id }}" class="order-checkbox rounded" />
+                        </td>
+                        <td class="px-4 py-3">
+                            <a href="{% url 'order_receipt' order.id %}" class="text-blue-400 hover:text-blue-300 font-mono">#{{ order.id }}</a>
+                        </td>
                         <td class="px-4 py-3 text-gray-300">{{ order.client.username }}</td>
-                        <td class="px-4 py-3 text-gray-300 truncate max-w-[150px]">{{ order.file_name }}</td>
+                        <td class="px-4 py-3 text-gray-300 truncate max-w-[150px]" title="{{ order.file_name }}">{{ order.file_name }}</td>
                         <td class="px-4 py-3 text-gray-300">{{ order.station.name|default:"—" }}</td>
                         <td class="px-4 py-3 text-gray-300">{{ order.page_count }}</td>
-                        <td class="px-4 py-3 text-white font-semibold">{{ order.total_price|floatformat:0 }} UGX</td>
+                        <td class="px-4 py-3 text-white font-semibold">{{ order.total_price|floatformat:0|intcomma }}</td>
                         <td class="px-4 py-3">
-                            <span class="px-2 py-1 rounded-full text-xs font-semibold
+                            <span class="px-2 py-1 rounded-full text-xs font-semibold whitespace-nowrap
                                 {% if order.status == 'pending' %}bg-yellow-500/20 text-yellow-300
                                 {% elif order.status == 'paid' %}bg-blue-500/20 text-blue-300
                                 {% elif order.status == 'printing' %}bg-purple-500/20 text-purple-300
+                                {% elif order.status == 'in_transit' %}bg-orange-500/20 text-orange-300
                                 {% elif order.status == 'ready' %}bg-green-500/20 text-green-300
-                                {% else %}bg-gray-500/20 text-gray-300{% endif %}">
+                                {% elif order.status == 'collected' %}bg-gray-500/20 text-gray-300
+                                {% elif order.status == 'cancelled' %}bg-red-500/20 text-red-300
+                                {% endif %}">
                                 {{ order.get_status_display }}
+                                {% if order.is_overdue and order.status not in 'collected,cancelled' %}
+                                <span class="ml-1">!</span>
+                                {% endif %}
                             </span>
                         </td>
-                        <td class="px-4 py-3 text-gray-400 text-sm">{{ order.paid_at|date:"M d, H:i"|default:"—" }}</td>
                         <td class="px-4 py-3">
-                            <form method="POST" action="{% url 'update_order_status' order.id %}" class="inline">
-                                {% csrf_token %}
-                                <select name="status" onchange="this.form.submit()" class="bg-white/10 border border-white/20 rounded px-2 py-1 text-white text-xs">
-                                    <option value="pending" {% if order.status == 'pending' %}selected{% endif %}>Pending</option>
-                                    <option value="paid" {% if order.status == 'paid' %}selected{% endif %}>Paid</option>
-                                    <option value="printing" {% if order.status == 'printing' %}selected{% endif %}>Printing</option>
-                                    <option value="ready" {% if order.status == 'ready' %}selected{% endif %}>Ready</option>
-                                    <option value="collected" {% if order.status == 'collected' %}selected{% endif %}>Collected</option>
-                                </select>
-                            </form>
+                            {% with priority=order.priority_info %}
+                            <span class="text-xs font-mono {% if priority.is_overdue %}text-red-400{% else %}text-gray-400{% endif %}">
+                                {{ priority.time_display }}
+                            </span>
+                            {% endwith %}
+                        </td>
+                        <td class="px-4 py-3">
+                            <div class="flex items-center gap-2">
+                                <form method="POST" action="{% url 'update_order_status' order.id %}" class="inline-flex items-center gap-2">
+                                    {% csrf_token %}
+                                    <select name="status" onchange="this.form.submit()" class="bg-white/10 border border-white/20 rounded px-2 py-1 text-white text-xs">
+                                        <option value="">Change...</option>
+                                        <option value="pending" {% if order.status == 'pending' %}selected{% endif %}>Pending</option>
+                                        <option value="paid" {% if order.status == 'paid' %}selected{% endif %}>Paid</option>
+                                        <option value="printing" {% if order.status == 'printing' %}selected{% endif %}>Printing</option>
+                                        <option value="in_transit" {% if order.status == 'in_transit' %}selected{% endif %}>In Transit</option>
+                                        <option value="ready" {% if order.status == 'ready' %}selected{% endif %}>Ready</option>
+                                        <option value="collected" {% if order.status == 'collected' %}selected{% endif %}>Collected</option>
+                                        <option value="cancelled" {% if order.status == 'cancelled' %}selected{% endif %}>Cancel</option>
+                                    </select>
+                                </form>
+                                <a href="{% url 'download_order_file' order.id %}" class="text-gray-400 hover:text-white text-xs" title="Download file">
+                                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"></path>
+                                    </svg>
+                                </a>
+                            </div>
                         </td>
                     </tr>
                     {% endfor %}
                 </tbody>
             </table>
         </div>
+    </div>
 
+    <!-- Pagination -->
     {% if page_obj.has_other_pages %}
-    <div class="flex justify-center gap-2 mt-6">
+    <div class="flex justify-center items-center gap-2 mt-6">
         {% if page_obj.has_previous %}
-        <a href="?page={{ page_obj.previous_page_number }}&status={{ filter_status }}&station={{ filter_station }}&date={{ filter_date }}&search={{ filter_search }}"
-           class="px-4 py-2 bg-white/10 text-white rounded-lg hover:bg-white/20">Previous</a>
+        <a href="?page={{ page_obj.previous_page_number }}&status={{ filter_status }}&station={{ filter_station }}&date={{ filter_date }}&search={{ filter_search }}" class="px-4 py-2 bg-white/10 text-white rounded-lg hover:bg-white/20 transition-all">Previous</a>
         {% endif %}
         <span class="px-4 py-2 text-gray-400">Page {{ page_obj.number }} of {{ page_obj.paginator.num_pages }}</span>
         {% if page_obj.has_next %}
-        <a href="?page={{ page_obj.next_page_number }}&status={{ filter_status }}&station={{ filter_station }}&date={{ filter_date }}&search={{ filter_search }}"
-           class="px-4 py-2 bg-white/10 text-white rounded-lg hover:bg-white/20">Next</a>
+        <a href="?page={{ page_obj.next_page_number }}&status={{ filter_status }}&station={{ filter_station }}&date={{ filter_date }}&search={{ filter_search }}" class="px-4 py-2 bg-white/10 text-white rounded-lg hover:bg-white/20 transition-all">Next</a>
         {% endif %}
     </div>
     {% endif %}
