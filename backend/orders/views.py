@@ -127,64 +127,24 @@ def upload_view(request):
                 status='pending',
             )
             
-            # Send confirmation email
             try:
                 send_order_confirmation_email(order)
             except Exception:
-                pass  # Don't break if email fails
+                pass
                 
-            messages.success(
-                request,
-                f'Order #{order.id} submitted! Total: {order.total_price:,.0f} UGX',
-            )
+            messages.success(request, f'Order #{order.id} submitted! Total: {order.total_price:,.0f} UGX')
             return redirect('order_receipt', order_id=order.id)
             
         except ValueError as e:
             upload_error = f'Invalid page count: {str(e)}'
         except Exception as e:
             upload_error = f'Error creating order: {str(e)}'
-            
-        if upload_error:
-            return render(request, 'orders/upload.html', {
-                'stations': stations,
-                'delivery_zones': delivery_zones,
-                'upload_error': upload_error,
-            })
-
-    # Calculate estimated price for display
-    estimated_price = None
-    if request.GET.get('estimate'):
-        try:
-            pages = int(request.GET.get('pages', 1))
-            color = request.GET.get('color', 'false') == 'true'
-            double = request.GET.get('double', 'false') == 'true'
-            binding = request.GET.get('binding', 'none')
-            zone_id = request.GET.get('zone')
-            
-            delivery_fee = 0
-            if zone_id:
-                zone = DeliveryZone.objects.filter(id=zone_id).first()
-                if zone:
-                    delivery_fee = zone.delivery_fee
-                    
-            total, effective_pages, price_per_page = Order.compute_price(
-                pages, color, double, binding, delivery_fee
-            )
-            estimated_price = {
-                'total': total,
-                'effective_pages': effective_pages,
-                'price_per_page': price_per_page,
-            }
-        except (ValueError, TypeError):
-            pass
 
     return render(request, 'orders/upload.html', {
         'stations': stations,
         'delivery_zones': delivery_zones,
-        'estimated_price': estimated_price,
+        'upload_error': upload_error,
     })
-
-
 @login_required
 def order_receipt_view(request, order_id):
     order = get_object_or_404(Order.objects.select_related('station', 'delivery_zone'), id=order_id)
