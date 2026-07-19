@@ -54,6 +54,7 @@ INSTALLED_APPS = [
     'stations',
     'payments',
     'finances',
+    'notifications',
 ]
 
 MIDDLEWARE = [
