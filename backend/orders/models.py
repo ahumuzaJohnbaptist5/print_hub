@@ -40,6 +40,11 @@ class DeliveryZone(models.Model):
     delivery_fee = models.IntegerField(default=0, help_text="Delivery fee in UGX")
     is_active = models.BooleanField(default=True)
 
+    class Meta:
+        indexes = [
+            models.Index(fields=['is_active']),
+        ]
+
     def __str__(self):
         return f"{self.name} ({self.delivery_fee:,} UGX)"
 
@@ -78,7 +83,8 @@ class Order(models.Model):
     delivery_type = models.CharField(max_length=20, choices=DELIVERY_TYPE_CHOICES, default='pickup')
     delivery_zone = models.ForeignKey(DeliveryZone, on_delete=models.SET_NULL, null=True, blank=True)
 
-    total_price = models.IntegerField(default=0)
+    # Changed to DecimalField for consistency with financial fields
+    total_price = models.DecimalField(max_digits=10, decimal_places=2, default=0)
     status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='pending')
     transaction_id = models.CharField(max_length=100, blank=True, null=True)
     tx_ref = models.CharField(max_length=100, blank=True, null=True)
@@ -93,20 +99,36 @@ class Order(models.Model):
     sla_minutes = models.IntegerField(default=120, help_text="Target time to complete order in minutes.")
     postponed_minutes = models.IntegerField(default=0, help_text="Extra minutes added if the order is postponed.")
 
-    # ==========================================
-    # --- NEW FINANCIAL TRACKING FIELDS ---
-    # ==========================================
+    # Financial tracking fields
     paper_used = models.IntegerField(default=0, help_text="Number of physical sheets consumed")
     cost_of_goods = models.DecimalField(max_digits=10, decimal_places=2, default=0, help_text="Cost of paper used")
     agent_commission = models.DecimalField(max_digits=10, decimal_places=2, default=0, help_text="Commission paid to agent")
     profit = models.DecimalField(max_digits=10, decimal_places=2, default=0, help_text="Net profit for this order")
 
+    # Order notes for agent-client communication
+    notes = models.TextField(blank=True, default='', help_text="Internal notes about this order")
+    
+    # Cancellation tracking
+    cancellation_reason = models.TextField(blank=True, default='', help_text="Reason for cancellation")
+    cancelled_at = models.DateTimeField(blank=True, null=True)
+
     BASE_PRICE_BW = 200
     COLOR_SURCHARGE = 100
     SPIRAL_BINDING_FEE = 1000
 
+    class Meta:
+        indexes = [
+            models.Index(fields=['status', 'created_at']),
+            models.Index(fields=['station', 'status']),
+            models.Index(fields=['client', 'created_at']),
+            models.Index(fields=['created_at']),
+            models.Index(fields=['status']),
+        ]
+        ordering = ['-created_at']
+
     @classmethod
     def compute_price(cls, page_count, is_color=False, is_double_sided=False, binding='none', delivery_fee=0):
+        """Calculate order price and return breakdown."""
         price_per_page = cls.BASE_PRICE_BW + (cls.COLOR_SURCHARGE if is_color else 0)
         effective_pages = page_count
         if is_double_sided:
@@ -122,58 +144,93 @@ class Order(models.Model):
         return total_price, effective_pages, price_per_page
 
     def calculate_price(self):
+        """Calculate and set the total price for this order."""
         delivery_fee = self.delivery_zone.delivery_fee if self.delivery_zone and self.delivery_type == 'delivery' else 0
-        total, _, _ = self.compute_price(
+        total, effective_pages, price_per_page = self.compute_price(
             self.page_count, self.is_color, self.is_double_sided, self.binding, delivery_fee
         )
-        self.total_price = total
-        return self.total_price
+        self.total_price = Decimal(str(total))
+        return self.total_price, effective_pages, price_per_page
 
     def calculate_financials(self):
-        """Calculates paper used, cost of goods, commission, and profit."""
+        """
+        Calculates paper used, cost of goods, commission, and profit.
+        Only called once when order is marked as 'collected'.
+        """
         # 1. Calculate physical paper used (effective pages)
         _, effective_pages, _ = self.compute_price(
             self.page_count, self.is_color, self.is_double_sided, self.binding
         )
         self.paper_used = effective_pages
 
-        # 2. Calculate Cost of Goods (Safely fetch from finances app)
+        # 2. Calculate Cost of Goods
         try:
             from finances.models import PaperInventory
             paper = PaperInventory.objects.first()
             if paper:
-                self.cost_of_goods = effective_pages * paper.cost_per_sheet
+                self.cost_of_goods = Decimal(str(effective_pages * paper.cost_per_sheet))
             else:
-                self.cost_of_goods = 0
+                self.cost_of_goods = Decimal('0.00')
         except Exception:
-            self.cost_of_goods = 0
+            self.cost_of_goods = Decimal('0.00')
 
-        # 3. Calculate Agent Commission (Safely fetch from finances app)
+        # 3. Calculate Agent Commission
         try:
             from finances.models import CommissionRate
             rate = CommissionRate.get_active_rate()
             if rate:
-                self.agent_commission = (Decimal(self.total_price) * rate.rate_percentage) / 100
+                self.agent_commission = (self.total_price * Decimal(str(rate.rate_percentage))) / Decimal('100')
             else:
-                self.agent_commission = 0
+                self.agent_commission = Decimal('0.00')
         except Exception:
-            self.agent_commission = 0
+            self.agent_commission = Decimal('0.00')
 
         # 4. Calculate Net Profit
-        self.profit = Decimal(self.total_price) - self.cost_of_goods - self.agent_commission
+        self.profit = self.total_price - self.cost_of_goods - self.agent_commission
+        
+        return self.profit
+
+    def deduct_paper_inventory(self):
+        """Deduct paper used from inventory when order is printed."""
+        if self.status == 'printing' and self.paper_used > 0:
+            try:
+                from finances.models import PaperInventory
+                paper = PaperInventory.objects.first()
+                if paper and paper.quantity >= self.paper_used:
+                    paper.quantity -= self.paper_used
+                    paper.save(update_fields=['quantity'])
+                    return True
+            except Exception:
+                pass
+        return False
 
     def estimated_ready_at(self):
+        """Calculate estimated completion time."""
         if self.paid_at:
             total_minutes = self.sla_minutes + self.postponed_minutes
             return self.paid_at + timedelta(minutes=total_minutes)
         return None
 
     @property
+    def is_overdue(self):
+        """Check if order is past its deadline."""
+        if self.status in ['collected', 'cancelled']:
+            return False
+        estimated = self.estimated_ready_at()
+        if estimated:
+            return timezone.now() > estimated
+        return False
+
+    @property
     def priority_info(self):
+        """Get priority information for live board display."""
         if self.status == 'cancelled':
             return {
-                'level': 'cancelled', 'display': 'CANCELLED',
-                'remaining_seconds': 0, 'time_display': '--:--:--', 'is_overdue': False
+                'level': 'cancelled', 
+                'display': 'CANCELLED',
+                'remaining_seconds': 0, 
+                'time_display': '--:--:--', 
+                'is_overdue': False
             }
 
         start_time = self.paid_at or self.created_at
@@ -213,14 +270,43 @@ class Order(models.Model):
         time_display = f"{hours:02d}:{minutes:02d}:{seconds:02d}"
         
         return {
-            'level': level, 'display': display,
+            'level': level, 
+            'display': display,
             'remaining_seconds': remaining_seconds,
-            'time_display': time_display, 'is_overdue': is_overdue
+            'time_display': time_display, 
+            'is_overdue': is_overdue
         }
 
     def save(self, *args, **kwargs):
-        self.calculate_price()
-        self.calculate_financials() # Auto-calculate financials on every save
+        """
+        Override save to:
+        - Calculate price only for new orders or when relevant fields change
+        - Calculate financials only when order is marked as 'collected'
+        """
+        is_new = self._state.adding
+        
+        # Calculate price if new or price-related fields changed
+        if is_new or not self.total_price:
+            self.calculate_price()
+        
+        # Track status change for signals
+        if not is_new:
+            try:
+                old_instance = Order.objects.get(pk=self.pk)
+                self._old_status = old_instance.status
+            except Order.DoesNotExist:
+                self._old_status = None
+        else:
+            self._old_status = None
+        
+        # Only calculate financials when order is completed
+        if self.status == 'collected' and not self.profit:
+            self.calculate_financials()
+            
+        # Set timestamp when cancelled
+        if self.status == 'cancelled' and not self.cancelled_at:
+            self.cancelled_at = timezone.now()
+        
         super().save(*args, **kwargs)
 
     def __str__(self):
