@@ -1,4 +1,5 @@
 {% extends 'base.html' %}
+{% load humanize %}
 
 {% block title %}Track Order - PrintHub{% endblock %}
 
@@ -21,38 +22,65 @@
 .timeline-circle.completed { background: #2563eb; border-color: #60a5fa; color: white; }
 .timeline-circle.current { background: #2563eb; border-color: #93c5fd; color: white; animation: pulse 2s infinite; }
 .timeline-circle.future { background: #1e293b; border-color: #4b5563; color: #6b7280; }
+.timeline-circle.cancelled { background: #991b1b; border-color: #f87171; color: white; }
 .timeline-label { margin-top: 12px; font-size: 10px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.04em; text-align: center; max-width: 80px; }
 .timeline-label.completed, .timeline-label.current { color: #e2e8f0; }
 .timeline-label.current { color: #60a5fa; }
 .timeline-label.future { color: #6b7280; }
+.timeline-label.cancelled { color: #f87171; }
 .timeline-time { font-size: 10px; color: #9ca3af; margin-top: 4px; text-align: center; }
 @keyframes pulse { 0%, 100% { box-shadow: 0 0 0 0 rgba(59,130,246,0.4); } 50% { box-shadow: 0 0 0 10px rgba(59,130,246,0); } }
+
+/* Print styles */
+@media print {
+    nav, footer, .no-print { display: none !important; }
+    body { background: white !important; color: black !important; }
+    .bg-white\/5, .bg-white\/10 { background: white !important; border: 1px solid #ccc !important; }
+    .text-white, .text-gray-300 { color: black !important; }
+    .text-gray-400 { color: #666 !important; }
+}
 </style>
 {% endblock %}
 
 {% block content %}
 <div class="max-w-4xl mx-auto px-4 py-12">
-    <h1 class="text-4xl font-bold text-white mb-4">Track Your Order</h1>
-    <p class="text-gray-400 mb-8">Enter your order ID or the email used when placing the order.</p>
+    <div class="text-center mb-8">
+        <h1 class="text-4xl font-bold text-white mb-2">Track Your Order</h1>
+        <p class="text-gray-400">Enter your order ID or the email used when placing the order.</p>
+    </div>
 
     {% if lookup_error %}
-    <div class="bg-red-500/20 border border-red-500/50 text-red-300 px-4 py-3 rounded-xl mb-6">{{ lookup_error }}</div>
+    <div class="bg-red-500/10 border border-red-500/50 text-red-400 px-6 py-4 rounded-xl mb-6 flex items-start gap-3">
+        <span class="text-xl flex-shrink-0">!</span>
+        <div>
+            <p class="font-semibold">Order Not Found</p>
+            <p class="text-sm text-red-400/80">{{ lookup_error }}</p>
+        </div>
+    </div>
     {% endif %}
 
-    <div class="bg-white/5 border border-white/10 backdrop-blur-md rounded-3xl p-8 mb-8">
+    <!-- Search Form -->
+    <div class="bg-white/5 border border-white/10 backdrop-blur-md rounded-3xl p-8 mb-8 no-print">
         <form method="GET" class="space-y-6">
             <div>
                 <label class="block text-sm font-medium text-gray-300 mb-2">Order ID</label>
                 <input type="number" name="order_id" value="{{ query_order_id }}"
-                    placeholder="e.g. 1" class="w-full bg-white/10 border border-white/10 rounded-xl px-4 py-3 text-white focus:outline-none focus:ring-2 focus:ring-blue-500" />
+                    placeholder="e.g. 42" class="w-full bg-white/10 border border-white/10 rounded-xl px-4 py-3 text-white focus:outline-none focus:ring-2 focus:ring-blue-500 placeholder-gray-500" />
             </div>
-            <p class="text-center text-gray-500 text-sm">— or —</p>
+            
+            <div class="flex items-center gap-4">
+                <div class="flex-1 border-t border-white/10"></div>
+                <span class="text-gray-500 text-sm">or</span>
+                <div class="flex-1 border-t border-white/10"></div>
+            </div>
+            
             <div>
                 <label class="block text-sm font-medium text-gray-300 mb-2">Email Address</label>
                 <input type="email" name="email" value="{{ query_email }}"
-                    placeholder="your.email@kab.ac.ug" class="w-full bg-white/10 border border-white/10 rounded-xl px-4 py-3 text-white focus:outline-none focus:ring-2 focus:ring-blue-500" />
+                    placeholder="your.email@kab.ac.ug" class="w-full bg-white/10 border border-white/10 rounded-xl px-4 py-3 text-white focus:outline-none focus:ring-2 focus:ring-blue-500 placeholder-gray-500" />
             </div>
-            <button type="submit" class="w-full bg-gradient-to-r from-blue-600 to-purple-600 text-white font-bold py-3 rounded-xl hover:shadow-lg transition-all">
+            
+            <button type="submit" class="w-full bg-gradient-to-r from-blue-600 to-purple-600 text-white font-bold py-3 rounded-xl hover:shadow-lg hover:scale-[1.02] transition-all">
                 Track Order
             </button>
         </form>
@@ -60,36 +88,123 @@
 
     {% for item in order_timelines %}
     {% with order=item.order %}
-    <div class="bg-white/5 border border-white/10 backdrop-blur-md rounded-2xl p-6 mb-8">
-        <div class="flex justify-between items-start mb-6">
-            <h3 class="text-2xl font-bold text-white">Order #{{ order.id }}</h3>
-            <span class="px-3 py-1 rounded-full text-sm font-semibold
+    <div class="bg-white/5 border border-white/10 backdrop-blur-md rounded-2xl p-6 sm:p-8 mb-8">
+        
+        <!-- Order Header -->
+        <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-6">
+            <div>
+                <h3 class="text-2xl font-bold text-white">Order #{{ order.id }}</h3>
+                {% if item.estimated_ready and order.status != 'collected' and order.status != 'cancelled' %}
+                <p class="text-sm {% if item.is_overdue %}text-red-400{% else %}text-gray-400{% endif %} mt-1">
+                    {% if item.is_overdue %}
+                    Was expected by {{ item.estimated_ready|date:"M d, H:i" }}
+                    {% else %}
+                    Estimated ready by {{ item.estimated_ready|date:"M d, H:i" }}
+                    {% endif %}
+                </p>
+                {% endif %}
+            </div>
+            <span class="px-4 py-1.5 rounded-full text-sm font-semibold whitespace-nowrap
                 {% if order.status == 'pending' %}bg-yellow-500/20 text-yellow-300
                 {% elif order.status == 'paid' %}bg-blue-500/20 text-blue-300
                 {% elif order.status == 'printing' %}bg-purple-500/20 text-purple-300
+                {% elif order.status == 'in_transit' %}bg-orange-500/20 text-orange-300
                 {% elif order.status == 'ready' %}bg-green-500/20 text-green-300
-                {% else %}bg-gray-500/20 text-gray-300{% endif %}">
+                {% elif order.status == 'collected' %}bg-gray-500/20 text-gray-300
+                {% elif order.status == 'cancelled' %}bg-red-500/20 text-red-300
+                {% endif %}">
                 {{ order.get_status_display }}
             </span>
         </div>
 
-        <div class="grid grid-cols-2 gap-4 text-gray-300 text-sm mb-8">
-            <p><span class="text-gray-400">File:</span> {{ order.file_name }}</p>
-            <p><span class="text-gray-400">Pages:</span> {{ order.page_count }}</p>
-            <p><span class="text-gray-400">Total:</span> {{ order.total_price|floatformat:0 }} UGX</p>
-            <p><span class="text-gray-400">Station:</span> {{ order.station.name|default:"—" }}</p>
-            {% if item.estimated_ready %}
-            <p class="col-span-2"><span class="text-gray-400">Est. Ready:</span> {{ item.estimated_ready|date:"M d, Y H:i" }}</p>
+        <!-- Status Alerts -->
+        {% if order.status == 'cancelled' %}
+        <div class="bg-red-500/10 border border-red-500/30 rounded-xl p-4 mb-6">
+            <p class="text-red-400 font-semibold">This order has been cancelled.</p>
+            {% if order.cancellation_reason %}
+            <p class="text-red-400/80 text-sm mt-1">Reason: {{ order.cancellation_reason }}</p>
+            {% endif %}
+            {% if order.cancelled_at %}
+            <p class="text-red-400/60 text-xs mt-1">Cancelled on {{ order.cancelled_at|date:"M d, Y H:i" }}</p>
+            {% endif %}
+        </div>
+        {% elif item.is_overdue and order.status != 'collected' %}
+        <div class="bg-red-500/10 border border-red-500/30 rounded-xl p-4 mb-6">
+            <p class="text-red-400 font-semibold">This order is overdue.</p>
+            <p class="text-red-400/80 text-sm mt-1">Please contact support if this delay persists.</p>
+        </div>
+        {% elif order.status == 'ready' %}
+        <div class="bg-green-500/10 border border-green-500/30 rounded-xl p-4 mb-6">
+            <p class="text-green-400 font-semibold">Your order is ready for pickup!</p>
+            {% if order.station %}
+            <p class="text-green-400/80 text-sm mt-1">Location: {{ order.station.name }}</p>
+            {% if order.station.location_description %}
+            <p class="text-green-400/60 text-xs mt-1">{{ order.station.location_description }}</p>
+            {% endif %}
+            {% endif %}
+        </div>
+        {% endif %}
+
+        <!-- Order Details -->
+        <div class="grid grid-cols-2 sm:grid-cols-3 gap-4 text-sm mb-8">
+            <div class="bg-white/5 rounded-xl p-3">
+                <p class="text-gray-400 text-xs mb-1">Document</p>
+                <p class="text-white font-medium truncate" title="{{ order.file_name }}">{{ order.file_name }}</p>
+            </div>
+            <div class="bg-white/5 rounded-xl p-3">
+                <p class="text-gray-400 text-xs mb-1">Pages</p>
+                <p class="text-white font-medium">{{ order.page_count }}{% if order.is_double_sided %} <span class="text-gray-500 text-xs">({{ order.paper_used }} sheets)</span>{% endif %}</p>
+            </div>
+            <div class="bg-white/5 rounded-xl p-3">
+                <p class="text-gray-400 text-xs mb-1">Total</p>
+                <p class="text-white font-medium">{{ order.total_price|floatformat:0|intcomma }} UGX</p>
+            </div>
+            <div class="bg-white/5 rounded-xl p-3">
+                <p class="text-gray-400 text-xs mb-1">Print Type</p>
+                <p class="text-white font-medium">{% if order.is_color %}Color{% else %}B&W{% endif %}</p>
+            </div>
+            <div class="bg-white/5 rounded-xl p-3">
+                <p class="text-gray-400 text-xs mb-1">Sided</p>
+                <p class="text-white font-medium">{% if order.is_double_sided %}Double{% else %}Single{% endif %}</p>
+            </div>
+            <div class="bg-white/5 rounded-xl p-3">
+                <p class="text-gray-400 text-xs mb-1">Station</p>
+                <p class="text-white font-medium">{{ order.station.name|default:"N/A" }}</p>
+            </div>
+            {% if order.binding != 'none' %}
+            <div class="bg-white/5 rounded-xl p-3">
+                <p class="text-gray-400 text-xs mb-1">Binding</p>
+                <p class="text-white font-medium">{{ order.get_binding_display }}</p>
+            </div>
+            {% endif %}
+            {% if order.delivery_type == 'delivery' and order.delivery_zone %}
+            <div class="bg-white/5 rounded-xl p-3">
+                <p class="text-gray-400 text-xs mb-1">Delivery</p>
+                <p class="text-white font-medium">{{ order.delivery_zone.name }}</p>
+            </div>
+            {% endif %}
+            {% if order.notes %}
+            <div class="col-span-full bg-white/5 rounded-xl p-3">
+                <p class="text-gray-400 text-xs mb-1">Notes</p>
+                <p class="text-gray-300 text-sm">{{ order.notes }}</p>
+            </div>
             {% endif %}
         </div>
 
+        <!-- Timeline -->
         <div class="timeline">
             <div class="timeline-progress" style="width: calc({{ item.progress_width }}% * 0.9 + 5%)"></div>
             {% for step in item.steps %}
             <div class="timeline-step">
                 <div class="timeline-circle {{ step.state }}">
                     {% if step.state == 'completed' %}
-                    OK
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M5 13l4 4L19 7"></path>
+                    </svg>
+                    {% elif step.state == 'cancelled' %}
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M6 18L18 6M6 6l12 12"></path>
+                    </svg>
                     {% else %}{{ forloop.counter }}{% endif %}
                 </div>
                 <span class="timeline-label {{ step.state }}">{{ step.label }}</span>
@@ -99,8 +214,38 @@
             </div>
             {% endfor %}
         </div>
+
+        <!-- Action Buttons -->
+        <div class="flex flex-col sm:flex-row gap-3 mt-6 pt-6 border-t border-white/10 no-print">
+            {% if order.status == 'pending' %}
+            <a href="{% url 'payment_page' order.id %}" class="flex-1 text-center bg-gradient-to-r from-green-600 to-emerald-600 text-white font-bold py-3 rounded-xl hover:shadow-lg transition-all">
+                Pay Now - {{ order.total_price|floatformat:0|intcomma }} UGX
+            </a>
+            {% endif %}
+            
+            <a href="{% url 'order_receipt' order.id %}" class="flex-1 text-center bg-white/10 border border-white/20 text-white font-bold py-3 rounded-xl hover:bg-white/20 transition-all">
+                View Receipt
+            </a>
+            
+            <button onclick="window.print()" class="flex-1 bg-gradient-to-r from-blue-600 to-purple-600 text-white font-bold py-3 rounded-xl hover:shadow-lg transition-all">
+                Print Status
+            </button>
+        </div>
     </div>
     {% endwith %}
+    
+    {% empty %}
+    {% if query_order_id or query_email %}
+    <div class="bg-white/5 border border-white/10 backdrop-blur-md rounded-2xl p-12 text-center">
+        <div class="w-16 h-16 bg-slate-700 rounded-full flex items-center justify-center mx-auto mb-4">
+            <svg class="w-8 h-8 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path>
+            </svg>
+        </div>
+        <h3 class="text-xl font-bold text-white mb-2">No Orders Found</h3>
+        <p class="text-gray-400">Try a different order ID or email address.</p>
+    </div>
+    {% endif %}
     {% endfor %}
 </div>
 {% endblock %}
