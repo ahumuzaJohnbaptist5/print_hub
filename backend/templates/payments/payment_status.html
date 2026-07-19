@@ -1,70 +1,266 @@
 {% extends 'base.html' %}
+{% load humanize %}
 
 {% block title %}Payment Status - PrintHub{% endblock %}
 
 {% block content %}
 <div class="max-w-2xl mx-auto px-4 py-12">
     <div class="bg-white/5 border border-white/10 backdrop-blur-md rounded-2xl p-8 text-center">
+        
         {% if payment.status == 'pending' %}
-        <div class="w-20 h-20 bg-yellow-500 rounded-full flex items-center justify-center mx-auto mb-6 animate-pulse">
-            <svg class="w-10 h-10 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path>
-            </svg>
+        <!-- Pending State -->
+        <div class="w-20 h-20 bg-yellow-500/20 rounded-full flex items-center justify-center mx-auto mb-6">
+            <div class="w-16 h-16 bg-yellow-500 rounded-full flex items-center justify-center animate-pulse">
+                <svg class="w-8 h-8 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                </svg>
+            </div>
         </div>
         
-        <h1 class="text-3xl font-bold text-white mb-4">Payment Pending Approval</h1>
-        <p class="text-gray-300 mb-6">
-            Your payment of UGX {{ payment.amount|floatformat:0 }} is being verified by our administrator.
-            You will be notified once it's approved.
+        <h1 class="text-3xl font-bold text-white mb-2">Payment Pending</h1>
+        <p class="text-yellow-400 font-medium mb-4">Awaiting Verification</p>
+        <p class="text-gray-300 mb-6 max-w-md mx-auto">
+            Your payment of <strong class="text-white">{{ payment.amount|floatformat:0|intcomma }} UGX</strong> is being verified by our team. 
+            This usually takes 5-30 minutes during business hours.
         </p>
         
-        <div class="bg-white/5 rounded-xl p-6 mb-6 text-left">
-            <p class="text-gray-400 mb-2">Transaction ID:</p>
-            <p class="text-white font-mono text-lg">{{ payment.transaction_id }}</p>
+        <!-- Payment Details -->
+        <div class="bg-white/5 rounded-xl p-6 mb-6 text-left space-y-3">
+            <div class="flex justify-between">
+                <span class="text-gray-400">Transaction ID</span>
+                <span class="text-white font-mono font-bold">{{ payment.transaction_id }}</span>
+            </div>
+            <div class="flex justify-between">
+                <span class="text-gray-400">Amount</span>
+                <span class="text-white">{{ payment.amount|floatformat:0|intcomma }} UGX</span>
+            </div>
+            <div class="flex justify-between">
+                <span class="text-gray-400">Method</span>
+                <span class="text-white">{{ payment.get_payment_method_display }}</span>
+            </div>
+            <div class="flex justify-between">
+                <span class="text-gray-400">Submitted</span>
+                <span class="text-white">{{ payment.created_at|date:"M d, Y H:i" }}</span>
+            </div>
+            <div class="flex justify-between">
+                <span class="text-gray-400">Expires</span>
+                <span class="text-yellow-400">{{ payment.created_at|add:"30 minutes"|date:"H:i" }}</span>
+            </div>
         </div>
         
-        <div class="bg-blue-500/10 border border-blue-500/30 rounded-xl p-4 mb-6">
-            <p class="text-blue-300 text-sm">
-                💡 Typical approval time: 5-30 minutes during business hours
-            </p>
+        <div class="bg-blue-500/10 border border-blue-500/30 rounded-xl p-4 mb-6 text-left">
+            <p class="text-blue-300 text-sm font-medium mb-1">What happens next?</p>
+            <ol class="text-blue-300/70 text-xs space-y-1 list-decimal list-inside">
+                <li>Our team verifies your transaction</li>
+                <li>Your order status changes to "Paid"</li>
+                <li>Printing begins at your selected station</li>
+                <li>You'll be notified when it's ready</li>
+            </ol>
         </div>
         
         {% elif payment.status == 'approved' %}
-        <div class="w-20 h-20 bg-green-500 rounded-full flex items-center justify-center mx-auto mb-6">
-            <svg class="w-10 h-10 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path>
-            </svg>
+        <!-- Approved State -->
+        <div class="w-20 h-20 bg-green-500/20 rounded-full flex items-center justify-center mx-auto mb-6">
+            <div class="w-16 h-16 bg-green-500 rounded-full flex items-center justify-center">
+                <svg class="w-8 h-8 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path>
+                </svg>
+            </div>
         </div>
         
-        <h1 class="text-3xl font-bold text-white mb-4">Payment Approved!</h1>
-        <p class="text-gray-300 mb-6">
-            Your payment has been confirmed. Your order is now being processed.
-        </p>
+        <h1 class="text-3xl font-bold text-white mb-2">Payment Approved</h1>
+        <p class="text-green-400 font-medium mb-6">Your order is now being processed</p>
         
+        <!-- Payment Details -->
+        <div class="bg-white/5 rounded-xl p-6 mb-6 text-left space-y-3">
+            <div class="flex justify-between">
+                <span class="text-gray-400">Transaction ID</span>
+                <span class="text-white font-mono font-bold">{{ payment.transaction_id }}</span>
+            </div>
+            <div class="flex justify-between">
+                <span class="text-gray-400">Amount Paid</span>
+                <span class="text-green-400 font-bold">{{ payment.amount|floatformat:0|intcomma }} UGX</span>
+            </div>
+            <div class="flex justify-between">
+                <span class="text-gray-400">Method</span>
+                <span class="text-white">{{ payment.get_payment_method_display }}</span>
+            </div>
+            <div class="flex justify-between">
+                <span class="text-gray-400">Approved At</span>
+                <span class="text-white">{{ payment.approved_at|date:"M d, Y H:i" }}</span>
+            </div>
+            {% if payment.approved_by %}
+            <div class="flex justify-between">
+                <span class="text-gray-400">Approved By</span>
+                <span class="text-white">{{ payment.approved_by.username }}</span>
+            </div>
+            {% endif %}
+        </div>
+        
+        <!-- Order Status -->
         <div class="bg-green-500/10 border border-green-500/30 rounded-xl p-4 mb-6">
-            <p class="text-green-300">✓ Approved on {{ payment.approved_at|date:"M d, Y H:i" }}</p>
+            <p class="text-green-300 font-medium">
+                Order #{{ payment.order.id }} - 
+                <span class="text-white">{{ payment.order.get_status_display }}</span>
+            </p>
+            {% if payment.order.estimated_ready_at %}
+            <p class="text-green-300/70 text-sm mt-1">
+                Estimated ready: {{ payment.order.estimated_ready_at|date:"M d, H:i" }}
+            </p>
+            {% endif %}
         </div>
         
         {% elif payment.status == 'rejected' %}
-        <div class="w-20 h-20 bg-red-500 rounded-full flex items-center justify-center mx-auto mb-6">
-            <svg class="w-10 h-10 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
-            </svg>
+        <!-- Rejected State -->
+        <div class="w-20 h-20 bg-red-500/20 rounded-full flex items-center justify-center mx-auto mb-6">
+            <div class="w-16 h-16 bg-red-500 rounded-full flex items-center justify-center">
+                <svg class="w-8 h-8 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+                </svg>
+            </div>
         </div>
         
-        <h1 class="text-3xl font-bold text-white mb-4">Payment Rejected</h1>
-        <p class="text-gray-300 mb-6">
-            We couldn't verify your payment. Please contact support with your transaction ID.
-        </p>
+        <h1 class="text-3xl font-bold text-white mb-2">Payment Rejected</h1>
+        <p class="text-red-400 font-medium mb-4">Verification Failed</p>
         
+        {% if payment.status_reason %}
         <div class="bg-red-500/10 border border-red-500/30 rounded-xl p-4 mb-6">
-            <p class="text-red-300">Transaction ID: {{ payment.transaction_id }}</p>
+            <p class="text-red-300 text-sm font-medium mb-1">Reason:</p>
+            <p class="text-red-300/80 text-sm">{{ payment.status_reason }}</p>
         </div>
         {% endif %}
         
-        <a href="{% url 'dashboard' %}" class="inline-block bg-gradient-to-r from-blue-600 to-purple-600 text-white font-bold px-8 py-3 rounded-xl hover:shadow-lg transition-all">
-            Go to Dashboard
+        <!-- Payment Details -->
+        <div class="bg-white/5 rounded-xl p-6 mb-6 text-left space-y-3">
+            <div class="flex justify-between">
+                <span class="text-gray-400">Transaction ID</span>
+                <span class="text-white font-mono">{{ payment.transaction_id }}</span>
+            </div>
+            <div class="flex justify-between">
+                <span class="text-gray-400">Amount</span>
+                <span class="text-white">{{ payment.amount|floatformat:0|intcomma }} UGX</span>
+            </div>
+            <div class="flex justify-between">
+                <span class="text-gray-400">Rejected At</span>
+                <span class="text-white">{{ payment.rejected_at|date:"M d, Y H:i" }}</span>
+            </div>
+        </div>
+        
+        <div class="flex flex-col sm:flex-row gap-3 mb-6">
+            <a href="{% url 'payment_page' payment.order.id %}" class="flex-1 bg-orange-600 hover:bg-orange-700 text-white font-bold py-3 rounded-xl transition-all">
+                Try Again
+            </a>
+            <a href="{% url 'order_receipt' payment.order.id %}" class="flex-1 bg-white/10 hover:bg-white/20 text-white font-bold py-3 rounded-xl transition-all">
+                View Order
+            </a>
+        </div>
+        
+        {% elif payment.status == 'refunded' %}
+        <!-- Refunded State -->
+        <div class="w-20 h-20 bg-orange-500/20 rounded-full flex items-center justify-center mx-auto mb-6">
+            <div class="w-16 h-16 bg-orange-500 rounded-full flex items-center justify-center">
+                <svg class="w-8 h-8 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 10h10a8 8 0 018 8v2M3 10l6 6m-6-6l6-6"></path>
+                </svg>
+            </div>
+        </div>
+        
+        <h1 class="text-3xl font-bold text-white mb-2">Payment Refunded</h1>
+        <p class="text-orange-400 font-medium mb-4">{{ payment.amount|floatformat:0|intcomma }} UGX refunded</p>
+        
+        {% if payment.status_reason %}
+        <div class="bg-orange-500/10 border border-orange-500/30 rounded-xl p-4 mb-6">
+            <p class="text-orange-300 text-sm">{{ payment.status_reason }}</p>
+        </div>
+        {% endif %}
+        
+        {% elif payment.status == 'expired' %}
+        <!-- Expired State -->
+        <div class="w-20 h-20 bg-gray-500/20 rounded-full flex items-center justify-center mx-auto mb-6">
+            <div class="w-16 h-16 bg-gray-500 rounded-full flex items-center justify-center">
+                <svg class="w-8 h-8 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                </svg>
+            </div>
+        </div>
+        
+        <h1 class="text-3xl font-bold text-white mb-2">Payment Expired</h1>
+        <p class="text-gray-400 mb-4">This payment was not completed within the required time.</p>
+        
+        <a href="{% url 'payment_page' payment.order.id %}" class="inline-block bg-orange-600 hover:bg-orange-700 text-white font-bold px-8 py-3 rounded-xl transition-all mb-4">
+            Make New Payment
         </a>
+        {% endif %}
+        
+        <!-- Action Buttons -->
+        <div class="flex flex-col sm:flex-row gap-3 justify-center mt-6 pt-6 border-t border-white/10">
+            <a href="{% url 'order_receipt' payment.order.id %}" class="bg-white/10 hover:bg-white/20 text-white font-medium px-6 py-3 rounded-xl transition-all">
+                View Order Receipt
+            </a>
+            <a href="{% url 'dashboard' %}" class="bg-gradient-to-r from-blue-600 to-purple-600 text-white font-medium px-6 py-3 rounded-xl hover:shadow-lg transition-all">
+                Go to Dashboard
+            </a>
+        </div>
+    </div>
+    
+    <!-- Timeline -->
+    <div class="bg-white/5 border border-white/10 backdrop-blur-md rounded-2xl p-6 mt-6">
+        <h3 class="text-lg font-bold text-white mb-4">Payment Timeline</h3>
+        <div class="space-y-3">
+            <div class="flex items-start gap-3">
+                <div class="w-6 h-6 bg-blue-500 rounded-full flex items-center justify-center flex-shrink-0 mt-0.5">
+                    <svg class="w-3 h-3 text-white" fill="currentColor" viewBox="0 0 24 24"><circle cx="12" cy="12" r="6"/></svg>
+                </div>
+                <div>
+                    <p class="text-white text-sm font-medium">Payment Submitted</p>
+                    <p class="text-gray-500 text-xs">{{ payment.created_at|date:"M d, Y H:i" }}</p>
+                </div>
+            </div>
+            
+            {% if payment.status == 'approved' %}
+            <div class="flex items-start gap-3">
+                <div class="w-6 h-6 bg-green-500 rounded-full flex items-center justify-center flex-shrink-0 mt-0.5">
+                    <svg class="w-3 h-3 text-white" fill="currentColor" viewBox="0 0 24 24"><circle cx="12" cy="12" r="6"/></svg>
+                </div>
+                <div>
+                    <p class="text-white text-sm font-medium">Payment Approved</p>
+                    <p class="text-gray-500 text-xs">{{ payment.approved_at|date:"M d, Y H:i" }}</p>
+                </div>
+            </div>
+            {% elif payment.status == 'rejected' %}
+            <div class="flex items-start gap-3">
+                <div class="w-6 h-6 bg-red-500 rounded-full flex items-center justify-center flex-shrink-0 mt-0.5">
+                    <svg class="w-3 h-3 text-white" fill="currentColor" viewBox="0 0 24 24"><circle cx="12" cy="12" r="6"/></svg>
+                </div>
+                <div>
+                    <p class="text-white text-sm font-medium">Payment Rejected</p>
+                    <p class="text-gray-500 text-xs">{{ payment.rejected_at|date:"M d, Y H:i" }}</p>
+                </div>
+            </div>
+            {% elif payment.status == 'refunded' %}
+            <div class="flex items-start gap-3">
+                <div class="w-6 h-6 bg-orange-500 rounded-full flex items-center justify-center flex-shrink-0 mt-0.5">
+                    <svg class="w-3 h-3 text-white" fill="currentColor" viewBox="0 0 24 24"><circle cx="12" cy="12" r="6"/></svg>
+                </div>
+                <div>
+                    <p class="text-white text-sm font-medium">Payment Refunded</p>
+                    <p class="text-gray-500 text-xs">{{ payment.refunded_at|date:"M d, Y H:i" }}</p>
+                </div>
+            </div>
+            {% endif %}
+            
+            {% if payment.status == 'approved' and payment.order.status in 'printing,in_transit,ready,collected' %}
+            <div class="flex items-start gap-3">
+                <div class="w-6 h-6 bg-purple-500 rounded-full flex items-center justify-center flex-shrink-0 mt-0.5">
+                    <svg class="w-3 h-3 text-white" fill="currentColor" viewBox="0 0 24 24"><circle cx="12" cy="12" r="6"/></svg>
+                </div>
+                <div>
+                    <p class="text-white text-sm font-medium">Order Processing</p>
+                    <p class="text-gray-500 text-xs">Status: {{ payment.order.get_status_display }}</p>
+                </div>
+            </div>
+            {% endif %}
+        </div>
     </div>
 </div>
 {% endblock %}
