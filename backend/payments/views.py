@@ -17,6 +17,7 @@ import logging
 from .models import Payment, PaymentReminder, PaymentMethod
 from orders.models import Order
 from finances.models import MerchantSettings
+from notifications.models import Notification
 
 logger = logging.getLogger(__name__)
 
@@ -296,6 +297,14 @@ def admin_approve_payments(request):
         if action == 'approve':
             reason = request.POST.get('approve_reason', '').strip()
             if payment.approve(approved_by=request.user):
+                # ADDED: In-app notification
+                Notification.create_notification(
+                    user=payment.user,
+                    notification_type='payment_approved',
+                    title='Payment Approved',
+                    message=f'Your payment of {payment.amount} UGX for Order #{payment.order.id} has been approved.',
+                    link=f'/orders/{payment.order.id}/receipt/'
+                )
                 # Send confirmation email
                 try:
                     send_payment_confirmation(payment)
@@ -316,6 +325,14 @@ def admin_approve_payments(request):
                 return redirect('admin_approve_payments')
             
             if payment.reject(rejected_by=request.user, reason=reason):
+                # ADDED: In-app notification
+                Notification.create_notification(
+                    user=payment.user,
+                    notification_type='payment_rejected',
+                    title='Payment Rejected',
+                    message=f'Your payment for Order #{payment.order.id} was not verified. Reason: {reason}',
+                    link=f'/payments/order/{payment.order.id}/'
+                )
                 # Send rejection notification
                 try:
                     send_payment_rejection(payment)
@@ -345,6 +362,14 @@ def admin_approve_payments(request):
                         p = Payment.objects.get(id=pid, status='pending')
                         if p.approve(approved_by=request.user):
                             approved_count += 1
+                            # ADDED: In-app notification
+                            Notification.create_notification(
+                                user=p.user,
+                                notification_type='payment_approved',
+                                title='Payment Approved',
+                                message=f'Your payment of {p.amount} UGX for Order #{p.order.id} has been approved.',
+                                link=f'/orders/{p.order.id}/receipt/'
+                            )
                     except Payment.DoesNotExist:
                         pass
                 
