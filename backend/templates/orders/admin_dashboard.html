@@ -44,7 +44,7 @@
                     Resume Timers
                 </button>
                 {% else %}
-                <input type="text" name="reason" placeholder="Reason for pause..." class="bg-white/10 border border-white/10 rounded-lg px-3 py-2 text-white text-sm w-48">
+                <input type="text" name="reason" placeholder="Reason for pause..." class="bg-white/10 border border-white/10 rounded-lg px-3 py-2 text-white text-sm w-48 placeholder-gray-500">
                 <input type="hidden" name="action" value="pause">
                 <button type="submit" class="bg-red-600 hover:bg-red-700 text-white font-medium px-6 py-2 rounded-lg transition-all">
                     Pause Timers
@@ -95,7 +95,7 @@
         <div class="grid grid-cols-1 md:grid-cols-5 gap-4">
             <div>
                 <label class="block text-xs text-gray-400 mb-1">Status</label>
-                <select name="status" class="w-full bg-white/10 border border-white/10 rounded-lg px-3 py-2 text-white text-sm">
+                <select name="status" class="w-full bg-slate-700 border border-white/10 rounded-lg px-3 py-2 text-white text-sm">
                     <option value="">All Statuses</option>
                     {% for val, label in status_choices %}
                     <option value="{{ val }}" {% if filter_status == val %}selected{% endif %}>{{ label }}</option>
@@ -104,7 +104,7 @@
             </div>
             <div>
                 <label class="block text-xs text-gray-400 mb-1">Station</label>
-                <select name="station" class="w-full bg-white/10 border border-white/10 rounded-lg px-3 py-2 text-white text-sm">
+                <select name="station" class="w-full bg-slate-700 border border-white/10 rounded-lg px-3 py-2 text-white text-sm">
                     <option value="">All Stations</option>
                     {% for s in stations %}
                     <option value="{{ s.id }}" {% if filter_station == s.id|stringformat:"s" %}selected{% endif %}>{{ s.name }}</option>
@@ -113,7 +113,7 @@
             </div>
             <div>
                 <label class="block text-xs text-gray-400 mb-1">Date</label>
-                <select name="date" class="w-full bg-white/10 border border-white/10 rounded-lg px-3 py-2 text-white text-sm">
+                <select name="date" class="w-full bg-slate-700 border border-white/10 rounded-lg px-3 py-2 text-white text-sm">
                     <option value="">All Time</option>
                     <option value="today" {% if filter_date == 'today' %}selected{% endif %}>Today</option>
                     <option value="week" {% if filter_date == 'week' %}selected{% endif %}>This Week</option>
@@ -166,7 +166,7 @@
                         <p class="text-gray-500 text-xs">{{ agent.email }}</p>
                     </div>
                 </div>
-                <select name="agent_station_id" class="w-full bg-white/10 border border-white/20 rounded-lg px-3 py-2 text-white text-sm mb-2">
+                <select name="agent_station_id" class="w-full bg-slate-700 border border-white/20 rounded-lg px-3 py-2 text-white text-sm mb-2">
                     <option value="">No station assigned</option>
                     {% for s in stations %}
                     <option value="{{ s.id }}" {% if agent.station_id == s.id %}selected{% endif %}>{{ s.name }}</option>
@@ -188,7 +188,7 @@
         <input type="hidden" name="action" value="bulk_status" />
         <div class="flex flex-col sm:flex-row gap-3 items-center">
             <span class="text-gray-400 text-sm whitespace-nowrap">Bulk update selected:</span>
-            <select name="bulk_status" class="bg-white/10 border border-white/20 rounded-lg px-3 py-2 text-white text-sm flex-1">
+            <select name="bulk_status" class="bg-slate-700 border border-white/20 rounded-lg px-3 py-2 text-white text-sm flex-1">
                 <option value="printing">Mark as Printing</option>
                 <option value="in_transit">Mark as In Transit</option>
                 <option value="ready">Mark as Ready</option>
@@ -264,7 +264,7 @@
                             <div class="flex items-center gap-2">
                                 <form method="POST" action="{% url 'update_order_status' order.id %}" class="inline-flex items-center gap-2">
                                     {% csrf_token %}
-                                    <select name="status" onchange="this.form.submit()" class="bg-white/10 border border-white/20 rounded px-2 py-1 text-white text-xs">
+                                    <select name="status" onchange="this.form.submit()" class="bg-slate-700 border border-white/20 rounded px-2 py-1 text-white text-xs">
                                         <option value="">Change...</option>
                                         <option value="pending" {% if order.status == 'pending' %}selected{% endif %}>Pending</option>
                                         <option value="paid" {% if order.status == 'paid' %}selected{% endif %}>Paid</option>
