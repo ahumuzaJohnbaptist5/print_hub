@@ -1,7 +1,7 @@
 {% extends 'base.html' %}
 {% load static %}
 
-{% block title %}Upload Document{% endblock %}
+{% block title %}Upload Document - PrintHub{% endblock %}
 
 {% block content %}
 <script src="https://cdn.tailwindcss.com"></script>
@@ -21,6 +21,21 @@
                 </div>
             {% endif %}
 
+            <!-- Estimated Price Preview (from GET parameters) -->
+            {% if estimated_price %}
+            <div class="bg-gradient-to-r from-green-50 to-emerald-50 border border-green-200 rounded-2xl p-4 mb-6">
+                <div class="flex items-center justify-between">
+                    <div>
+                        <p class="text-sm font-bold text-green-700">📊 Price Estimate</p>
+                        <p class="text-xs text-green-600 mt-1">
+                            {{ estimated_price.effective_pages }} sheet(s) × {{ estimated_price.price_per_page }} UGX
+                        </p>
+                    </div>
+                    <p class="text-2xl font-extrabold text-green-700">{{ estimated_price.total|floatformat:0 }} UGX</p>
+                </div>
+            </div>
+            {% endif %}
+
             <form method="post" enctype="multipart/form-data" id="upload-form">
                 {% csrf_token %}
                 
@@ -30,7 +45,6 @@
                         <svg class="w-10 h-10 text-indigo-400 group-hover:scale-110 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12"></path></svg>
                         <span class="text-sm text-indigo-600 font-semibold mt-2" id="dropzone-text">Click to upload your document</span>
                         <span class="text-xs text-gray-500 mt-1">PDF, PPTX, DOCX, TXT, PNG, JPG (Max 10MB)</span>
-                        <!-- Added .pptx to accept -->
                         <input type="file" class="hidden" id="file" name="file" accept=".pdf,.pptx,.docx,.doc,.txt,.png,.jpg,.jpeg" required>
                     </label>
                     <div id="page-count-status" class="text-sm mt-2 text-gray-500 text-center h-5"></div>
@@ -88,7 +102,9 @@
                     <select class="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-indigo-500 outline-none text-gray-700 bg-white" id="station" name="station" required>
                         <option value="" disabled selected>Where should we print it?</option>
                         {% for station in stations %}
-                            <option value="{{ station.id }}">{{ station.name }}</option>
+                            <option value="{{ station.id }}" {% if request.GET.station == station.id|stringformat:"s" %}selected{% endif %}>
+                                {{ station.name }}
+                            </option>
                         {% endfor %}
                     </select>
                 </div>
@@ -120,14 +136,90 @@
                     </div>
                 </div>
 
-                <!-- 8. Live Price Display -->
-                <div class="bg-gradient-to-r from-indigo-50 to-purple-50 border-2 border-dashed border-indigo-200 rounded-2xl p-6 text-center mb-8">
+                <!-- 8. Discount Code (NEW) -->
+                <div class="mb-6">
+                    <label for="discount_code" class="block text-sm font-bold text-gray-700 mb-2">
+                        🏷️ Discount Code <span class="text-gray-400 font-normal">(Optional)</span>
+                    </label>
+                    <div class="flex gap-2">
+                        <input type="text" 
+                               class="flex-1 px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-indigo-500 outline-none text-gray-700 uppercase" 
+                               id="discount_code" 
+                               name="discount_code" 
+                               placeholder="Enter code (e.g., WELCOME10)"
+                               style="text-transform: uppercase;">
+                        <button type="button" 
+                                id="apply-discount" 
+                                class="px-6 py-3 bg-indigo-600 hover:bg-indigo-700 text-white font-bold rounded-xl transition-all">
+                            Apply
+                        </button>
+                    </div>
+                    <div id="discount-message" class="text-sm mt-2 hidden"></div>
+                    <input type="hidden" id="discount_amount" name="discount_amount" value="0">
+                </div>
+
+                <!-- 9. Order Notes (NEW) -->
+                <div class="mb-6">
+                    <label for="notes" class="block text-sm font-bold text-gray-700 mb-2">
+                        📝 Special Instructions <span class="text-gray-400 font-normal">(Optional)</span>
+                    </label>
+                    <textarea class="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-indigo-500 outline-none text-gray-700" 
+                              id="notes" 
+                              name="notes" 
+                              rows="3" 
+                              placeholder="Any special instructions for your print job? E.g., specific pages to print, staple location, etc."></textarea>
+                </div>
+
+                <!-- 10. Price Breakdown (ENHANCED) -->
+                <div class="bg-gradient-to-r from-indigo-50 to-purple-50 border-2 border-dashed border-indigo-200 rounded-2xl p-6 mb-4">
+                    <p class="text-sm font-bold text-indigo-600 uppercase tracking-wider">Price Breakdown</p>
+                    
+                    <div class="mt-4 space-y-2 text-sm">
+                        <div class="flex justify-between text-gray-600">
+                            <span>Pages/Slides:</span>
+                            <span id="breakdown-pages">1</span>
+                        </div>
+                        <div class="flex justify-between text-gray-600">
+                            <span>Effective Sheets:</span>
+                            <span id="breakdown-sheets">1</span>
+                        </div>
+                        <div class="flex justify-between text-gray-600">
+                            <span>Price per Sheet:</span>
+                            <span id="breakdown-pps">200 UGX</span>
+                        </div>
+                        <div class="flex justify-between text-gray-600" id="breakdown-color-row" style="display: none;">
+                            <span>Color Surcharge:</span>
+                            <span>+100 UGX/sheet</span>
+                        </div>
+                        <div class="flex justify-between text-gray-600" id="breakdown-binding-row" style="display: none;">
+                            <span>Binding:</span>
+                            <span id="breakdown-binding">0 UGX</span>
+                        </div>
+                        <div class="flex justify-between text-gray-600" id="breakdown-delivery-row" style="display: none;">
+                            <span>Delivery Fee:</span>
+                            <span id="breakdown-delivery">0 UGX</span>
+                        </div>
+                        <div class="flex justify-between text-green-600 font-bold" id="breakdown-discount-row" style="display: none;">
+                            <span>Discount:</span>
+                            <span id="breakdown-discount">-0 UGX</span>
+                        </div>
+                        <hr class="border-indigo-200 my-2">
+                        <div class="flex justify-between text-lg font-extrabold text-gray-800">
+                            <span>Total:</span>
+                            <span id="breakdown-total">0 UGX</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 11. Live Price Display (Enhanced) -->
+                <div class="bg-gradient-to-r from-indigo-100 to-purple-100 rounded-2xl p-6 text-center mb-8">
                     <p class="text-sm font-bold text-indigo-600 uppercase tracking-wider">Estimated Total</p>
                     <p class="text-4xl font-extrabold text-gray-800 mt-2 transition-all" id="live-price">0 UGX</p>
+                    <p class="text-xs text-gray-500 mt-1" id="price-note"></p>
                 </div>
 
                 <button type="submit" class="w-full bg-gradient-to-r from-indigo-500 to-purple-600 text-white font-bold py-4 px-4 rounded-xl shadow-lg hover:shadow-xl transform hover:-translate-y-1 transition-all duration-200 text-lg">
-                    🚀 Submit Order
+                    🚀 Submit Order - <span id="submit-price">0 UGX</span>
                 </button>
             </form>
         </div>
@@ -137,15 +229,14 @@
 <!-- JS Libraries -->
 <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/mammoth/1.6.0/mammoth.browser.min.js"></script>
-<!-- NEW: JSZip for reading PPTX files -->
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
 
 <script>
     pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
 
-    const BASE_PRICE_BW = 200;
-    const COLOR_SURCHARGE = 100;
-    const SPIRAL_FEE = 1000;
+    const BASE_PRICE_BW = {{ base_price_bw|default:200 }};
+    const COLOR_SURCHARGE = {{ color_surcharge|default:100 }};
+    const SPIRAL_FEE = {{ spiral_binding_fee|default:1000 }};
     const WORDS_PER_PAGE = 500;
 
     const fileInput = document.getElementById('file');
@@ -153,6 +244,7 @@
     const pageCountInput = document.getElementById('page_count');
     const statusText = document.getElementById('page-count-status');
     const livePrice = document.getElementById('live-price');
+    const submitPrice = document.getElementById('submit-price');
     const priceTriggers = document.querySelectorAll('.price-trigger');
     
     const previewContainer = document.getElementById('preview-container');
@@ -162,10 +254,24 @@
     const deliveryZoneContainer = document.getElementById('delivery-zone-container');
     const deliveryZoneSelect = document.getElementById('delivery_zone');
 
+    // Discount elements
+    const discountCodeInput = document.getElementById('discount_code');
+    const applyDiscountBtn = document.getElementById('apply-discount');
+    const discountMessage = document.getElementById('discount-message');
+    const discountAmountInput = document.getElementById('discount_amount');
+    
+    let discountApplied = false;
+    let discountValue = 0;
+
+    // Delivery toggle
     deliveryTriggers.forEach(trigger => {
         trigger.addEventListener('change', function() {
-            if (this.value === 'delivery') deliveryZoneContainer.classList.remove('hidden');
-            else { deliveryZoneContainer.classList.add('hidden'); deliveryZoneSelect.value = ''; }
+            if (this.value === 'delivery') {
+                deliveryZoneContainer.classList.remove('hidden');
+            } else { 
+                deliveryZoneContainer.classList.add('hidden'); 
+                deliveryZoneSelect.value = ''; 
+            }
             calculatePrice();
         });
     });
@@ -181,7 +287,7 @@
     function showPreview(htmlContent) { previewContent.innerHTML = htmlContent; previewContainer.classList.remove('hidden'); }
 
     function animateCountUp(target, onComplete) {
-        if (target < 2) { pageCountInput.value = target; calculatePrice(); onComplete(); return; }
+        if (target < 2) { pageCountInput.value = target; calculatePrice(); if(onComplete) onComplete(); return; }
         const duration = 1000, steps = 25, stepTime = duration / steps, increment = target / steps;
         let current = 0;
         statusText.innerHTML = '⏳ Scanning document...';
@@ -191,21 +297,19 @@
             current += increment;
             pageCountInput.value = Math.round(current);
             calculatePrice();
-            if (current >= target) { clearInterval(timer); pageCountInput.value = target; onComplete(); }
+            if (current >= target) { clearInterval(timer); pageCountInput.value = target; if(onComplete) onComplete(); }
         }, stepTime);
     }
 
     function countWords(str) { return str.trim().split(/\s+/).filter(word => word.length > 0).length; }
 
+    // File input handler (same as before - PDF, DOCX, PPTX, TXT, images)
     fileInput.addEventListener('change', function(e) {
         const file = e.target.files[0]; if (!file) return;
         clearPreview();
         const ext = file.name.toLowerCase().split('.').pop();
         const fileURL = URL.createObjectURL(file);
 
-        // ==========================================
-        // --- PREVIEW LOGIC ---
-        // ==========================================
         if (['png', 'jpg', 'jpeg'].includes(ext)) {
             showPreview(`<img src="${fileURL}" class="max-h-64 rounded-lg shadow-md mx-auto block">`);
         } else if (ext === 'pdf') {
@@ -218,22 +322,17 @@
             const r = new FileReader(); 
             r.onload = (ev) => mammoth.convertToHtml({arrayBuffer: ev.target.result}).then(res => showPreview(`<div class="prose prose-sm max-w-none text-gray-700">${res.value}</div>`)); 
             r.readAsArrayBuffer(file);
-        } 
-        // --- NEW: PPTX PREVIEW (Extracts text from slides) ---
-        else if (ext === 'pptx') {
+        } else if (ext === 'pptx') {
             const reader = new FileReader();
             reader.onload = function(event) {
                 JSZip.loadAsync(event.target.result).then(function(zip) {
                     let slideTexts = [];
                     const promises = [];
-                    
-                    // Extract text from first 3 slides for preview
                     for (let i = 1; i <= 3; i++) {
                         const slideFile = zip.file(`ppt/slides/slide${i}.xml`);
                         if (slideFile) {
                             promises.push(
                                 slideFile.async("string").then(content => {
-                                    // Extract text between <a:t> tags
                                     const matches = content.match(/<a:t>([^<]*)<\/a:t>/g);
                                     if (matches) {
                                         const text = matches.map(m => m.replace(/<\/?a:t>/g, '')).join(' ');
@@ -243,7 +342,6 @@
                             );
                         }
                     }
-                    
                     Promise.all(promises).then(() => {
                         if (slideTexts.length > 0) {
                             showPreview(`<div class="bg-white p-4 rounded-lg text-left">${slideTexts.join('')}<p class="text-xs text-gray-400 text-center mt-2">Showing text from first ${slideTexts.length} slides...</p></div>`);
@@ -258,9 +356,7 @@
             reader.readAsArrayBuffer(file);
         }
 
-        // ==========================================
-        // --- PAGE COUNTING LOGIC ---
-        // ==========================================
+        // Page counting logic (same as before)
         if (ext === 'pdf') {
             const r = new FileReader(); 
             r.onload = function() { 
@@ -275,20 +371,16 @@
                 statusText.innerText = '✅ Image: 1 page.'; 
                 statusText.className = 'text-sm mt-2 text-green-600 text-center h-5 font-medium'; 
             });
-        } 
-        // --- NEW: PPTX SLIDE COUNTING (100% Accurate) ---
-        else if (ext === 'pptx') {
+        } else if (ext === 'pptx') {
             const reader = new FileReader();
             reader.onload = function(event) {
                 JSZip.loadAsync(event.target.result).then(function(zip) {
                     let slideCount = 0;
-                    // Count exactly how many slide XML files exist in the ZIP
                     zip.forEach(function (relativePath, zipEntry) {
                         if (zipEntry.name.match(/ppt\/slides\/slide\d+\.xml$/)) {
                             slideCount++;
                         }
                     });
-                    
                     if (slideCount > 0) {
                         animateCountUp(slideCount, () => {
                             statusText.innerText = `✅ Exact PPTX: ${slideCount} slides.`;
@@ -305,8 +397,7 @@
                 });
             };
             reader.readAsArrayBuffer(file);
-        } 
-        else if (ext === 'docx') {
+        } else if (ext === 'docx') {
             const r = new FileReader(); 
             r.onload = (ev) => mammoth.extractRawText({arrayBuffer: ev.target.result}).then(res => { 
                 const p = Math.max(1, Math.ceil(countWords(res.value)/WORDS_PER_PAGE)); 
@@ -334,7 +425,7 @@
         }
     });
 
-    // 💰 LIVE PRICE CALCULATOR
+    // 💰 LIVE PRICE CALCULATOR (ENHANCED)
     function calculatePrice() {
         let pages = parseInt(pageCountInput.value) || 0;
         let isColor = document.querySelector('input[name="is_color"]:checked').value === 'True';
@@ -345,7 +436,9 @@
         let deliveryFee = 0;
         if (deliveryType === 'delivery') {
             const selectedOption = deliveryZoneSelect.options[deliveryZoneSelect.selectedIndex];
-            deliveryFee = parseInt(selectedOption.getAttribute('data-fee')) || 0;
+            if (selectedOption) {
+                deliveryFee = parseInt(selectedOption.getAttribute('data-fee')) || 0;
+            }
         }
 
         let effectivePages = isDoubleSided ? Math.ceil(pages / 2) : pages;
@@ -354,7 +447,138 @@
         let bindingCost = (binding === 'spiral') ? SPIRAL_FEE : 0;
         
         let total = printingCost + bindingCost + deliveryFee;
+        
+        // Apply discount
+        if (discountApplied && discountValue > 0) {
+            total = Math.max(0, total - discountValue);
+        }
+        
+        // Update live price
         livePrice.innerText = `${total.toLocaleString()} UGX`;
+        submitPrice.innerText = `${total.toLocaleString()} UGX`;
+        
+        // Update breakdown
+        document.getElementById('breakdown-pages').innerText = pages;
+        document.getElementById('breakdown-sheets').innerText = effectivePages;
+        document.getElementById('breakdown-pps').innerText = `${pricePerPage} UGX`;
+        
+        // Color surcharge row
+        const colorRow = document.getElementById('breakdown-color-row');
+        if (isColor) {
+            colorRow.style.display = 'flex';
+        } else {
+            colorRow.style.display = 'none';
+        }
+        
+        // Binding row
+        const bindingRow = document.getElementById('breakdown-binding-row');
+        if (bindingCost > 0) {
+            bindingRow.style.display = 'flex';
+            document.getElementById('breakdown-binding').innerText = `${bindingCost} UGX`;
+        } else {
+            bindingRow.style.display = 'none';
+        }
+        
+        // Delivery row
+        const deliveryRow = document.getElementById('breakdown-delivery-row');
+        if (deliveryFee > 0) {
+            deliveryRow.style.display = 'flex';
+            document.getElementById('breakdown-delivery').innerText = `${deliveryFee} UGX`;
+        } else {
+            deliveryRow.style.display = 'none';
+        }
+        
+        // Discount row
+        const discountRow = document.getElementById('breakdown-discount-row');
+        if (discountApplied && discountValue > 0) {
+            discountRow.style.display = 'flex';
+            document.getElementById('breakdown-discount').innerText = `-${discountValue} UGX`;
+        } else {
+            discountRow.style.display = 'none';
+        }
+        
+        document.getElementById('breakdown-total').innerText = `${total.toLocaleString()} UGX`;
+        
+        // Price note
+        const priceNote = document.getElementById('price-note');
+        if (isDoubleSided && pages > 1) {
+            priceNote.innerText = `Double-sided printing saves ${pages - effectivePages} sheet(s)!`;
+        } else {
+            priceNote.innerText = '';
+        }
+    }
+
+    // Discount Code Application
+    applyDiscountBtn.addEventListener('click', function() {
+        const code = discountCodeInput.value.trim().toUpperCase();
+        if (!code) {
+            showDiscountMessage('Please enter a discount code.', 'error');
+            return;
+        }
+        
+        const orderTotal = calculateRawTotal();
+        
+        fetch('{% url "validate_discount_code" %}', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/x-www-form-urlencoded',
+                'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value,
+            },
+            body: `code=${encodeURIComponent(code)}&order_total=${orderTotal}`
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.valid) {
+                discountApplied = true;
+                discountValue = data.savings;
+                discountAmountInput.value = data.savings;
+                showDiscountMessage(`✅ ${data.description || 'Discount applied!'} You save ${data.savings.toLocaleString()} UGX!`, 'success');
+                applyDiscountBtn.innerText = 'Remove';
+                applyDiscountBtn.classList.add('bg-red-600', 'hover:bg-red-700');
+            } else {
+                showDiscountMessage(`❌ ${data.error}`, 'error');
+            }
+            calculatePrice();
+        })
+        .catch(() => {
+            showDiscountMessage('❌ Error validating discount code. Please try again.', 'error');
+        });
+    });
+    
+    // Remove discount on second click
+    applyDiscountBtn.addEventListener('click', function() {
+        if (discountApplied && applyDiscountBtn.innerText === 'Remove') {
+            discountApplied = false;
+            discountValue = 0;
+            discountAmountInput.value = 0;
+            discountCodeInput.value = '';
+            discountMessage.classList.add('hidden');
+            applyDiscountBtn.innerText = 'Apply';
+            applyDiscountBtn.classList.remove('bg-red-600', 'hover:bg-red-700');
+            calculatePrice();
+        }
+    });
+    
+    function calculateRawTotal() {
+        let pages = parseInt(pageCountInput.value) || 0;
+        let isColor = document.querySelector('input[name="is_color"]:checked').value === 'True';
+        let isDoubleSided = document.getElementById('double_sided').checked;
+        let binding = document.getElementById('binding').value;
+        let effectivePages = isDoubleSided ? Math.ceil(pages / 2) : pages;
+        let pricePerPage = BASE_PRICE_BW + (isColor ? COLOR_SURCHARGE : 0);
+        let printingCost = effectivePages * pricePerPage;
+        let bindingCost = (binding === 'spiral') ? SPIRAL_FEE : 0;
+        return printingCost + bindingCost;
+    }
+    
+    function showDiscountMessage(message, type) {
+        discountMessage.innerText = message;
+        discountMessage.classList.remove('hidden');
+        if (type === 'success') {
+            discountMessage.className = 'text-sm mt-2 text-green-600 font-medium';
+        } else {
+            discountMessage.className = 'text-sm mt-2 text-red-500 font-medium';
+        }
     }
 
     pageCountInput.addEventListener('input', calculatePrice);
