@@ -33,7 +33,7 @@
             {% if order.status != 'cancelled' %}
             <span class="text-xs text-gray-400">
                 {% if order.is_overdue %}
-                <span class="text-red-400">⚠️ Overdue</span>
+                <span class="text-red-400">Overdue</span>
                 {% else %}
                 On track
                 {% endif %}
@@ -43,28 +43,47 @@
         
         <!-- Progress Steps -->
         <div class="relative">
-            {% with steps='submitted,paid,printing,in_transit,ready,collected'|split:',' %}
             <div class="flex justify-between relative">
-                {% for step in steps %}
-                {% with step_status=step|get_step_status:order %}
                 <div class="flex flex-col items-center relative z-10">
-                    <div class="w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold
-                        {% if step_status == 'completed' %}bg-green-500 text-white
-                        {% elif step_status == 'current' %}bg-blue-500 text-white ring-4 ring-blue-500/30
-                        {% else %}bg-slate-700 text-gray-500{% endif %}">
-                        {% if step_status == 'completed' %}✓{% else %}{{ forloop.counter }}{% endif %}
-                    </div>
-                    <span class="text-xs mt-2 text-gray-400 whitespace-nowrap">{{ step|title }}</span>
+                    <div class="w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold bg-green-500 text-white">&#10003;</div>
+                    <span class="text-xs mt-2 text-gray-400 whitespace-nowrap">Submitted</span>
                 </div>
-                {% endwith %}
-                {% endfor %}
+                <div class="flex flex-col items-center relative z-10">
+                    <div class="w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold {% if order.status == 'pending' %}bg-slate-700 text-gray-500{% else %}bg-green-500 text-white{% endif %}">
+                        {% if order.status == 'pending' %}2{% else %}&#10003;{% endif %}
+                    </div>
+                    <span class="text-xs mt-2 text-gray-400 whitespace-nowrap">Paid</span>
+                </div>
+                <div class="flex flex-col items-center relative z-10">
+                    <div class="w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold {% if order.status in 'pending,paid' %}bg-slate-700 text-gray-500{% elif order.status == 'printing' %}bg-blue-500 text-white ring-4 ring-blue-500/30{% else %}bg-green-500 text-white{% endif %}">
+                        {% if order.status in 'pending,paid' %}3{% elif order.status == 'printing' %}3{% else %}&#10003;{% endif %}
+                    </div>
+                    <span class="text-xs mt-2 text-gray-400 whitespace-nowrap">Printing</span>
+                </div>
+                <div class="flex flex-col items-center relative z-10">
+                    <div class="w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold {% if order.status in 'pending,paid,printing' %}bg-slate-700 text-gray-500{% elif order.status == 'in_transit' %}bg-blue-500 text-white ring-4 ring-blue-500/30{% else %}bg-green-500 text-white{% endif %}">
+                        {% if order.status in 'pending,paid,printing' %}4{% elif order.status == 'in_transit' %}4{% else %}&#10003;{% endif %}
+                    </div>
+                    <span class="text-xs mt-2 text-gray-400 whitespace-nowrap">In Transit</span>
+                </div>
+                <div class="flex flex-col items-center relative z-10">
+                    <div class="w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold {% if order.status in 'pending,paid,printing,in_transit' %}bg-slate-700 text-gray-500{% elif order.status == 'ready' %}bg-blue-500 text-white ring-4 ring-blue-500/30{% else %}bg-green-500 text-white{% endif %}">
+                        {% if order.status in 'pending,paid,printing,in_transit' %}5{% elif order.status == 'ready' %}5{% else %}&#10003;{% endif %}
+                    </div>
+                    <span class="text-xs mt-2 text-gray-400 whitespace-nowrap">Ready</span>
+                </div>
+                <div class="flex flex-col items-center relative z-10">
+                    <div class="w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold {% if order.status != 'collected' %}bg-slate-700 text-gray-500{% else %}bg-green-500 text-white{% endif %}">
+                        {% if order.status != 'collected' %}6{% else %}&#10003;{% endif %}
+                    </div>
+                    <span class="text-xs mt-2 text-gray-400 whitespace-nowrap">Collected</span>
+                </div>
             </div>
             <!-- Progress Bar -->
             <div class="absolute top-4 left-0 right-0 h-0.5 bg-slate-700 -z-0">
                 <div class="h-full bg-gradient-to-r from-green-500 to-blue-500 transition-all duration-500" 
-                     style="width: {{ progress_percentage }}%"></div>
+                     style="width: {{ progress_percentage|default:'0' }}%"></div>
             </div>
-            {% endwith %}
         </div>
     </div>
 
@@ -79,7 +98,7 @@
             
             {% if order.status == 'cancelled' %}
             <div class="mt-4 bg-red-500/10 border border-red-500/30 rounded-xl p-3">
-                <p class="text-red-400 font-bold">❌ Order Cancelled</p>
+                <p class="text-red-400 font-bold">Order Cancelled</p>
                 {% if order.cancellation_reason %}
                 <p class="text-red-400/80 text-sm mt-1">{{ order.cancellation_reason }}</p>
                 {% endif %}
@@ -125,11 +144,11 @@
             </div>
             <div class="flex justify-between py-2 border-b border-white/10">
                 <span class="text-gray-400">Print Mode</span>
-                <span>{% if order.is_color %}🎨 Color{% else %}⚫ Black &amp; White{% endif %}</span>
+                <span>{% if order.is_color %}Color{% else %}Black &amp; White{% endif %}</span>
             </div>
             <div class="flex justify-between py-2 border-b border-white/10">
                 <span class="text-gray-400">Sided</span>
-                <span>{% if order.is_double_sided %}📄 Double-sided{% else %}📃 Single-sided{% endif %}</span>
+                <span>{% if order.is_double_sided %}Double-sided{% else %}Single-sided{% endif %}</span>
             </div>
             
             {% if order.binding != 'none' %}
@@ -148,7 +167,7 @@
             
             <div class="flex justify-between py-2 border-b border-white/10">
                 <span class="text-gray-400">Pickup Station</span>
-                <span class="font-medium">{{ order.station.name|default:"—" }}</span>
+                <span class="font-medium">{{ order.station.name|default:"Not assigned" }}</span>
             </div>
             
             {% if order.station.location_description %}
@@ -160,7 +179,7 @@
             
             <div class="flex justify-between py-2 border-b border-white/10">
                 <span class="text-gray-400">Payment Method</span>
-                <span>{% if payment %}📱 {{ payment.get_payment_method_display }}{% else %}💵 Cash at pickup{% endif %}</span>
+                <span>{% if payment %}{{ payment.get_payment_method_display }}{% else %}Cash at pickup{% endif %}</span>
             </div>
             
             <!-- Price Breakdown -->
@@ -230,7 +249,7 @@
             <!-- Order Notes -->
             {% if order.notes %}
             <div class="mt-4 bg-white/5 border border-white/10 rounded-xl p-4">
-                <p class="text-gray-400 text-sm font-medium mb-1">📝 Order Notes</p>
+                <p class="text-gray-400 text-sm font-medium mb-1">Order Notes</p>
                 <p class="text-gray-300 text-sm whitespace-pre-wrap">{{ order.notes }}</p>
             </div>
             {% endif %}
@@ -239,17 +258,17 @@
         <!-- Status-specific Messages -->
         {% if order.status == 'pending' %}
         <div class="bg-yellow-500/10 border border-yellow-500/30 rounded-xl p-4 mb-6">
-            <p class="text-yellow-400 font-semibold">⏳ Payment Required</p>
+            <p class="text-yellow-400 font-semibold">Payment Required</p>
             <p class="text-yellow-400/80 text-sm mt-1">Please complete payment to process your order.</p>
         </div>
         {% elif order.status == 'ready' %}
         <div class="bg-green-500/10 border border-green-500/30 rounded-xl p-4 mb-6">
-            <p class="text-green-400 font-semibold">✅ Ready for Pickup!</p>
+            <p class="text-green-400 font-semibold">Ready for Pickup</p>
             <p class="text-green-400/80 text-sm mt-1">Your documents are ready at {{ order.station.name }}.</p>
         </div>
         {% elif order.status == 'paid' %}
         <div class="bg-blue-500/10 border border-blue-500/30 rounded-xl p-4 mb-6">
-            <p class="text-blue-400 font-semibold">💳 Payment Confirmed</p>
+            <p class="text-blue-400 font-semibold">Payment Confirmed</p>
             <p class="text-blue-400/80 text-sm mt-1">Your order is being processed.</p>
         </div>
         {% endif %}
@@ -258,29 +277,29 @@
         <div class="flex flex-col sm:flex-row gap-3 no-print">
             {% if order.status == 'pending' %}
             <a href="{% url 'payment_page' order.id %}" class="flex-1 bg-gradient-to-r from-green-600 to-emerald-600 text-white font-bold py-3 rounded-xl hover:shadow-lg transition-all text-center">
-                💳 Pay Now - {{ order.total_price|floatformat:0|intcomma }} UGX
+                Pay Now - {{ order.total_price|floatformat:0|intcomma }} UGX
             </a>
             {% endif %}
             
             {% if order.status == 'ready' or order.status == 'collected' %}
             <a href="{% url 'download_order_file' order.id %}" class="flex-1 bg-gradient-to-r from-purple-600 to-indigo-600 text-white font-bold py-3 rounded-xl hover:shadow-lg transition-all text-center">
-                📥 Download File
+                Download File
             </a>
             {% endif %}
             
             <button onclick="window.print()" class="flex-1 bg-gradient-to-r from-blue-600 to-purple-600 text-white font-bold py-3 rounded-xl hover:shadow-lg transition-all">
-                🖨️ Print Receipt
+                Print Receipt
             </button>
             
             <a href="{% url 'dashboard' %}" class="flex-1 text-center bg-white/10 border border-white/20 text-white font-bold py-3 rounded-xl hover:bg-white/20 transition-all">
-                ← Back to Dashboard
+                Back to Dashboard
             </a>
         </div>
         
         <!-- Track Order Link -->
         <div class="text-center mt-4 no-print">
             <a href="{% url 'track_order' %}?order_id={{ order.id }}" class="text-blue-400 hover:text-blue-300 text-sm transition-colors">
-                🔍 Track your order status →
+                Track your order status
             </a>
         </div>
         
@@ -333,7 +352,7 @@
         
         {% if payment.status == 'rejected' %}
         <div class="bg-red-500/10 border border-red-500/30 rounded-xl p-4 mt-4">
-            <p class="text-red-400 font-semibold">❌ Payment Rejected</p>
+            <p class="text-red-400 font-semibold">Payment Rejected</p>
             {% if payment.status_reason %}
             <p class="text-red-400/80 text-sm mt-1">{{ payment.status_reason }}</p>
             {% endif %}
