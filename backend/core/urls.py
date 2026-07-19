@@ -35,4 +35,5 @@ urlpatterns = [
     path('all-links/', all_links_view, name='all_links'),
     path('payments/', include('payments.urls')),
     path('finances/', include('finances.urls')),
+    path('notifications/', include('notifications.urls')),
 ]
