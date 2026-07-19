@@ -1,0 +1,145 @@
+{% extends 'base.html' %}
+{% load humanize %}
+
+{% block title %}Expenses - PrintHub{% endblock %}
+
+{% block content %}
+<div class="max-w-5xl mx-auto px-4 py-12">
+    
+    <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-8">
+        <div>
+            <h1 class="text-3xl font-bold text-white">Expenses</h1>
+            <p class="text-gray-400 text-sm mt-1">All recorded business expenses.</p>
+        </div>
+        <div class="flex gap-2">
+            <button onclick="document.getElementById('expense-modal').classList.remove('hidden')" class="bg-red-600 hover:bg-red-700 text-white text-sm px-4 py-2 rounded-lg transition-all">
+                + Add Expense
+            </button>
+            <a href="{% url 'financial_dashboard' %}" class="bg-white/10 hover:bg-white/20 text-white text-sm px-4 py-2 rounded-lg transition-all">
+                Dashboard
+            </a>
+        </div>
+    </div>
+
+    <!-- Filters -->
+    <form method="GET" class="bg-white/5 border border-white/10 rounded-2xl p-4 mb-6">
+        <div class="grid grid-cols-2 md:grid-cols-4 gap-3">
+            <div>
+                <label class="block text-xs text-gray-400 mb-1">Category</label>
+                <select name="category" class="w-full bg-white/10 border border-white/10 rounded-lg px-3 py-2 text-white text-sm" onchange="this.form.submit()">
+                    <option value="">All Categories</option>
+                    {% for value, label in categories %}
+                    <option value="{{ value }}" {% if filter_category == value %}selected{% endif %}>{{ label }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div>
+                <label class="block text-xs text-gray-400 mb-1">Date</label>
+                <select name="date" class="w-full bg-white/10 border border-white/10 rounded-lg px-3 py-2 text-white text-sm" onchange="this.form.submit()">
+                    <option value="month" {% if filter_date == 'month' %}selected{% endif %}>This Month</option>
+                    <option value="week" {% if filter_date == 'week' %}selected{% endif %}>This Week</option>
+                    <option value="today" {% if filter_date == 'today' %}selected{% endif %}>Today</option>
+                    <option value="all" {% if filter_date == 'all' %}selected{% endif %}>All Time</option>
+                </select>
+            </div>
+        </div>
+    </form>
+
+    <!-- Total -->
+    {% if total_expenses.count > 0 %}
+    <div class="bg-red-500/10 border border-red-500/30 rounded-2xl p-6 mb-6">
+        <div class="flex items-center justify-between">
+            <p class="text-red-400 text-sm uppercase tracking-wider">Total Expenses</p>
+            <p class="text-2xl font-extrabold text-red-300">{{ total_expenses.total|floatformat:0|intcomma }} UGX</p>
+        </div>
+        <p class="text-red-400/60 text-xs mt-1">{{ total_expenses.count }} expense(s)</p>
+    </div>
+    {% endif %}
+
+    <!-- Expenses Table -->
+    {% if page_obj.object_list %}
+    <div class="bg-white/5 border border-white/10 rounded-2xl overflow-hidden">
+        <div class="overflow-x-auto">
+            <table class="w-full text-left">
+                <thead class="bg-white/10">
+                    <tr>
+                        <th class="px-4 py-3 text-xs font-medium text-gray-300 uppercase">Date</th>
+                        <th class="px-4 py-3 text-xs font-medium text-gray-300 uppercase">Category</th>
+                        <th class="px-4 py-3 text-xs font-medium text-gray-300 uppercase">Description</th>
+                        <th class="px-4 py-3 text-xs font-medium text-gray-300 uppercase">Amount</th>
+                        <th class="px-4 py-3 text-xs font-medium text-gray-300 uppercase">By</th>
+                    </tr>
+                </thead>
+                <tbody class="divide-y divide-white/10">
+                    {% for expense in page_obj.object_list %}
+                    <tr class="hover:bg-white/5 transition">
+                        <td class="px-4 py-3 text-gray-300 text-sm whitespace-nowrap">{{ expense.created_at|date:"M d, Y" }}</td>
+                        <td class="px-4 py-3">
+                            <span class="px-2 py-0.5 rounded text-xs font-semibold bg-slate-700 text-gray-300">
+                                {{ expense.get_category_display }}
+                            </span>
+                        </td>
+                        <td class="px-4 py-3 text-gray-300 text-sm max-w-[200px] truncate">{{ expense.description }}</td>
+                        <td class="px-4 py-3 text-red-400 font-bold text-sm">{{ expense.amount|floatformat:0|intcomma }} UGX</td>
+                        <td class="px-4 py-3 text-gray-400 text-sm">{{ expense.created_by.username|default:"--" }}</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <!-- Pagination -->
+    {% if page_obj.has_other_pages %}
+    <div class="flex justify-center gap-2 mt-6">
+        {% if page_obj.has_previous %}
+        <a href="?page={{ page_obj.previous_page_number }}&category={{ filter_category }}&date={{ filter_date }}" class="px-4 py-2 bg-white/10 text-white rounded-lg hover:bg-white/20">Previous</a>
+        {% endif %}
+        <span class="px-4 py-2 text-gray-400">Page {{ page_obj.number }} of {{ page_obj.paginator.num_pages }}</span>
+        {% if page_obj.has_next %}
+        <a href="?page={{ page_obj.next_page_number }}&category={{ filter_category }}&date={{ filter_date }}" class="px-4 py-2 bg-white/10 text-white rounded-lg hover:bg-white/20">Next</a>
+        {% endif %}
+    </div>
+    {% endif %}
+
+    {% else %}
+    <div class="bg-white/5 border border-white/10 rounded-2xl p-12 text-center">
+        <p class="text-gray-400 text-lg">No expenses recorded.</p>
+        <button onclick="document.getElementById('expense-modal').classList.remove('hidden')" class="text-blue-400 hover:text-blue-300 text-sm mt-2">Add your first expense</button>
+    </div>
+    {% endif %}
+</div>
+
+<!-- Add Expense Modal -->
+<div id="expense-modal" class="hidden fixed inset-0 bg-black/70 flex items-center justify-center z-50 p-4">
+    <div class="bg-slate-800 border border-slate-600 rounded-2xl shadow-2xl p-8 w-full max-w-md">
+        <div class="flex justify-between items-center mb-6">
+            <h3 class="text-xl font-bold text-white">Add New Expense</h3>
+            <button onclick="document.getElementById('expense-modal').classList.add('hidden')" class="text-gray-400 hover:text-white text-2xl">&times;</button>
+        </div>
+        <form method="post" action="{% url 'add_expense' %}">
+            {% csrf_token %}
+            <div class="mb-4">
+                <label class="block text-sm font-bold text-gray-300 mb-2">Category</label>
+                <select name="category" class="w-full bg-white/10 border border-white/20 rounded-xl px-4 py-3 text-white focus:outline-none focus:ring-2 focus:ring-indigo-500">
+                    {% for value, label in categories %}
+                    <option value="{{ value }}">{{ label }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="mb-4">
+                <label class="block text-sm font-bold text-gray-300 mb-2">Description</label>
+                <input type="text" name="description" placeholder="e.g., Bought paper" class="w-full bg-white/10 border border-white/20 rounded-xl px-4 py-3 text-white focus:outline-none focus:ring-2 focus:ring-indigo-500 placeholder-gray-500" required>
+            </div>
+            <div class="mb-6">
+                <label class="block text-sm font-bold text-gray-300 mb-2">Amount (UGX)</label>
+                <input type="number" name="amount" step="0.01" min="0.01" placeholder="0.00" class="w-full bg-white/10 border border-white/20 rounded-xl px-4 py-3 text-white focus:outline-none focus:ring-2 focus:ring-indigo-500 placeholder-gray-500" required>
+            </div>
+            <div class="flex justify-end gap-3">
+                <button type="button" onclick="document.getElementById('expense-modal').classList.add('hidden')" class="px-4 py-2 bg-slate-700 text-gray-300 rounded-lg hover:bg-slate-600 transition">Cancel</button>
+                <button type="submit" class="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-500 transition font-medium">Save Expense</button>
+            </div>
+        </form>
+    </div>
+</div>
+{% endblock %}
