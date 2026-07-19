@@ -1,0 +1,155 @@
+{% extends 'base.html' %}
+{% load humanize %}
+
+{% block title %}Financial Reports - PrintHub{% endblock %}
+
+{% block content %}
+<div class="max-w-6xl mx-auto px-4 py-12">
+    
+    <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-8">
+        <div>
+            <h1 class="text-3xl font-bold text-white">Financial Reports</h1>
+            <p class="text-gray-400 text-sm mt-1">
+                {{ start_date|date:"M d, Y" }} - {{ end_date|date:"M d, Y" }}
+            </p>
+        </div>
+        <div class="flex gap-2">
+            <a href="?report=daily" class="px-4 py-2 rounded-lg text-sm font-medium {% if report_type == 'daily' %}bg-indigo-600 text-white{% else %}bg-white/5 text-gray-400{% endif %}">Daily</a>
+            <a href="?report=weekly" class="px-4 py-2 rounded-lg text-sm font-medium {% if report_type == 'weekly' %}bg-indigo-600 text-white{% else %}bg-white/5 text-gray-400{% endif %}">Weekly</a>
+            <a href="?report=monthly" class="px-4 py-2 rounded-lg text-sm font-medium {% if report_type == 'monthly' %}bg-indigo-600 text-white{% else %}bg-white/5 text-gray-400{% endif %}">Monthly</a>
+            <a href="{% url 'financial_dashboard' %}" class="px-4 py-2 rounded-lg text-sm font-medium bg-white/5 text-gray-400">Dashboard</a>
+        </div>
+    </div>
+
+    <!-- Revenue Summary -->
+    <div class="grid grid-cols-2 md:grid-cols-5 gap-4 mb-8">
+        <div class="bg-white/5 border border-white/10 rounded-xl p-4 text-center">
+            <p class="text-gray-400 text-xs uppercase">Revenue</p>
+            <p class="text-xl font-bold text-green-400">{{ revenue_data.total_revenue|default:0|floatformat:0|intcomma }} UGX</p>
+        </div>
+        <div class="bg-white/5 border border-white/10 rounded-xl p-4 text-center">
+            <p class="text-gray-400 text-xs uppercase">Costs</p>
+            <p class="text-xl font-bold text-red-400">{{ revenue_data.total_cost|default:0|floatformat:0|intcomma }} UGX</p>
+        </div>
+        <div class="bg-white/5 border border-white/10 rounded-xl p-4 text-center">
+            <p class="text-gray-400 text-xs uppercase">Commissions</p>
+            <p class="text-xl font-bold text-yellow-400">{{ revenue_data.total_commission|default:0|floatformat:0|intcomma }} UGX</p>
+        </div>
+        <div class="bg-white/5 border border-white/10 rounded-xl p-4 text-center">
+            <p class="text-gray-400 text-xs uppercase">Profit</p>
+            <p class="text-xl font-bold {% if profit_loss >= 0 %}text-green-400{% else %}text-red-400{% endif %}">{{ profit_loss|floatformat:0|intcomma }} UGX</p>
+        </div>
+        <div class="bg-white/5 border border-white/10 rounded-xl p-4 text-center">
+            <p class="text-gray-400 text-xs uppercase">Orders</p>
+            <p class="text-xl font-bold text-blue-400">{{ revenue_data.order_count|default:0 }}</p>
+        </div>
+    </div>
+
+    <!-- Order Details -->
+    <div class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
+        <div class="bg-white/5 border border-white/10 rounded-xl p-4 text-center">
+            <p class="text-gray-400 text-xs uppercase">Avg Order Value</p>
+            <p class="text-lg font-bold text-white">{{ revenue_data.avg_order_value|default:0|floatformat:0|intcomma }} UGX</p>
+        </div>
+        <div class="bg-white/5 border border-white/10 rounded-xl p-4 text-center">
+            <p class="text-gray-400 text-xs uppercase">Paper Used</p>
+            <p class="text-lg font-bold text-white">{{ revenue_data.paper_used|default:0|intcomma }} sheets</p>
+        </div>
+        <div class="bg-white/5 border border-white/10 rounded-xl p-4 text-center">
+            <p class="text-gray-400 text-xs uppercase">Expenses</p>
+            <p class="text-lg font-bold text-red-400">{{ expense_data.total|default:0|floatformat:0|intcomma }} UGX</p>
+        </div>
+        <div class="bg-white/5 border border-white/10 rounded-xl p-4 text-center">
+            <p class="text-gray-400 text-xs uppercase">Commissions Paid</p>
+            <p class="text-lg font-bold text-yellow-400">{{ commission_data.paid|default:0|floatformat:0|intcomma }} UGX</p>
+        </div>
+    </div>
+
+    <!-- Revenue by Station -->
+    <div class="bg-white/5 border border-white/10 rounded-2xl p-6 mb-8">
+        <h2 class="text-lg font-bold text-white mb-4">Revenue by Station</h2>
+        {% if revenue_by_station %}
+        <div class="space-y-3">
+            {% for station in revenue_by_station %}
+            <div class="flex items-center justify-between">
+                <div class="flex-1">
+                    <div class="flex justify-between mb-1">
+                        <span class="text-gray-300 text-sm">{{ station.station__name|default:"Unassigned" }}</span>
+                        <span class="text-gray-400 text-sm">{{ station.total|floatformat:0|intcomma }} UGX</span>
+                    </div>
+                    <div class="w-full bg-slate-700 rounded-full h-2">
+                        <div class="bg-indigo-500 h-2 rounded-full" style="width: {% widthratio station.total revenue_data.total_revenue 100 %}%"></div>
+                    </div>
+                    <p class="text-gray-500 text-xs mt-1">{{ station.count }} order(s) | Profit: {{ station.profit|floatformat:0|intcomma }} UGX</p>
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+        {% else %}
+        <p class="text-gray-500 text-sm">No station data available.</p>
+        {% endif %}
+    </div>
+
+    <!-- Commissions Breakdown -->
+    <div class="grid grid-cols-1 md:grid-cols-2 gap-8 mb-8">
+        <div class="bg-white/5 border border-white/10 rounded-2xl p-6">
+            <h2 class="text-lg font-bold text-white mb-4">Commissions Summary</h2>
+            <div class="space-y-4">
+                <div class="flex justify-between">
+                    <span class="text-gray-400">Total Commissions</span>
+                    <span class="text-white font-bold">{{ commission_data.total|default:0|floatformat:0|intcomma }} UGX</span>
+                </div>
+                <div class="flex justify-between">
+                    <span class="text-gray-400">Paid Out</span>
+                    <span class="text-green-400 font-bold">{{ commission_data.paid|default:0|floatformat:0|intcomma }} UGX</span>
+                </div>
+                <div class="flex justify-between">
+                    <span class="text-gray-400">Pending</span>
+                    <span class="text-yellow-400 font-bold">{{ commission_data.pending|default:0|floatformat:0|intcomma }} UGX</span>
+                </div>
+                <div class="flex justify-between border-t border-white/10 pt-3">
+                    <span class="text-gray-400">Total Commission Records</span>
+                    <span class="text-white">{{ commission_data.count|default:0 }}</span>
+                </div>
+            </div>
+        </div>
+
+        <div class="bg-white/5 border border-white/10 rounded-2xl p-6">
+            <h2 class="text-lg font-bold text-white mb-4">Profit & Loss</h2>
+            <div class="space-y-4">
+                <div class="flex justify-between">
+                    <span class="text-gray-400">Total Revenue</span>
+                    <span class="text-green-400 font-bold">{{ revenue_data.total_revenue|default:0|floatformat:0|intcomma }} UGX</span>
+                </div>
+                <div class="flex justify-between">
+                    <span class="text-gray-400">Total Costs</span>
+                    <span class="text-red-400 font-bold">{{ revenue_data.total_cost|default:0|floatformat:0|intcomma }} UGX</span>
+                </div>
+                <div class="flex justify-between">
+                    <span class="text-gray-400">Total Commissions</span>
+                    <span class="text-yellow-400 font-bold">{{ revenue_data.total_commission|default:0|floatformat:0|intcomma }} UGX</span>
+                </div>
+                <div class="flex justify-between border-t border-white/10 pt-3">
+                    <span class="text-white font-bold">Net Profit</span>
+                    <span class="{% if profit_loss >= 0 %}text-green-400{% else %}text-red-400{% endif %} font-bold text-lg">
+                        {{ profit_loss|floatformat:0|intcomma }} UGX
+                    </span>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Export -->
+    <div class="flex justify-center gap-4 mt-8">
+        <a href="{% url 'export_financial_data' %}?type=transactions&date={{ report_type }}" class="bg-emerald-600 hover:bg-emerald-700 text-white font-medium px-6 py-3 rounded-xl transition-all">
+            Export Transactions CSV
+        </a>
+        <a href="{% url 'export_financial_data' %}?type=earnings&date={{ report_type }}" class="bg-indigo-600 hover:bg-indigo-700 text-white font-medium px-6 py-3 rounded-xl transition-all">
+            Export Earnings CSV
+        </a>
+        <a href="{% url 'export_financial_data' %}?type=expenses&date={{ report_type }}" class="bg-red-600 hover:bg-red-700 text-white font-medium px-6 py-3 rounded-xl transition-all">
+            Export Expenses CSV
+        </a>
+    </div>
+</div>
+{% endblock %}
