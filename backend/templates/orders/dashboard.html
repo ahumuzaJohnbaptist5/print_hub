@@ -1,29 +1,139 @@
 {% extends 'base.html' %}
+{% load humanize %}
 
 {% block title %}My Orders - PrintHub{% endblock %}
 
 {% block content %}
 <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 sm:py-12">
+    
+    <!-- Stats Cards -->
+    {% if stats %}
+    <div class="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
+        <div class="bg-white/5 border border-white/10 backdrop-blur-md rounded-2xl p-4 sm:p-6">
+            <div class="flex items-center justify-between">
+                <div>
+                    <p class="text-gray-400 text-xs sm:text-sm">Total Orders</p>
+                    <p class="text-2xl sm:text-3xl font-bold text-white mt-1">{{ stats.total_orders }}</p>
+                </div>
+                <div class="w-10 h-10 bg-blue-500/20 rounded-xl flex items-center justify-center">
+                    <svg class="w-5 h-5 text-blue-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"></path>
+                    </svg>
+                </div>
+            </div>
+        </div>
+        
+        <div class="bg-white/5 border border-white/10 backdrop-blur-md rounded-2xl p-4 sm:p-6">
+            <div class="flex items-center justify-between">
+                <div>
+                    <p class="text-gray-400 text-xs sm:text-sm">Pending</p>
+                    <p class="text-2xl sm:text-3xl font-bold text-yellow-400 mt-1">{{ stats.pending_orders }}</p>
+                </div>
+                <div class="w-10 h-10 bg-yellow-500/20 rounded-xl flex items-center justify-center">
+                    <svg class="w-5 h-5 text-yellow-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                    </svg>
+                </div>
+            </div>
+        </div>
+        
+        <div class="bg-white/5 border border-white/10 backdrop-blur-md rounded-2xl p-4 sm:p-6">
+            <div class="flex items-center justify-between">
+                <div>
+                    <p class="text-gray-400 text-xs sm:text-sm">Completed</p>
+                    <p class="text-2xl sm:text-3xl font-bold text-green-400 mt-1">{{ stats.completed_orders }}</p>
+                </div>
+                <div class="w-10 h-10 bg-green-500/20 rounded-xl flex items-center justify-center">
+                    <svg class="w-5 h-5 text-green-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                    </svg>
+                </div>
+            </div>
+        </div>
+        
+        <div class="bg-white/5 border border-white/10 backdrop-blur-md rounded-2xl p-4 sm:p-6">
+            <div class="flex items-center justify-between">
+                <div>
+                    <p class="text-gray-400 text-xs sm:text-sm">Total Spent</p>
+                    <p class="text-xl sm:text-2xl font-bold text-purple-400 mt-1">UGX {{ stats.total_spent|default:0|intcomma }}</p>
+                </div>
+                <div class="w-10 h-10 bg-purple-500/20 rounded-xl flex items-center justify-center">
+                    <svg class="w-5 h-5 text-purple-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                    </svg>
+                </div>
+            </div>
+        </div>
+    </div>
+    {% endif %}
+
     <!-- Responsive Header and Button -->
     <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-8">
-        <h1 class="text-3xl sm:text-4xl font-bold text-white">My Orders</h1>
-        <a href="{% url 'upload' %}" class="bg-blue-600 hover:bg-blue-700 text-white font-bold px-6 py-3 rounded-xl hover:shadow-lg transition-all w-full sm:w-auto text-center">
-            + New Order
+        <div>
+            <h1 class="text-3xl sm:text-4xl font-bold text-white">My Orders</h1>
+            {% if stats and stats.total_orders > 0 %}
+            <p class="text-gray-400 mt-1 text-sm">
+                {{ stats.completed_orders }} of {{ stats.total_orders }} orders completed
+                {% if stats.completed_orders > 0 %}
+                <span class="text-green-400">({{ stats.completed_orders|floatformat:0 }}% completion rate)</span>
+                {% endif %}
+            </p>
+            {% endif %}
+        </div>
+        <a href="{% url 'upload' %}" class="bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white font-bold px-6 py-3 rounded-xl hover:shadow-lg transition-all w-full sm:w-auto text-center flex items-center justify-center gap-2">
+            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path>
+            </svg>
+            New Order
         </a>
     </div>
     
     {% if orders %}
+    <!-- Quick Filter Tabs -->
+    <div class="flex flex-wrap gap-2 mb-6">
+        <a href="?status=" class="px-4 py-2 rounded-lg text-sm font-medium transition-all {% if not request.GET.status %}bg-blue-600 text-white{% else %}bg-white/5 text-gray-400 hover:bg-white/10{% endif %}">
+            All Orders
+        </a>
+        <a href="?status=pending" class="px-4 py-2 rounded-lg text-sm font-medium transition-all {% if request.GET.status == 'pending' %}bg-yellow-600 text-white{% else %}bg-white/5 text-gray-400 hover:bg-white/10{% endif %}">
+            Pending
+        </a>
+        <a href="?status=paid" class="px-4 py-2 rounded-lg text-sm font-medium transition-all {% if request.GET.status == 'paid' %}bg-blue-600 text-white{% else %}bg-white/5 text-gray-400 hover:bg-white/10{% endif %}">
+            Paid
+        </a>
+        <a href="?status=printing" class="px-4 py-2 rounded-lg text-sm font-medium transition-all {% if request.GET.status == 'printing' %}bg-purple-600 text-white{% else %}bg-white/5 text-gray-400 hover:bg-white/10{% endif %}">
+            Printing
+        </a>
+        <a href="?status=ready" class="px-4 py-2 rounded-lg text-sm font-medium transition-all {% if request.GET.status == 'ready' %}bg-green-600 text-white{% else %}bg-white/5 text-gray-400 hover:bg-white/10{% endif %}">
+            Ready
+        </a>
+        <a href="?status=collected" class="px-4 py-2 rounded-lg text-sm font-medium transition-all {% if request.GET.status == 'collected' %}bg-gray-600 text-white{% else %}bg-white/5 text-gray-400 hover:bg-white/10{% endif %}">
+            Collected
+        </a>
+    </div>
+
     <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
         {% for order in orders %}
-        <div class="bg-white/5 border border-white/10 backdrop-blur-md rounded-2xl p-6 hover:bg-white/10 transition-all">
+        <div class="bg-white/5 border {% if order.is_overdue %}border-red-500/50{% else %}border-white/10{% endif %} backdrop-blur-md rounded-2xl p-6 hover:bg-white/10 transition-all group">
+            
+            <!-- Overdue Badge -->
+            {% if order.is_overdue and order.status != 'collected' and order.status != 'cancelled' %}
+            <div class="bg-red-500/20 text-red-400 text-xs font-semibold px-3 py-1 rounded-full mb-3 inline-block">
+                ⚠️ Overdue
+            </div>
+            {% endif %}
+            
             <div class="flex justify-between items-start mb-4 gap-2">
-                <h3 class="text-lg sm:text-xl font-bold text-white">Order #{{ order.id }}</h3>
+                <h3 class="text-lg sm:text-xl font-bold text-white group-hover:text-blue-400 transition-colors">
+                    Order #{{ order.id }}
+                </h3>
                 <span class="px-3 py-1 rounded-full text-xs font-semibold whitespace-nowrap
                     {% if order.status == 'pending' %}bg-yellow-500/20 text-yellow-300
                     {% elif order.status == 'paid' %}bg-blue-500/20 text-blue-300
                     {% elif order.status == 'printing' %}bg-purple-500/20 text-purple-300
+                    {% elif order.status == 'in_transit' %}bg-orange-500/20 text-orange-300
                     {% elif order.status == 'ready' %}bg-green-500/20 text-green-300
                     {% elif order.status == 'collected' %}bg-gray-500/20 text-gray-300
+                    {% elif order.status == 'cancelled' %}bg-red-500/20 text-red-300
                     {% endif %}">
                     {{ order.get_status_display }}
                 </span>
@@ -32,54 +142,186 @@
             <div class="space-y-2 text-gray-300 mb-4 text-sm sm:text-base">
                 <p class="flex justify-between">
                     <span class="text-gray-400">File:</span>
-                    <span class="truncate ml-2 max-w-[150px] sm:max-w-[200px]">{{ order.file_name }}</span>
+                    <span class="truncate ml-2 max-w-[150px] sm:max-w-[200px]" title="{{ order.file_name }}">{{ order.file_name }}</span>
                 </p>
                 <p class="flex justify-between">
                     <span class="text-gray-400">Pages:</span>
-                    <span>{{ order.page_count }}</span>
+                    <span>{{ order.page_count }} {% if order.is_double_sided %}({{ order.paper_used }} sheets){% endif %}</span>
                 </p>
                 <p class="flex justify-between">
                     <span class="text-gray-400">Color:</span>
-                    <span>{% if order.is_color %}Yes{% else %}B&W{% endif %}</span>
+                    <span>{% if order.is_color %}<span class="text-purple-400">🎨 Color</span>{% else %}⚫ B&W{% endif %}</span>
                 </p>
                 <p class="flex justify-between">
                     <span class="text-gray-400">Double-sided:</span>
-                    <span>{% if order.is_double_sided %}Yes{% else %}No{% endif %}</span>
+                    <span>{% if order.is_double_sided %}✅ Yes{% else %}❌ No{% endif %}</span>
                 </p>
+                {% if order.binding != 'none' %}
+                <p class="flex justify-between">
+                    <span class="text-gray-400">Binding:</span>
+                    <span class="text-purple-400">{{ order.get_binding_display }}</span>
+                </p>
+                {% endif %}
+                {% if order.delivery_type == 'delivery' and order.delivery_zone %}
+                <p class="flex justify-between">
+                    <span class="text-gray-400">Delivery:</span>
+                    <span>{{ order.delivery_zone.name }}</span>
+                </p>
+                {% endif %}
+                
+                <!-- Progress Bar for Active Orders -->
+                {% if order.status in 'paid,printing,in_transit,ready' %}
+                <div class="mt-3 pt-3 border-t border-white/10">
+                    <div class="w-full bg-slate-700 rounded-full h-2">
+                        {% if order.status == 'paid' %}
+                        <div class="bg-blue-500 h-2 rounded-full" style="width: 25%"></div>
+                        {% elif order.status == 'printing' %}
+                        <div class="bg-purple-500 h-2 rounded-full" style="width: 50%"></div>
+                        {% elif order.status == 'in_transit' %}
+                        <div class="bg-orange-500 h-2 rounded-full" style="width: 75%"></div>
+                        {% elif order.status == 'ready' %}
+                        <div class="bg-green-500 h-2 rounded-full" style="width: 90%"></div>
+                        {% endif %}
+                    </div>
+                    <p class="text-xs text-gray-400 mt-1">
+                        {% if order.status == 'paid' %}Processing payment
+                        {% elif order.status == 'printing' %}Printing in progress
+                        {% elif order.status == 'in_transit' %}On the way
+                        {% elif order.status == 'ready' %}Almost done!
+                        {% endif %}
+                    </p>
+                </div>
+                {% endif %}
+                
                 <p class="flex justify-between font-bold text-white mt-2 pt-2 border-t border-white/10">
                     <span>Total:</span>
-                    <span>{{ order.total_price|default:0|floatformat:0 }} UGX</span>
+                    <span>{{ order.total_price|default:0|intcomma }} UGX</span>
                 </p>
                 <p class="flex justify-between text-xs sm:text-sm text-gray-400">
                     <span>Created:</span>
                     <span>{{ order.created_at|date:"M d, Y H:i" }}</span>
                 </p>
+                
+                {% if order.estimated_ready_at and order.status != 'collected' and order.status != 'cancelled' %}
+                <p class="flex justify-between text-xs sm:text-sm {% if order.is_overdue %}text-red-400{% else %}text-gray-400{% endif %}">
+                    <span>{% if order.is_overdue %}Was due:{% else %}Est. ready:{% endif %}</span>
+                    <span>{{ order.estimated_ready_at|date:"M d, H:i" }}</span>
+                </p>
+                {% endif %}
+                
+                <!-- Notes Preview -->
+                {% if order.notes %}
+                <div class="mt-2 pt-2 border-t border-white/10">
+                    <p class="text-xs text-gray-500 italic truncate" title="{{ order.notes }}">
+                        📝 {{ order.notes|truncatechars:60 }}
+                    </p>
+                </div>
+                {% endif %}
             </div>
             
-            {% if order.status == 'pending' %}
-        <a href="{% url 'payment_page' order.id %}" class="block w-full text-center bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 rounded-lg hover:shadow-lg transition-all"> Pay now
-           </a>
-            {% elif order.status == 'ready' %}
-            <p class="text-center text-green-400 text-sm">✓ Ready for pickup!</p>
-            {% elif order.status == 'paid' %}
-            <p class="text-center text-blue-400 text-sm">✓ Payment received - Processing</p>
-            {% elif order.status == 'printing' %}
-            <p class="text-center text-purple-400 text-sm">🖨️ Currently printing</p>
-            {% elif order.status == 'collected' %}
-            <p class="text-center text-gray-400 text-sm">✓ Collected</p>
-            {% endif %}
+            <!-- Action Buttons -->
+            <div class="space-y-2">
+                {% if order.status == 'pending' %}
+                <a href="{% url 'payment_page' order.id %}" class="block w-full text-center bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-700 hover:to-emerald-700 text-white font-bold py-2.5 rounded-lg hover:shadow-lg transition-all">
+                    💳 Pay Now - {{ order.total_price|default:0|intcomma }} UGX
+                </a>
+                {% elif order.status == 'ready' %}
+                <div class="bg-green-500/10 border border-green-500/30 rounded-lg p-3 text-center">
+                    <p class="text-green-400 font-semibold">✅ Ready for Pickup!</p>
+                    {% if order.station %}
+                    <p class="text-green-400/70 text-xs mt-1">📍 {{ order.station.name }}</p>
+                    {% endif %}
+                </div>
+                {% elif order.status == 'paid' %}
+                <div class="bg-blue-500/10 border border-blue-500/30 rounded-lg p-3 text-center">
+                    <p class="text-blue-400 font-semibold">💳 Payment Received</p>
+                    <p class="text-blue-400/70 text-xs mt-1">Processing your order</p>
+                </div>
+                {% elif order.status == 'printing' %}
+                <div class="bg-purple-500/10 border border-purple-500/30 rounded-lg p-3 text-center">
+                    <p class="text-purple-400 font-semibold">🖨️ Currently Printing</p>
+                    <p class="text-purple-400/70 text-xs mt-1">Your documents are being printed</p>
+                </div>
+                {% elif order.status == 'in_transit' %}
+                <div class="bg-orange-500/10 border border-orange-500/30 rounded-lg p-3 text-center">
+                    <p class="text-orange-400 font-semibold">🚚 In Transit</p>
+                    <p class="text-orange-400/70 text-xs mt-1">Your order is on the way</p>
+                </div>
+                {% elif order.status == 'collected' %}
+                <div class="bg-gray-500/10 border border-gray-500/30 rounded-lg p-3 text-center">
+                    <p class="text-gray-400 font-semibold">✅ Collected</p>
+                    <p class="text-gray-400/70 text-xs mt-1">{{ order.collected_at|date:"M d, Y H:i" }}</p>
+                </div>
+                {% elif order.status == 'cancelled' %}
+                <div class="bg-red-500/10 border border-red-500/30 rounded-lg p-3 text-center">
+                    <p class="text-red-400 font-semibold">❌ Cancelled</p>
+                    {% if order.cancellation_reason %}
+                    <p class="text-red-400/70 text-xs mt-1">{{ order.cancellation_reason|truncatechars:50 }}</p>
+                    {% endif %}
+                </div>
+                {% endif %}
+                
+                <!-- View Receipt Button -->
+                <a href="{% url 'order_receipt' order.id %}" class="block w-full text-center bg-white/5 hover:bg-white/10 text-gray-400 hover:text-white font-medium py-2 rounded-lg transition-all text-sm">
+                    📄 View Receipt
+                </a>
+            </div>
         </div>
         {% endfor %}
     </div>
+    
+    <!-- Pagination (if needed) -->
+    {% if orders.has_other_pages %}
+    <div class="flex justify-center mt-8">
+        <nav class="flex gap-2">
+            {% if orders.has_previous %}
+            <a href="?page={{ orders.previous_page_number }}{% if request.GET.status %}&status={{ request.GET.status }}{% endif %}" class="px-4 py-2 bg-white/5 text-gray-400 hover:text-white hover:bg-white/10 rounded-lg transition-all">
+                ← Previous
+            </a>
+            {% endif %}
+            
+            <span class="px-4 py-2 bg-blue-600 text-white rounded-lg">
+                Page {{ orders.number }} of {{ orders.paginator.num_pages }}
+            </span>
+            
+            {% if orders.has_next %}
+            <a href="?page={{ orders.next_page_number }}{% if request.GET.status %}&status={{ request.GET.status }}{% endif %}" class="px-4 py-2 bg-white/5 text-gray-400 hover:text-white hover:bg-white/10 rounded-lg transition-all">
+                Next →
+            </a>
+            {% endif %}
+        </nav>
+    </div>
+    {% endif %}
+    
     {% else %}
+    <!-- Empty State -->
     <div class="bg-white/5 border border-white/10 backdrop-blur-md rounded-2xl p-8 sm:p-12 text-center">
-        <svg class="w-16 h-16 text-gray-400 mx-auto mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
-        </svg>
-        <p class="text-gray-400 text-lg mb-4">You haven't placed any orders yet.</p>
-        <a href="{% url 'upload' %}" class="inline-block bg-gradient-to-r from-blue-600 to-purple-600 text-white font-bold px-6 py-3 rounded-xl hover:shadow-lg transition-all w-full sm:w-auto">
-            Place Your First Order
-        </a>
+        <div class="w-20 h-20 bg-blue-500/10 rounded-full flex items-center justify-center mx-auto mb-6">
+            <svg class="w-10 h-10 text-blue-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
+            </svg>
+        </div>
+        <h2 class="text-2xl font-bold text-white mb-2">No orders yet</h2>
+        <p class="text-gray-400 text-lg mb-6 max-w-md mx-auto">
+            {% if request.GET.status %}
+            You don't have any {{ request.GET.status }} orders.
+            {% else %}
+            You haven't placed any orders yet. Start by uploading your first document!
+            {% endif %}
+        </p>
+        <div class="flex flex-col sm:flex-row gap-3 justify-center">
+            <a href="{% url 'upload' %}" class="inline-flex items-center justify-center gap-2 bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white font-bold px-8 py-3 rounded-xl hover:shadow-lg transition-all">
+                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path>
+                </svg>
+                Place Your First Order
+            </a>
+            {% if request.GET.status %}
+            <a href="{% url 'dashboard' %}" class="inline-flex items-center justify-center gap-2 bg-white/5 hover:bg-white/10 text-gray-400 hover:text-white font-bold px-8 py-3 rounded-xl transition-all">
+                View All Orders
+            </a>
+            {% endif %}
+        </div>
     </div>
     {% endif %}
 </div>
