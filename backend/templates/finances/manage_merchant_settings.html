@@ -1,0 +1,99 @@
+{% extends 'base.html' %}
+
+{% block title %}Merchant Settings - PrintHub{% endblock %}
+
+{% block content %}
+<div class="max-w-3xl mx-auto px-4 py-12">
+    
+    <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-8">
+        <div>
+            <h1 class="text-3xl font-bold text-white">Merchant Settings</h1>
+            <p class="text-gray-400 text-sm mt-1">Configure payment merchant phone numbers for MTN and Airtel.</p>
+        </div>
+        <a href="{% url 'financial_dashboard' %}" class="text-gray-400 hover:text-white text-sm transition-colors">
+            Back to Dashboard
+        </a>
+    </div>
+
+    <!-- Add/Update Merchant -->
+    <div class="bg-white/5 border border-white/10 rounded-2xl p-6 mb-6">
+        <h2 class="text-lg font-bold text-white mb-4">Add / Update Merchant</h2>
+        <form method="POST" class="space-y-4">
+            {% csrf_token %}
+            
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <div>
+                    <label class="block text-sm font-bold text-gray-300 mb-2">Payment Method</label>
+                    {{ form.payment_method }}
+                </div>
+                <div>
+                    <label class="block text-sm font-bold text-gray-300 mb-2">Merchant Name</label>
+                    {{ form.merchant_name }}
+                </div>
+                <div>
+                    <label class="block text-sm font-bold text-gray-300 mb-2">Phone Number</label>
+                    {{ form.merchant_phone }}
+                </div>
+            </div>
+            
+            <div class="flex items-center gap-3">
+                {{ form.is_active }}
+                <label class="text-gray-300 text-sm">Active</label>
+            </div>
+            
+            <button type="submit" class="bg-indigo-600 hover:bg-indigo-500 text-white font-medium px-6 py-3 rounded-xl transition-all">
+                Save Merchant
+            </button>
+        </form>
+    </div>
+
+    <!-- Current Merchants -->
+    <div class="bg-white/5 border border-white/10 rounded-2xl overflow-hidden">
+        <div class="px-6 py-4 border-b border-white/10">
+            <h2 class="text-lg font-bold text-white">Current Merchants</h2>
+        </div>
+        
+        {% if merchants %}
+        <div class="divide-y divide-white/10">
+            {% for merchant in merchants %}
+            <div class="flex items-center justify-between p-4 hover:bg-white/5 transition">
+                <div class="flex items-center gap-4">
+                    <div class="w-10 h-10 rounded-full flex items-center justify-center text-sm font-bold
+                        {% if merchant.payment_method == 'mtn' %}bg-yellow-500/20 text-yellow-400
+                        {% else %}bg-red-500/20 text-red-400{% endif %}">
+                        {{ merchant.payment_method|upper }}
+                    </div>
+                    <div>
+                        <p class="text-white font-medium">{{ merchant.merchant_name }}</p>
+                        <p class="text-gray-400 text-sm font-mono">{{ merchant.merchant_phone }}</p>
+                    </div>
+                </div>
+                <div class="flex items-center gap-3">
+                    {% if merchant.is_active %}
+                    <span class="px-2 py-0.5 rounded-full text-xs font-semibold bg-green-500/20 text-green-400">Active</span>
+                    {% else %}
+                    <span class="px-2 py-0.5 rounded-full text-xs font-semibold bg-gray-500/20 text-gray-400">Inactive</span>
+                    {% endif %}
+                    <span class="text-gray-500 text-xs">{{ merchant.updated_at|date:"M d, Y" }}</span>
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+        {% else %}
+        <div class="p-12 text-center text-gray-500">
+            <p>No merchants configured yet.</p>
+            <p class="text-sm mt-1">Add merchants above so customers know where to send payments.</p>
+        </div>
+        {% endif %}
+    </div>
+
+    <!-- Info Box -->
+    <div class="bg-blue-500/10 border border-blue-500/30 rounded-2xl p-6 mt-6">
+        <h3 class="text-lg font-bold text-blue-400 mb-2">How This Works</h3>
+        <p class="text-blue-300/80 text-sm">
+            When a customer selects MTN or Airtel on the payment page, they will see the merchant name and phone number configured here.
+            You can update these anytime without changing code.
+        </p>
+    </div>
+</div>
+{% endblock %}
