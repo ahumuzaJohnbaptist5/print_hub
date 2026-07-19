@@ -14,7 +14,7 @@ from orders.views import (
     live_board_view,
     live_board_api_view,
     all_links_view,
-    toggle_system_pause_view,  # Added
+    toggle_system_pause_view,
 )
 
 urlpatterns = [
@@ -29,10 +29,10 @@ urlpatterns = [
     path('orders/<int:order_id>/update/', login_required(update_order_status_view), name='update_order_status'),
     path('orders/<int:order_id>/receipt/', login_required(order_receipt_view), name='order_receipt'),
     path('orders/<int:order_id>/file/', login_required(download_order_file_view), name='download_order_file'),
-    path('payments/', include('payments.urls')),
+    path('toggle-pause/', toggle_system_pause_view, name='toggle_system_pause'),
     path('live-board/', login_required(live_board_view), name='live_board'),
-    path('orders/live-board/api/', live_board_api_view, name='live_board_api'),  # Fixed path
+    path('orders/live-board/api/', live_board_api_view, name='live_board_api'),
     path('all-links/', all_links_view, name='all_links'),
+    path('payments/', include('payments.urls')),
     path('finances/', include('finances.urls')),
-    path('toggle-pause/', toggle_system_pause_view, name='toggle_system_pause'),  # Added
 ]
