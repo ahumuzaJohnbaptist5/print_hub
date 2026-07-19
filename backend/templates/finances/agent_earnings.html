@@ -1,70 +1,148 @@
 {% extends 'base.html' %}
-{% block title %}My Earnings{% endblock %}
+{% load humanize %}
+
+{% block title %}My Earnings - PrintHub{% endblock %}
+
 {% block content %}
 <div class="min-h-screen bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 py-12 px-4 sm:px-6 lg:px-8">
-    <div class="max-w-4xl mx-auto">
+    <div class="max-w-5xl mx-auto">
 
-        <h1 class="text-3xl font-bold text-white mb-8">💵 My Earnings</h1>
-
-        <!-- Summary Cards -->
-        <div class="grid grid-cols-1 sm:grid-cols-3 gap-6 mb-8">
-            <div class="bg-slate-800 border border-slate-700 rounded-2xl p-6 shadow-lg">
-                <p class="text-sm font-semibold text-gray-400 uppercase tracking-wider">Total Earned</p>
-                <p class="text-3xl font-extrabold text-green-400 mt-2">{{ total_earned|floatformat:0 }}</p>
-                <p class="text-xs text-gray-500 mt-1">UGX</p>
+        <!-- Header -->
+        <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-8">
+            <div>
+                <h1 class="text-3xl font-bold text-white">My Earnings</h1>
+                <p class="text-gray-400 text-sm mt-1">Commission earnings from completed orders.</p>
             </div>
-            <div class="bg-slate-800 border border-slate-700 rounded-2xl p-6 shadow-lg">
-                <p class="text-sm font-semibold text-gray-400 uppercase tracking-wider">Pending Payout</p>
-                <p class="text-3xl font-extrabold text-yellow-400 mt-2">{{ pending_earnings|floatformat:0 }}</p>
-                <p class="text-xs text-gray-500 mt-1">UGX</p>
-            </div>
-            <div class="bg-slate-800 border border-slate-700 rounded-2xl p-6 shadow-lg">
-                <p class="text-sm font-semibold text-gray-400 uppercase tracking-wider">Already Paid</p>
-                <p class="text-3xl font-extrabold text-indigo-400 mt-2">{{ paid_earnings|floatformat:0 }}</p>
-                <p class="text-xs text-gray-500 mt-1">UGX</p>
+            <div class="flex gap-2">
+                <a href="?date=today" class="px-3 py-1.5 rounded-lg text-xs font-medium {% if date_filter == 'today' %}bg-indigo-600 text-white{% else %}bg-slate-700 text-gray-300{% endif %}">Today</a>
+                <a href="?date=week" class="px-3 py-1.5 rounded-lg text-xs font-medium {% if date_filter == 'week' %}bg-indigo-600 text-white{% else %}bg-slate-700 text-gray-300{% endif %}">Week</a>
+                <a href="?date=month" class="px-3 py-1.5 rounded-lg text-xs font-medium {% if date_filter == 'month' %}bg-indigo-600 text-white{% else %}bg-slate-700 text-gray-300{% endif %}">Month</a>
+                <a href="?date=all" class="px-3 py-1.5 rounded-lg text-xs font-medium {% if date_filter == 'all' or not date_filter %}bg-indigo-600 text-white{% else %}bg-slate-700 text-gray-300{% endif %}">All</a>
             </div>
         </div>
 
-        <!-- Earnings History -->
-        <div class="bg-slate-800 border border-slate-700 rounded-2xl shadow-lg overflow-hidden">
-            <div class="px-6 py-4 border-b border-slate-700">
-                <h2 class="text-lg font-bold text-white">Earnings History</h2>
+        <!-- Summary Cards -->
+        <div class="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
+            <div class="bg-slate-800 border border-slate-700 rounded-2xl p-5">
+                <p class="text-gray-400 text-xs uppercase tracking-wider">Total Earned</p>
+                <p class="text-2xl font-extrabold text-green-400 mt-1">{{ summary.total_earned|default:0|floatformat:0|intcomma }}</p>
+                <p class="text-gray-500 text-xs mt-1">UGX</p>
             </div>
+            <div class="bg-slate-800 border border-slate-700 rounded-2xl p-5">
+                <p class="text-gray-400 text-xs uppercase tracking-wider">Pending</p>
+                <p class="text-2xl font-extrabold text-yellow-400 mt-1">{{ summary.total_pending|default:0|floatformat:0|intcomma }}</p>
+                <p class="text-gray-500 text-xs mt-1">UGX</p>
+            </div>
+            <div class="bg-slate-800 border border-slate-700 rounded-2xl p-5">
+                <p class="text-gray-400 text-xs uppercase tracking-wider">Paid Out</p>
+                <p class="text-2xl font-extrabold text-indigo-400 mt-1">{{ summary.total_paid|default:0|floatformat:0|intcomma }}</p>
+                <p class="text-gray-500 text-xs mt-1">UGX</p>
+            </div>
+            <div class="bg-slate-800 border border-slate-700 rounded-2xl p-5">
+                <p class="text-gray-400 text-xs uppercase tracking-wider">Orders</p>
+                <p class="text-2xl font-extrabold text-blue-400 mt-1">{{ summary.orders_count|default:0 }}</p>
+                <p class="text-gray-500 text-xs mt-1">completed</p>
+            </div>
+        </div>
+
+        <!-- Monthly Breakdown -->
+        {% if monthly_breakdown %}
+        <div class="bg-slate-800 border border-slate-700 rounded-2xl p-6 mb-8">
+            <h2 class="text-lg font-bold text-white mb-4">Monthly Breakdown</h2>
+            <div class="space-y-3">
+                {% for month in monthly_breakdown %}
+                <div class="flex items-center justify-between">
+                    <div class="flex-1">
+                        <p class="text-gray-300 text-sm font-medium">{{ month.month }}</p>
+                        <div class="w-full bg-slate-700 rounded-full h-2 mt-1">
+                            <div class="bg-gradient-to-r from-green-500 to-indigo-500 h-2 rounded-full" style="width: {% widthratio month.total summary.total_earned 100 %}%"></div>
+                        </div>
+                    </div>
+                    <span class="text-gray-400 text-sm ml-4 w-32 text-right">{{ month.total|floatformat:0|intcomma }} UGX</span>
+                    <span class="text-gray-500 text-xs ml-2 w-12 text-right">{{ month.count }} orders</span>
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+        {% endif %}
+
+        <!-- Earnings Table -->
+        <div class="bg-slate-800 border border-slate-700 rounded-2xl overflow-hidden">
+            <div class="px-6 py-4 border-b border-slate-700 flex justify-between items-center">
+                <h2 class="text-lg font-bold text-white">Earnings History</h2>
+                <span class="text-sm text-gray-400">{{ earnings|length }} record(s)</span>
+            </div>
+            
+            {% if earnings %}
             <div class="overflow-x-auto">
                 <table class="w-full text-left">
                     <thead class="bg-slate-700/50">
                         <tr>
-                            <th class="p-4 text-xs font-semibold text-gray-400 uppercase tracking-wider">Order</th>
-                            <th class="p-4 text-xs font-semibold text-gray-400 uppercase tracking-wider">Order Total</th>
-                            <th class="p-4 text-xs font-semibold text-gray-400 uppercase tracking-wider">Rate</th>
-                            <th class="p-4 text-xs font-semibold text-gray-400 uppercase tracking-wider">Earned</th>
-                            <th class="p-4 text-xs font-semibold text-gray-400 uppercase tracking-wider">Date</th>
-                            <th class="p-4 text-xs font-semibold text-gray-400 uppercase tracking-wider">Status</th>
+                            <th class="p-4 text-xs font-semibold text-gray-400 uppercase">Order</th>
+                            <th class="p-4 text-xs font-semibold text-gray-400 uppercase">File</th>
+                            <th class="p-4 text-xs font-semibold text-gray-400 uppercase">Order Total</th>
+                            <th class="p-4 text-xs font-semibold text-gray-400 uppercase">Rate</th>
+                            <th class="p-4 text-xs font-semibold text-gray-400 uppercase">Earned</th>
+                            <th class="p-4 text-xs font-semibold text-gray-400 uppercase">Date</th>
+                            <th class="p-4 text-xs font-semibold text-gray-400 uppercase">Status</th>
                         </tr>
                     </thead>
                     <tbody>
                         {% for earning in earnings %}
                         <tr class="border-b border-slate-700/50 hover:bg-slate-700/30 transition">
-                            <td class="p-4 text-sm font-medium text-gray-200">#{{ earning.order.id }}</td>
-                            <td class="p-4 text-sm text-gray-300">{{ earning.order_total|floatformat:0 }} UGX</td>
-                            <td class="p-4 text-sm text-gray-300">{{ earning.commission_rate }}%</td>
-                            <td class="p-4 text-sm font-bold text-green-400">{{ earning.commission_amount|floatformat:0 }} UGX</td>
-                            <td class="p-4 text-sm text-gray-400">{{ earning.created_at|date:"M d, Y" }}</td>
                             <td class="p-4">
-                                {% if earning.is_paid %}
-                                    <span class="px-3 py-1 text-xs font-semibold rounded-full bg-green-900/50 text-green-400 border border-green-700">Paid</span>
+                                <a href="{% url 'order_receipt' earning.order.id %}" class="text-indigo-400 hover:text-indigo-300 font-medium text-sm">
+                                    #{{ earning.order.id }}
+                                </a>
+                            </td>
+                            <td class="p-4 text-sm text-gray-400 max-w-[120px] truncate" title="{{ earning.order.file_name }}">
+                                {{ earning.order.file_name }}
+                            </td>
+                            <td class="p-4 text-sm text-gray-300">{{ earning.order_total|floatformat:0|intcomma }} UGX</td>
+                            <td class="p-4 text-sm text-gray-300">{{ earning.commission_rate }}%</td>
+                            <td class="p-4 text-sm font-bold text-green-400">{{ earning.commission_amount|floatformat:0|intcomma }} UGX</td>
+                            <td class="p-4 text-sm text-gray-400 whitespace-nowrap">{{ earning.created_at|date:"M d, Y" }}</td>
+                            <td class="p-4">
+                                {% if earning.status == 'paid' %}
+                                <span class="px-2 py-1 text-xs font-semibold rounded-full bg-green-500/20 text-green-400 border border-green-500/30">Paid</span>
+                                {% if earning.paid_at %}
+                                <p class="text-gray-500 text-xs mt-1">{{ earning.paid_at|date:"M d" }}</p>
+                                {% endif %}
+                                {% elif earning.status == 'cancelled' %}
+                                <span class="px-2 py-1 text-xs font-semibold rounded-full bg-red-500/20 text-red-400 border border-red-500/30">Cancelled</span>
                                 {% else %}
-                                    <span class="px-3 py-1 text-xs font-semibold rounded-full bg-yellow-900/50 text-yellow-400 border border-yellow-700">Pending</span>
+                                <span class="px-2 py-1 text-xs font-semibold rounded-full bg-yellow-500/20 text-yellow-400 border border-yellow-500/30">Pending</span>
                                 {% endif %}
                             </td>
-                        </tr>
-                        {% empty %}
-                        <tr>
-                            <td colspan="6" class="p-8 text-center text-gray-500">No earnings yet. Complete orders to start earning commissions!</td>
                         </tr>
                         {% endfor %}
                     </tbody>
                 </table>
+            </div>
+            {% else %}
+            <div class="p-12 text-center text-gray-500">
+                <p class="text-lg mb-2">No earnings yet.</p>
+                <p class="text-sm">Complete orders at your station to start earning commissions.</p>
+            </div>
+            {% endif %}
+        </div>
+        
+        <!-- How It Works -->
+        <div class="bg-slate-800 border border-slate-700 rounded-2xl p-6 mt-6">
+            <h3 class="text-lg font-bold text-white mb-3">How Earnings Work</h3>
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-4 text-sm">
+                <div class="bg-white/5 rounded-xl p-4">
+                    <p class="text-gray-400 mb-1">1. Order Completed</p>
+                    <p class="text-gray-300">When an order at your station is marked as collected, you earn a commission.</p>
+                </div>
+                <div class="bg-white/5 rounded-xl p-4">
+                    <p class="text-gray-400 mb-1">2. Commission Calculated</p>
+                    <p class="text-gray-300">Your earnings are calculated based on the active commission rate at the time of order completion.</p>
+                </div>
+                <div class="bg-white/5 rounded-xl p-4">
+                    <p class="text-gray-400 mb-1">3. Payment Processed</p>
+                    <p class="text-gray-300">Admins review and mark earnings as paid. You'll see the status update here.</p>
+                </div>
             </div>
         </div>
     </div>
