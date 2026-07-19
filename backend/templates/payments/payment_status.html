@@ -5,7 +5,7 @@
 
 {% block content %}
 <div class="max-w-2xl mx-auto px-4 py-12">
-    <div class="bg-white/5 border border-white/10 backdrop-blur-md rounded-2xl p-8 text-center">
+    <div class="bg-white/5 border border-white/10 backdrop-blur-md rounded-2xl p-8 text-center" id="payment-container">
         
         {% if payment.status == 'pending' %}
         <!-- Pending State -->
@@ -24,7 +24,6 @@
             This usually takes 5-30 minutes during business hours.
         </p>
         
-        <!-- Payment Details -->
         <div class="bg-white/5 rounded-xl p-6 mb-6 text-left space-y-3">
             <div class="flex justify-between">
                 <span class="text-gray-400">Transaction ID</span>
@@ -59,7 +58,6 @@
         </div>
         
         {% elif payment.status == 'approved' %}
-        <!-- Approved State -->
         <div class="w-20 h-20 bg-green-500/20 rounded-full flex items-center justify-center mx-auto mb-6">
             <div class="w-16 h-16 bg-green-500 rounded-full flex items-center justify-center">
                 <svg class="w-8 h-8 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -71,7 +69,6 @@
         <h1 class="text-3xl font-bold text-white mb-2">Payment Approved</h1>
         <p class="text-green-400 font-medium mb-6">Your order is now being processed</p>
         
-        <!-- Payment Details -->
         <div class="bg-white/5 rounded-xl p-6 mb-6 text-left space-y-3">
             <div class="flex justify-between">
                 <span class="text-gray-400">Transaction ID</span>
@@ -97,7 +94,6 @@
             {% endif %}
         </div>
         
-        <!-- Order Status -->
         <div class="bg-green-500/10 border border-green-500/30 rounded-xl p-4 mb-6">
             <p class="text-green-300 font-medium">
                 Order #{{ payment.order.id }} - 
@@ -111,7 +107,6 @@
         </div>
         
         {% elif payment.status == 'rejected' %}
-        <!-- Rejected State -->
         <div class="w-20 h-20 bg-red-500/20 rounded-full flex items-center justify-center mx-auto mb-6">
             <div class="w-16 h-16 bg-red-500 rounded-full flex items-center justify-center">
                 <svg class="w-8 h-8 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -130,7 +125,6 @@
         </div>
         {% endif %}
         
-        <!-- Payment Details -->
         <div class="bg-white/5 rounded-xl p-6 mb-6 text-left space-y-3">
             <div class="flex justify-between">
                 <span class="text-gray-400">Transaction ID</span>
@@ -156,7 +150,6 @@
         </div>
         
         {% elif payment.status == 'refunded' %}
-        <!-- Refunded State -->
         <div class="w-20 h-20 bg-orange-500/20 rounded-full flex items-center justify-center mx-auto mb-6">
             <div class="w-16 h-16 bg-orange-500 rounded-full flex items-center justify-center">
                 <svg class="w-8 h-8 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -175,7 +168,6 @@
         {% endif %}
         
         {% elif payment.status == 'expired' %}
-        <!-- Expired State -->
         <div class="w-20 h-20 bg-gray-500/20 rounded-full flex items-center justify-center mx-auto mb-6">
             <div class="w-16 h-16 bg-gray-500 rounded-full flex items-center justify-center">
                 <svg class="w-8 h-8 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -192,7 +184,6 @@
         </a>
         {% endif %}
         
-        <!-- Action Buttons -->
         <div class="flex flex-col sm:flex-row gap-3 justify-center mt-6 pt-6 border-t border-white/10">
             <a href="{% url 'order_receipt' payment.order.id %}" class="bg-white/10 hover:bg-white/20 text-white font-medium px-6 py-3 rounded-xl transition-all">
                 View Order Receipt
@@ -263,4 +254,57 @@
         </div>
     </div>
 </div>
+
+<!-- Auto-refresh for pending payments -->
+{% if payment.status == 'pending' %}
+<script>
+    let checkCount = 0;
+    const maxChecks = 120; // 20 minutes max (120 x 10 seconds)
+    
+    function checkPaymentStatus() {
+        checkCount++;
+        fetch('/payments/status/{{ payment.id }}/check/')
+            .then(res => res.json())
+            .then(data => {
+                if (data.status !== 'pending') {
+                    // Status changed - reload page
+                    location.reload();
+                }
+            })
+            .catch(err => console.log('Checking payment status...'));
+        
+        if (checkCount < maxChecks) {
+            setTimeout(checkPaymentStatus, 10000); // Check every 10 seconds
+        }
+    }
+    
+    // Start checking after 5 seconds
+    setTimeout(checkPaymentStatus, 5000);
+</script>
+{% endif %}
+
+<!-- Also auto-refresh approved payments to show order progress -->
+{% if payment.status == 'approved' and payment.order.status not in 'collected,cancelled' %}
+<script>
+    let approvedCheckCount = 0;
+    
+    function checkOrderStatus() {
+        approvedCheckCount++;
+        fetch('/payments/status/{{ payment.id }}/check/')
+            .then(res => res.json())
+            .then(data => {
+                if (data.order_status !== '{{ payment.order.status }}') {
+                    location.reload();
+                }
+            })
+            .catch(err => console.log('Checking order status...'));
+        
+        if (approvedCheckCount < 180) { // 30 minutes max
+            setTimeout(checkOrderStatus, 10000);
+        }
+    }
+    
+    setTimeout(checkOrderStatus, 10000);
+</script>
+{% endif %}
 {% endblock %}
