@@ -49,7 +49,6 @@ def handle_order_status_change(sender, instance, created, **kwargs):
     elif instance.status == 'collected':
         if not instance.collected_at:
             instance.collected_at = now
-        # FIX: Calculate financials BEFORE creating records
         instance.calculate_financials()
         instance.save(update_fields=['paper_used', 'cost_of_goods', 'agent_commission', 'profit', 'collected_at'])
         create_financial_records(instance)
@@ -106,53 +105,50 @@ def create_financial_records(order):
         from finances.models import FinancialRecord, AgentEarning, CommissionRate
         from django.contrib.auth import get_user_model
         
-        if FinancialRecord.objects.filter(order=order, transaction_type='income').exists():
-            return
-        
-        # Income record
-        FinancialRecord.objects.create(
-            transaction_type='income',
-            amount=order.total_price,
-            description=f'Order #{order.id} - {order.file_name}',
-            order=order
-        )
-        
-        # Find agent for this station
+        # Find agent
         User = get_user_model()
         agent = None
         if order.station:
             agent = User.objects.filter(role='agent', station=order.station).first()
         
-        # Commission record
-        if order.agent_commission > 0 and agent:
+        # Income record (only if not exists)
+        if not FinancialRecord.objects.filter(order=order, transaction_type='income').exists():
             FinancialRecord.objects.create(
-                transaction_type='commission',
-                amount=order.agent_commission,
-                description=f'Commission for Order #{order.id}',
-                order=order,
-                agent=agent
+                transaction_type='income',
+                amount=order.total_price,
+                description=f'Order #{order.id} - {order.file_name}',
+                order=order
             )
+        
+        # Commission + AgentEarning
+        if order.agent_commission > 0 and agent:
+            if not FinancialRecord.objects.filter(order=order, transaction_type='commission').exists():
+                FinancialRecord.objects.create(
+                    transaction_type='commission',
+                    amount=order.agent_commission,
+                    description=f'Commission for Order #{order.id}',
+                    order=order,
+                    agent=agent
+                )
             
-            rate = CommissionRate.get_active_rate()
-            AgentEarning.objects.get_or_create(
-                order=order,
-                agent=agent,
-                defaults={
-                    'commission_rate': rate.rate_percentage if rate else Decimal('0.00'),
-                    'commission_amount': order.agent_commission,
-                    'order_total': order.total_price,
-                }
-            )
-            
-            # Notify agent
-            from notifications.models import Notification
-            Notification.create_notification(
-                user=agent,
-                notification_type='commission_paid',
-                title='Commission Earned',
-                message=f'You earned {order.agent_commission} UGX from Order #{order.id}.',
-                link=f'/finances/agent-earnings/'
-            )
+            if not AgentEarning.objects.filter(order=order, agent=agent).exists():
+                rate = CommissionRate.get_active_rate()
+                AgentEarning.objects.create(
+                    order=order,
+                    agent=agent,
+                    commission_rate=rate.rate_percentage if rate else Decimal('0.00'),
+                    commission_amount=order.agent_commission,
+                    order_total=order.total_price,
+                )
+                
+                from notifications.models import Notification
+                Notification.create_notification(
+                    user=agent,
+                    notification_type='commission_paid',
+                    title='Commission Earned',
+                    message=f'You earned {order.agent_commission} UGX from Order #{order.id}.',
+                    link=f'/finances/agent-earnings/'
+                )
                 
     except Exception as e:
         import logging
