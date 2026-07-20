@@ -49,7 +49,9 @@ def handle_order_status_change(sender, instance, created, **kwargs):
     elif instance.status == 'collected':
         if not instance.collected_at:
             instance.collected_at = now
-            instance.save(update_fields=['collected_at'])
+        # FIX: Calculate financials BEFORE creating records
+        instance.calculate_financials()
+        instance.save(update_fields=['paper_used', 'cost_of_goods', 'agent_commission', 'profit', 'collected_at'])
         create_financial_records(instance)
     
     elif instance.status == 'cancelled':
@@ -115,7 +117,7 @@ def create_financial_records(order):
             order=order
         )
         
-        # Find agent for this station (Station doesn't have .agent, User has .station)
+        # Find agent for this station
         User = get_user_model()
         agent = None
         if order.station:
@@ -132,7 +134,7 @@ def create_financial_records(order):
             )
             
             rate = CommissionRate.get_active_rate()
-            earning, created = AgentEarning.objects.get_or_create(
+            AgentEarning.objects.get_or_create(
                 order=order,
                 agent=agent,
                 defaults={
@@ -143,15 +145,14 @@ def create_financial_records(order):
             )
             
             # Notify agent
-            if created:
-                from notifications.models import Notification
-                Notification.create_notification(
-                    user=agent,
-                    notification_type='commission_paid',
-                    title='Commission Earned',
-                    message=f'You earned {order.agent_commission} UGX from Order #{order.id}.',
-                    link=f'/finances/agent-earnings/'
-                )
+            from notifications.models import Notification
+            Notification.create_notification(
+                user=agent,
+                notification_type='commission_paid',
+                title='Commission Earned',
+                message=f'You earned {order.agent_commission} UGX from Order #{order.id}.',
+                link=f'/finances/agent-earnings/'
+            )
                 
     except Exception as e:
         import logging
