@@ -27,7 +27,6 @@ def handle_order_status_change(sender, instance, created, **kwargs):
     
     now = timezone.now()
     
-    # Set timestamps
     if instance.status == 'paid' and not instance.paid_at:
         instance.paid_at = now
         instance.save(update_fields=['paid_at'])
@@ -45,7 +44,6 @@ def handle_order_status_change(sender, instance, created, **kwargs):
     elif instance.status == 'ready' and not instance.ready_at:
         instance.ready_at = now
         instance.save(update_fields=['ready_at'])
-        # Notify client
         create_order_notification(instance, 'ready')
     
     elif instance.status == 'collected':
@@ -104,10 +102,12 @@ def create_financial_records(order):
     """Create FinancialRecord and AgentEarning entries for completed order."""
     try:
         from finances.models import FinancialRecord, AgentEarning, CommissionRate
+        from django.contrib.auth import get_user_model
         
         if FinancialRecord.objects.filter(order=order, transaction_type='income').exists():
             return
         
+        # Income record
         FinancialRecord.objects.create(
             transaction_type='income',
             amount=order.total_price,
@@ -115,36 +115,43 @@ def create_financial_records(order):
             order=order
         )
         
-        if order.agent_commission > 0:
+        # Find agent for this station (Station doesn't have .agent, User has .station)
+        User = get_user_model()
+        agent = None
+        if order.station:
+            agent = User.objects.filter(role='agent', station=order.station).first()
+        
+        # Commission record
+        if order.agent_commission > 0 and agent:
             FinancialRecord.objects.create(
                 transaction_type='commission',
                 amount=order.agent_commission,
                 description=f'Commission for Order #{order.id}',
                 order=order,
-                agent=order.station.agent if order.station and hasattr(order.station, 'agent') else None
+                agent=agent
             )
             
             rate = CommissionRate.get_active_rate()
-            if order.station and hasattr(order.station, 'agent') and order.station.agent:
-                earning, created = AgentEarning.objects.get_or_create(
-                    order=order,
-                    agent=order.station.agent,
-                    defaults={
-                        'commission_rate': rate.rate_percentage if rate else Decimal('0.00'),
-                        'commission_amount': order.agent_commission,
-                        'order_total': order.total_price,
-                    }
+            earning, created = AgentEarning.objects.get_or_create(
+                order=order,
+                agent=agent,
+                defaults={
+                    'commission_rate': rate.rate_percentage if rate else Decimal('0.00'),
+                    'commission_amount': order.agent_commission,
+                    'order_total': order.total_price,
+                }
+            )
+            
+            # Notify agent
+            if created:
+                from notifications.models import Notification
+                Notification.create_notification(
+                    user=agent,
+                    notification_type='commission_paid',
+                    title='Commission Earned',
+                    message=f'You earned {order.agent_commission} UGX from Order #{order.id}.',
+                    link=f'/finances/agent-earnings/'
                 )
-                # Notify agent
-                if created:
-                    from notifications.models import Notification
-                    Notification.create_notification(
-                        user=order.station.agent,
-                        notification_type='commission_paid',
-                        title='Commission Earned',
-                        message=f'You earned {order.agent_commission} UGX from Order #{order.id}.',
-                        link=f'/finances/agent-earnings/'
-                    )
                 
     except Exception as e:
         import logging
