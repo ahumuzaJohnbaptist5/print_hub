@@ -1,6 +1,9 @@
 from django.contrib import admin
 from django.urls import path, include
 from django.contrib.auth.decorators import login_required
+from django.http import HttpResponse
+from django.views.decorators.cache import never_cache
+from django.conf import settings
 from orders.views import (
     home_view,
     dashboard_view,
@@ -16,6 +19,11 @@ from orders.views import (
     all_links_view,
     toggle_system_pause_view,
 )
+
+@never_cache
+def service_worker(request):
+    with open(settings.BASE_DIR / 'sw.js', 'r') as f:
+        return HttpResponse(f.read(), content_type='application/javascript')
 
 urlpatterns = [
     path('admin/', admin.site.urls),
@@ -36,4 +44,5 @@ urlpatterns = [
     path('payments/', include('payments.urls')),
     path('finances/', include('finances.urls')),
     path('notifications/', include('notifications.urls')),
+    path('sw.js', service_worker),
 ]
