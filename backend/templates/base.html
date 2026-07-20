@@ -4,6 +4,15 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>{% block title %}PrintHub{% endblock %}</title>
+    
+    <!-- PWA Manifest -->
+    <link rel="manifest" href="/static/manifest.json">
+    <meta name="theme-color" content="#0f172a">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="apple-mobile-web-app-title" content="PrintHub">
+    <link rel="apple-touch-icon" href="/static/icons/icon-192.png">
+    
     <script src="https://cdn.tailwindcss.com"></script>
     <style>
         @keyframes blob {
@@ -170,6 +179,23 @@
         </div>
     </footer>
 
+    <!-- PWA Install Prompt -->
+    <div id="pwa-install-banner" class="hidden fixed bottom-0 left-0 right-0 bg-slate-800 border-t border-slate-700 p-4 z-50">
+        <div class="max-w-7xl mx-auto flex items-center justify-between">
+            <div class="flex items-center gap-3">
+                <div class="w-10 h-10 bg-gradient-to-tr from-blue-500 to-purple-600 rounded-lg flex items-center justify-center font-bold text-white">P</div>
+                <div>
+                    <p class="text-white font-medium text-sm">Install PrintHub</p>
+                    <p class="text-gray-400 text-xs">Add to your home screen for quick access</p>
+                </div>
+            </div>
+            <div class="flex gap-2">
+                <button onclick="dismissPWA()" class="text-gray-400 hover:text-white text-sm px-3 py-1">Later</button>
+                <button onclick="installPWA()" id="pwa-install-btn" class="bg-indigo-600 hover:bg-indigo-500 text-white text-sm font-bold px-4 py-2 rounded-lg">Install</button>
+            </div>
+        </div>
+    </div>
+
     <script>
         // Hamburger menu
         document.addEventListener('DOMContentLoaded', function() {
@@ -257,6 +283,48 @@
                 document.getElementById('notification-dropdown').classList.add('hidden');
             }
         });
+
+        // ==========================================
+        // PWA INSTALL
+        // ==========================================
+        let deferredPrompt;
+        
+        window.addEventListener('beforeinstallprompt', (e) => {
+            e.preventDefault();
+            deferredPrompt = e;
+            document.getElementById('pwa-install-banner').classList.remove('hidden');
+        });
+
+        function installPWA() {
+            if (deferredPrompt) {
+                deferredPrompt.prompt();
+                deferredPrompt.userChoice.then((choiceResult) => {
+                    if (choiceResult.outcome === 'accepted') {
+                        console.log('User installed PWA');
+                    }
+                    deferredPrompt = null;
+                    document.getElementById('pwa-install-banner').classList.add('hidden');
+                });
+            }
+        }
+
+        function dismissPWA() {
+            document.getElementById('pwa-install-banner').classList.add('hidden');
+        }
+
+        window.addEventListener('appinstalled', () => {
+            document.getElementById('pwa-install-banner').classList.add('hidden');
+            deferredPrompt = null;
+        });
+
+        // Register Service Worker
+        if ('serviceWorker' in navigator) {
+            window.addEventListener('load', () => {
+                navigator.serviceWorker.register('/static/sw.js')
+                    .then(reg => console.log('SW registered'))
+                    .catch(err => console.log('SW failed:', err));
+            });
+        }
     </script>
 </body>
 </html>
