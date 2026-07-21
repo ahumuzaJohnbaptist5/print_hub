@@ -20,6 +20,9 @@ from stations.models import Station
 from .models import Order, SystemSettings, DeliveryZone
 from .utils import apply_order_status_change, send_delayed_order_email
 
+
+
+
 User = get_user_model()
 
 ALLOWED_EXTENSIONS = {'.pdf', '.docx', '.doc', '.txt', '.png', '.jpg', '.jpeg', '.pptx'}
@@ -603,7 +606,6 @@ def home_view(request):
 def live_board_view(request):
     return render(request, 'orders/live_board.html')
 
-
 def live_board_api_view(request):
     """API endpoint for live board - optimized with bulk priority calculation."""
     active_statuses = ['paid', 'printing', 'in_transit', 'ready']
@@ -611,7 +613,6 @@ def live_board_api_view(request):
         status__in=active_statuses
     ).select_related('station', 'client')
     
-    # Also include recently cancelled
     cancelled_orders = Order.objects.filter(
         status='cancelled',
         cancelled_at__gte=timezone.now() - timedelta(minutes=30)
@@ -619,7 +620,6 @@ def live_board_api_view(request):
     
     all_orders = list(orders) + list(cancelled_orders)
     
-    # Load system settings once
     sys_settings = SystemSettings.load()
     
     board_data = []
@@ -642,13 +642,12 @@ def live_board_api_view(request):
             'binding': order.get_binding_display(),
         })
         
-    # Sort: cancelled last, then by remaining time
     board_data.sort(key=lambda x: (
         x['status_raw'] == 'cancelled',
         x['remaining_seconds']
     ))
     
-    return JsonResponse({
+    response = JsonResponse({
         'orders': board_data,
         'system_paused': sys_settings.is_paused,
         'pause_reason': sys_settings.pause_reason,
@@ -656,8 +655,8 @@ def live_board_api_view(request):
         'total_cancelled': len(cancelled_orders),
         'last_updated': timezone.now().isoformat(),
     })
-
-
+    response["Access-Control-Allow-Origin"] = "*"
+    return response
 def all_links_view(request):
     links_data = [
         ('home', 'Home', 'Landing page'),
