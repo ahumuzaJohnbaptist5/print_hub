@@ -14,20 +14,12 @@
     
     <script src="https://cdn.tailwindcss.com"></script>
     <script>
-        // Tailwind dark mode config
-        tailwind.config = {
-            darkMode: 'class',
-        };
-        
-        // Load saved theme immediately to prevent flash
+        tailwind.config = { darkMode: 'class' };
         (function() {
             const saved = localStorage.getItem('theme') || 'dark';
             document.documentElement.setAttribute('data-theme', saved);
-            if (saved === 'dark') {
-                document.documentElement.classList.add('dark');
-            } else {
-                document.documentElement.classList.remove('dark');
-            }
+            if (saved === 'dark') { document.documentElement.classList.add('dark'); }
+            else { document.documentElement.classList.remove('dark'); }
             document.getElementById('meta-theme-color').setAttribute('content', saved === 'dark' ? '#0f172a' : '#f8fafc');
         })();
     </script>
@@ -40,18 +32,8 @@
         .animate-blob { animation: blob 7s infinite; }
         .animation-delay-2000 { animation-delay: 2s; }
         
-        select option {
-            background: #1e293b !important;
-            color: #e2e8f0 !important;
-        }
+        select option { background: #1e293b !important; color: #e2e8f0 !important; }
         
-        /* Light theme overrides for select options */
-        .light select option {
-            background: #ffffff !important;
-            color: #1e293b !important;
-        }
-        
-        /* Theme toggle button */
         .theme-toggle-btn {
             background: transparent; border: 1px solid #64748b; color: #e2e8f0;
             width: 36px; height: 36px; border-radius: 50%; cursor: pointer;
@@ -59,85 +41,128 @@
             transition: all 0.2s; flex-shrink: 0;
         }
         .theme-toggle-btn:hover { border-color: #818cf8; color: #818cf8; }
+        
+        /* Light theme fixes */
+        html[data-theme="light"] body { color: #1e293b !important; }
+        html[data-theme="light"] .bg-slate-900 { background-color: #f8fafc !important; }
+        html[data-theme="light"] .bg-slate-800 { background-color: #ffffff !important; }
+        html[data-theme="light"] .bg-slate-800\/50 { background-color: rgba(255,255,255,0.95) !important; }
+        html[data-theme="light"] .bg-slate-800\/80 { background-color: rgba(255,255,255,0.95) !important; }
+        html[data-theme="light"] .bg-slate-800\/95 { background-color: rgba(255,255,255,0.95) !important; }
+        html[data-theme="light"] .bg-slate-700 { background: #e2e8f0 !important; }
+        html[data-theme="light"] .bg-slate-700\/50 { background: rgba(226,232,240,0.5) !important; }
+        html[data-theme="light"] .bg-slate-900\/50 { background: rgba(248,250,252,0.5) !important; }
+        html[data-theme="light"] .bg-white\/5 { background: #f1f5f9 !important; }
+        html[data-theme="light"] .bg-white\/10 { background: #e2e8f0 !important; }
+        html[data-theme="light"] .bg-black\/20 { background: rgba(0,0,0,0.05) !important; }
+        html[data-theme="light"] .bg-black\/70 { background: rgba(0,0,0,0.3) !important; }
+        html[data-theme="light"] .border-white\/10 { border-color: #e2e8f0 !important; }
+        html[data-theme="light"] .border-white\/20 { border-color: #cbd5e1 !important; }
+        html[data-theme="light"] .border-white\/5 { border-color: #f1f5f9 !important; }
+        html[data-theme="light"] .border-slate-600 { border-color: #cbd5e1 !important; }
+        html[data-theme="light"] .border-slate-700 { border-color: #e2e8f0 !important; }
+        html[data-theme="light"] .text-white { color: #1e293b !important; }
+        html[data-theme="light"] .text-gray-200 { color: #334155 !important; }
+        html[data-theme="light"] .text-gray-300 { color: #475569 !important; }
+        html[data-theme="light"] .text-gray-400 { color: #64748b !important; }
+        html[data-theme="light"] .text-gray-500 { color: #94a3b8 !important; }
+        html[data-theme="light"] .text-slate-400 { color: #64748b !important; }
+        html[data-theme="light"] .text-green-300 { color: #16a34a !important; }
+        html[data-theme="light"] .text-green-400 { color: #16a34a !important; }
+        html[data-theme="light"] .text-yellow-300 { color: #d97706 !important; }
+        html[data-theme="light"] .text-yellow-400 { color: #d97706 !important; }
+        html[data-theme="light"] .text-blue-300 { color: #2563eb !important; }
+        html[data-theme="light"] .text-blue-400 { color: #2563eb !important; }
+        html[data-theme="light"] .text-red-300 { color: #dc2626 !important; }
+        html[data-theme="light"] .text-red-400 { color: #dc2626 !important; }
+        html[data-theme="light"] .text-purple-300 { color: #7c3aed !important; }
+        html[data-theme="light"] .text-purple-400 { color: #7c3aed !important; }
+        html[data-theme="light"] .text-orange-300 { color: #ea580c !important; }
+        html[data-theme="light"] .text-orange-400 { color: #ea580c !important; }
+        html[data-theme="light"] .text-indigo-400 { color: #4f46e5 !important; }
+        html[data-theme="light"] .text-teal-300 { color: #0d9488 !important; }
+        html[data-theme="light"] .text-teal-400 { color: #0d9488 !important; }
+        html[data-theme="light"] .text-cyan-400 { color: #0891b2 !important; }
+        html[data-theme="light"] .hover\:bg-white\/5:hover { background: #f1f5f9 !important; }
+        html[data-theme="light"] .hover\:bg-white\/10:hover { background: #e2e8f0 !important; }
+        html[data-theme="light"] .hover\:bg-white\/20:hover { background: #cbd5e1 !important; }
+        html[data-theme="light"] .hover\:bg-slate-700\/30:hover { background: rgba(226,232,240,0.5) !important; }
+        html[data-theme="light"] .hover\:bg-slate-600:hover { background: #cbd5e1 !important; }
+        html[data-theme="light"] .hover\:bg-slate-500:hover { background: #94a3b8 !important; }
+        html[data-theme="light"] .hover\:text-white:hover { color: #0f172a !important; }
+        html[data-theme="light"] .hover\:text-indigo-300:hover { color: #6366f1 !important; }
+        html[data-theme="light"] .divide-white\/10 > * { border-color: #e2e8f0 !important; }
+        html[data-theme="light"] .divide-white\/5 > * { border-color: #f1f5f9 !important; }
+        html[data-theme="light"] .divide-slate-700 > * { border-color: #e2e8f0 !important; }
+        html[data-theme="light"] .shadow-lg { box-shadow: 0 4px 6px rgba(0,0,0,0.05) !important; }
+        html[data-theme="light"] .shadow-2xl { box-shadow: 0 25px 50px rgba(0,0,0,0.1) !important; }
+        html[data-theme="light"] select option { background: #ffffff !important; color: #1e293b !important; }
+        html[data-theme="light"] .theme-toggle-btn { border-color: #94a3b8; color: #475569; }
     </style>
 </head>
-<body class="bg-slate-900 dark:bg-slate-900 min-h-screen overflow-x-hidden text-white dark:text-white">
+<body class="bg-slate-900 min-h-screen overflow-x-hidden text-white">
 
-    <!-- Navigation -->
-    <nav class="bg-slate-800/50 dark:bg-slate-800/50 backdrop-blur-md border-b border-white/10 dark:border-white/10 sticky top-0 z-50 relative">
+    <nav class="bg-slate-800/50 backdrop-blur-md border-b border-white/10 sticky top-0 z-50 relative">
         <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
             <div class="flex justify-between items-center h-16">
-                
                 <div class="flex-shrink-0 flex items-center">
                     <a href="/" class="flex items-center space-x-2">
                         <div class="w-10 h-10 bg-gradient-to-tr from-blue-500 to-purple-600 rounded-lg flex items-center justify-center font-bold text-white">P</div>
-                        <span class="text-white dark:text-white font-bold text-xl">PrintHub</span>
+                        <span class="text-white font-bold text-xl">PrintHub</span>
                     </a>
                 </div>
-
-                <div class="flex items-center space-x-3">
-                    
-                    <!-- Theme Toggle -->
+                <div class="flex items-center space-x-2">
+                    <!-- Theme Toggle (always visible) -->
                     <button class="theme-toggle-btn" onclick="toggleTheme()" title="Toggle theme" id="themeBtn">&#9788;</button>
                     
+                    <!-- Notification Bell (always visible on mobile too) -->
+                    {% if user.is_authenticated %}
+                    <div class="relative" id="notification-bell">
+                        <button onclick="toggleNotifications()" class="text-gray-300 hover:text-white p-2 rounded-md hover:bg-white/10 transition-colors relative">
+                            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9"/></svg>
+                            <span id="notification-badge" class="hidden absolute -top-1 -right-1 bg-red-500 text-white text-xs rounded-full w-5 h-5 flex items-center justify-center font-bold">0</span>
+                        </button>
+                        <div id="notification-dropdown" class="hidden absolute right-0 mt-2 w-80 bg-slate-800 border border-slate-700 rounded-xl shadow-2xl z-50 max-h-96 overflow-y-auto">
+                            <div class="p-3 border-b border-slate-700 flex justify-between items-center">
+                                <span class="text-white font-bold text-sm">Notifications</span>
+                                <button onclick="markAllRead()" class="text-blue-400 hover:text-blue-300 text-xs">Mark all read</button>
+                            </div>
+                            <div id="notification-list" class="divide-y divide-slate-700"><div class="p-4 text-center text-gray-500 text-sm">No new notifications</div></div>
+                        </div>
+                    </div>
+                    {% endif %}
+                    
+                    <!-- Mobile Upload Button -->
                     <a href="{% url 'upload' %}" class="md:hidden bg-gradient-to-r from-blue-500 to-purple-600 text-white px-3 py-1.5 rounded-lg text-sm font-medium flex items-center space-x-1">
-                        <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12" />
-                        </svg>
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12"/></svg>
                         <span>Upload</span>
                     </a>
 
+                    <!-- Hamburger -->
                     <div class="md:hidden flex items-center">
                         <button id="mobile-menu-btn" type="button" class="text-gray-300 hover:text-white focus:outline-none p-2 rounded-md hover:bg-white/10 transition-colors">
                             <span class="sr-only">Open main menu</span>
-                            <svg id="hamburger-icon" class="block h-6 w-6" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16" />
-                            </svg>
-                            <svg id="close-icon" class="hidden h-6 w-6" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
-                            </svg>
+                            <svg id="hamburger-icon" class="block h-6 w-6" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"/></svg>
+                            <svg id="close-icon" class="hidden h-6 w-6" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
                         </button>
                     </div>
 
+                    <!-- Desktop Menu -->
                     <div class="hidden md:flex items-center space-x-3">
                         <a href="{% url 'upload' %}" class="bg-gradient-to-r from-blue-500 to-purple-600 text-white px-4 py-2 rounded-lg hover:shadow-lg transition-all text-sm font-medium flex items-center space-x-2">
-                            <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" />
-                            </svg>
+                            <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/></svg>
                             <span>Place an Order</span>
                         </a>
-
                         {% if user.is_authenticated %}
                             <a href="{% url 'dashboard' %}" class="text-gray-300 hover:text-white px-3 py-2 rounded-md text-sm font-medium hover:bg-white/10">My Orders</a>
-                            
                             {% if user.is_staff or user.role == 'agent' %}
                                 <a href="{% url 'agent_dashboard' %}" class="text-gray-300 hover:text-white px-3 py-2 rounded-md text-sm font-medium hover:bg-white/10">Agent</a>
                                 <a href="{% url 'admin_approve_payments' %}" class="text-gray-300 hover:text-white px-3 py-2 rounded-md text-sm font-medium hover:bg-white/10">Payments</a>
                             {% endif %}
-
                             {% if user.is_staff or user.role == 'admin' %}
                                 <a href="{% url 'admin_dashboard' %}" class="text-gray-300 hover:text-white px-3 py-2 rounded-md text-sm font-medium hover:bg-white/10">Admin</a>
                                 <a href="{% url 'financial_dashboard' %}" class="text-gray-300 hover:text-white px-3 py-2 rounded-md text-sm font-medium hover:bg-white/10">Finances</a>
                             {% endif %}
-
-                            <div class="relative" id="notification-bell">
-                                <button onclick="toggleNotifications()" class="text-gray-300 hover:text-white p-2 rounded-md hover:bg-white/10 transition-colors relative">
-                                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9"></path>
-                                    </svg>
-                                    <span id="notification-badge" class="hidden absolute -top-1 -right-1 bg-red-500 text-white text-xs rounded-full w-5 h-5 flex items-center justify-center font-bold">0</span>
-                                </button>
-                                <div id="notification-dropdown" class="hidden absolute right-0 mt-2 w-80 bg-slate-800 border border-slate-700 rounded-xl shadow-2xl z-50 max-h-96 overflow-y-auto">
-                                    <div class="p-3 border-b border-slate-700 flex justify-between items-center">
-                                        <span class="text-white font-bold text-sm">Notifications</span>
-                                        <button onclick="markAllRead()" class="text-blue-400 hover:text-blue-300 text-xs">Mark all read</button>
-                                    </div>
-                                    <div id="notification-list" class="divide-y divide-slate-700">
-                                        <div class="p-4 text-center text-gray-500 text-sm">No new notifications</div>
-                                    </div>
-                                </div>
-                            </div>
-
                             <form method="POST" action="{% url 'logout' %}" class="inline">
                                 {% csrf_token %}
                                 <button type="submit" class="text-gray-400 hover:text-white px-3 py-2 rounded-md text-sm font-medium hover:bg-white/10">Logout</button>
@@ -151,7 +176,7 @@
                 </div>
             </div>
         </div>
-
+        <!-- Mobile Menu Dropdown -->
         <div id="mobile-menu" class="hidden md:hidden absolute top-16 left-0 w-full bg-slate-800/95 backdrop-blur-md border-b border-white/10 shadow-lg">
             <div class="px-4 pt-2 pb-4 space-y-2">
                 {% if user.is_authenticated %}
@@ -180,124 +205,57 @@
     {% if messages %}
     <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 mt-4">
         {% for message in messages %}
-        <div class="px-4 py-3 rounded-xl mb-4 text-sm 
-            {% if message.tags == 'success' %}bg-green-500/20 border border-green-500/50 text-green-300
-            {% elif message.tags == 'error' %}bg-red-500/20 border border-red-500/50 text-red-300
-            {% else %}bg-blue-500/20 border border-blue-500/50 text-blue-300{% endif %}">
-            {{ message }}
-        </div>
+        <div class="px-4 py-3 rounded-xl mb-4 text-sm {% if message.tags == 'success' %}bg-green-500/20 border border-green-500/50 text-green-300{% elif message.tags == 'error' %}bg-red-500/20 border border-red-500/50 text-red-300{% else %}bg-blue-500/20 border border-blue-500/50 text-blue-300{% endif %}">{{ message }}</div>
         {% endfor %}
     </div>
     {% endif %}
 
-    <main class="min-h-[calc(100vh-4rem)]">
-        {% block content %}{% endblock %}
-    </main>
+    <main class="min-h-[calc(100vh-4rem)]">{% block content %}{% endblock %}</main>
 
     <footer class="bg-slate-800/50 backdrop-blur-md border-t border-white/10 mt-20">
-        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-            <p class="text-center text-gray-400 text-sm">&copy; 2026 PrintHub. All rights reserved.</p>
-        </div>
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8"><p class="text-center text-gray-400 text-sm">&copy; 2026 PrintHub. All rights reserved.</p></div>
     </footer>
 
     <div id="pwa-install-banner" class="hidden fixed bottom-0 left-0 right-0 bg-slate-800 border-t border-slate-700 p-4 z-50">
         <div class="max-w-7xl mx-auto flex items-center justify-between">
-            <div class="flex items-center gap-3">
-                <div class="w-10 h-10 bg-gradient-to-tr from-blue-500 to-purple-600 rounded-lg flex items-center justify-center font-bold text-white">P</div>
-                <div><p class="text-white font-medium text-sm">Install PrintHub</p><p class="text-gray-400 text-xs">Add to your home screen for quick access</p></div>
-            </div>
-            <div class="flex gap-2">
-                <button onclick="dismissPWA()" class="text-gray-400 hover:text-white text-sm px-3 py-1">Later</button>
-                <button onclick="installPWA()" id="pwa-install-btn" class="bg-indigo-600 hover:bg-indigo-500 text-white text-sm font-bold px-4 py-2 rounded-lg">Install</button>
-            </div>
+            <div class="flex items-center gap-3"><div class="w-10 h-10 bg-gradient-to-tr from-blue-500 to-purple-600 rounded-lg flex items-center justify-center font-bold text-white">P</div><div><p class="text-white font-medium text-sm">Install PrintHub</p><p class="text-gray-400 text-xs">Add to your home screen</p></div></div>
+            <div class="flex gap-2"><button onclick="dismissPWA()" class="text-gray-400 hover:text-white text-sm px-3 py-1">Later</button><button onclick="installPWA()" class="bg-indigo-600 hover:bg-indigo-500 text-white text-sm font-bold px-4 py-2 rounded-lg">Install</button></div>
         </div>
     </div>
 
     <script>
-        // Theme toggle
         function toggleTheme() {
             const html = document.documentElement;
             const btn = document.getElementById('themeBtn');
             const current = html.getAttribute('data-theme');
             const next = current === 'dark' ? 'light' : 'dark';
             html.setAttribute('data-theme', next);
-            if (next === 'dark') {
-                html.classList.add('dark');
-                document.body.classList.add('bg-slate-900');
-                document.body.classList.remove('bg-white');
-            } else {
-                html.classList.remove('dark');
-                document.body.classList.remove('bg-slate-900');
-                document.body.classList.add('bg-white');
-            }
+            if (next === 'dark') { html.classList.add('dark'); } else { html.classList.remove('dark'); }
             btn.innerHTML = next === 'dark' ? '&#9788;' : '&#9790;';
             localStorage.setItem('theme', next);
             document.getElementById('meta-theme-color').setAttribute('content', next === 'dark' ? '#0f172a' : '#f8fafc');
         }
+        (function(){document.getElementById('themeBtn').innerHTML=(localStorage.getItem('theme')||'dark')==='dark'?'&#9788;':'&#9790;';})();
         
-        // Set initial button icon
-        (function() {
-            const saved = localStorage.getItem('theme') || 'dark';
-            document.getElementById('themeBtn').innerHTML = saved === 'dark' ? '&#9788;' : '&#9790;';
-            if (saved === 'light') {
-                document.body.classList.remove('bg-slate-900');
-                document.body.classList.add('bg-white');
-            }
-        })();
-        
-        // Hamburger menu
-        document.addEventListener('DOMContentLoaded', function() {
-            const btn = document.getElementById('mobile-menu-btn');
-            const menu = document.getElementById('mobile-menu');
-            const hamburgerIcon = document.getElementById('hamburger-icon');
-            const closeIcon = document.getElementById('close-icon');
-            if (btn) {
-                btn.addEventListener('click', function() {
-                    menu.classList.toggle('hidden');
-                    hamburgerIcon.classList.toggle('hidden');
-                    closeIcon.classList.toggle('hidden');
-                });
-            }
+        document.addEventListener('DOMContentLoaded',function(){
+            const btn=document.getElementById('mobile-menu-btn'),menu=document.getElementById('mobile-menu'),hi=document.getElementById('hamburger-icon'),ci=document.getElementById('close-icon');
+            if(btn)btn.addEventListener('click',function(){menu.classList.toggle('hidden');hi.classList.toggle('hidden');ci.classList.toggle('hidden');});
         });
 
-        function toggleNotifications() {
-            const dropdown = document.getElementById('notification-dropdown');
-            dropdown.classList.toggle('hidden');
-            if (!dropdown.classList.contains('hidden')) fetchNotifications();
-        }
-
-        function fetchNotifications() {
-            fetch('/notifications/api/')
-                .then(res => res.json())
-                .then(data => {
-                    const badge = document.getElementById('notification-badge');
-                    const list = document.getElementById('notification-list');
-                    if (data.unread_count > 0) { badge.textContent = data.unread_count; badge.classList.remove('hidden'); }
-                    else { badge.classList.add('hidden'); }
-                    if (data.notifications.length === 0) { list.innerHTML = '<div class="p-4 text-center text-gray-500 text-sm">No new notifications</div>'; return; }
-                    list.innerHTML = data.notifications.map(n => `<a href="${n.link||'#'}" onclick="markRead(${n.id})" class="block p-3 hover:bg-slate-700/50 transition cursor-pointer"><p class="text-white text-sm font-medium">${n.title}</p><p class="text-gray-400 text-xs mt-1">${n.message}</p><p class="text-gray-500 text-xs mt-1">${n.created}</p></a>`).join('');
-                });
-        }
-
-        function markRead(id) { fetch('/notifications/mark-read/'+id+'/', {method:'POST', headers:{'X-CSRFToken':getCookie('csrftoken')}}); }
-        function markAllRead() { fetch('/notifications/mark-all-read/', {method:'POST', headers:{'X-CSRFToken':getCookie('csrftoken')}}).then(()=>{document.getElementById('notification-badge').classList.add('hidden');document.getElementById('notification-list').innerHTML='<div class="p-4 text-center text-gray-500 text-sm">No new notifications</div>';}); }
-        function getCookie(name) { let v='; '+document.cookie; let p=v.split('; '+name+'='); if(p.length===2) return p.pop().split(';').shift(); }
-
-        setInterval(fetchNotifications, 15000);
-        fetchNotifications();
-
-        document.addEventListener('click', function(e) {
-            const bell = document.getElementById('notification-bell');
-            if (bell && !bell.contains(e.target)) document.getElementById('notification-dropdown').classList.add('hidden');
-        });
+        function toggleNotifications(){const d=document.getElementById('notification-dropdown');d.classList.toggle('hidden');if(!d.classList.contains('hidden'))fetchNotifications();}
+        function fetchNotifications(){fetch('/notifications/api/').then(r=>r.json()).then(d=>{const b=document.getElementById('notification-badge'),l=document.getElementById('notification-list');if(d.unread_count>0){b.textContent=d.unread_count;b.classList.remove('hidden');}else{b.classList.add('hidden');}if(d.notifications.length===0){l.innerHTML='<div class="p-4 text-center text-gray-500 text-sm">No new notifications</div>';return;}l.innerHTML=d.notifications.map(n=>`<a href="${n.link||'#'}" onclick="markRead(${n.id})" class="block p-3 hover:bg-slate-700/50 transition cursor-pointer"><p class="text-white text-sm font-medium">${n.title}</p><p class="text-gray-400 text-xs mt-1">${n.message}</p><p class="text-gray-500 text-xs mt-1">${n.created}</p></a>`).join('');});}
+        function markRead(id){fetch('/notifications/mark-read/'+id+'/',{method:'POST',headers:{'X-CSRFToken':getCookie('csrftoken')}});}
+        function markAllRead(){fetch('/notifications/mark-all-read/',{method:'POST',headers:{'X-CSRFToken':getCookie('csrftoken')}}).then(()=>{document.getElementById('notification-badge').classList.add('hidden');document.getElementById('notification-list').innerHTML='<div class="p-4 text-center text-gray-500 text-sm">No new notifications</div>';});}
+        function getCookie(n){let v='; '+document.cookie;let p=v.split('; '+n+'=');if(p.length===2)return p.pop().split(';').shift();}
+        setInterval(fetchNotifications,15000);fetchNotifications();
+        document.addEventListener('click',function(e){const b=document.getElementById('notification-bell');if(b&&!b.contains(e.target))document.getElementById('notification-dropdown').classList.add('hidden');});
 
         let deferredPrompt;
-        window.addEventListener('beforeinstallprompt', (e) => { e.preventDefault(); deferredPrompt = e; document.getElementById('pwa-install-banner').classList.remove('hidden'); });
-        function installPWA() { if(deferredPrompt){ deferredPrompt.prompt(); deferredPrompt.userChoice.then(()=>{deferredPrompt=null;document.getElementById('pwa-install-banner').classList.add('hidden');}); } }
-        function dismissPWA() { document.getElementById('pwa-install-banner').classList.add('hidden'); }
-        window.addEventListener('appinstalled', () => { document.getElementById('pwa-install-banner').classList.add('hidden'); deferredPrompt = null; });
-
-        if ('serviceWorker' in navigator) { navigator.serviceWorker.register('/sw.js'); }
+        window.addEventListener('beforeinstallprompt',(e)=>{e.preventDefault();deferredPrompt=e;document.getElementById('pwa-install-banner').classList.remove('hidden');});
+        function installPWA(){if(deferredPrompt){deferredPrompt.prompt();deferredPrompt.userChoice.then(()=>{deferredPrompt=null;document.getElementById('pwa-install-banner').classList.add('hidden');});}}
+        function dismissPWA(){document.getElementById('pwa-install-banner').classList.add('hidden');}
+        window.addEventListener('appinstalled',()=>{document.getElementById('pwa-install-banner').classList.add('hidden');deferredPrompt=null;});
+        if('serviceWorker' in navigator)navigator.serviceWorker.register('/sw.js');
     </script>
 </body>
 </html>
