@@ -47,3 +47,19 @@ class Notification(models.Model):
     @classmethod
     def get_unread(cls, user, limit=10):
         return cls.objects.filter(user=user, is_read=False)[:limit]
+
+
+class PushSubscription(models.Model):
+    """Store web push subscription for users."""
+    user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name='push_subscriptions')
+    endpoint = models.TextField()
+    p256dh = models.TextField()
+    auth = models.TextField()
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+    
+    class Meta:
+        unique_together = ['user', 'endpoint']
+    
+    def __str__(self):
+        return f"Push subscription for {self.user.username}"
