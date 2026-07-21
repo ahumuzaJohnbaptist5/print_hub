@@ -42,7 +42,6 @@
         }
         .theme-toggle-btn:hover { border-color: #818cf8; color: #818cf8; }
         
-        /* Light theme fixes */
         html[data-theme="light"] body { color: #1e293b !important; }
         html[data-theme="light"] .bg-slate-900 { background-color: #f8fafc !important; }
         html[data-theme="light"] .bg-slate-800 { background-color: #ffffff !important; }
@@ -218,6 +217,7 @@
     </div>
 
     <script>
+        // Theme
         function toggleTheme() {
             const html = document.documentElement;
             const btn = document.getElementById('themeBtn');
@@ -231,19 +231,39 @@
         }
         (function(){document.getElementById('themeBtn').innerHTML=(localStorage.getItem('theme')||'dark')==='dark'?'&#9788;':'&#9790;';})();
         
+        // Mobile menu
         document.addEventListener('DOMContentLoaded',function(){
             const btn=document.getElementById('mobile-menu-btn'),menu=document.getElementById('mobile-menu'),hi=document.getElementById('hamburger-icon'),ci=document.getElementById('close-icon');
             if(btn)btn.addEventListener('click',function(){menu.classList.toggle('hidden');hi.classList.toggle('hidden');ci.classList.toggle('hidden');});
         });
 
+        // Notification sound
+        function playNotificationSound() {
+            try {
+                const ctx = new (window.AudioContext || window.webkitAudioContext)();
+                const o = ctx.createOscillator();
+                const g = ctx.createGain();
+                o.connect(g); g.connect(ctx.destination);
+                o.type = 'sine';
+                o.frequency.setValueAtTime(800, ctx.currentTime);
+                o.frequency.setValueAtTime(1000, ctx.currentTime + 0.1);
+                g.gain.setValueAtTime(0.3, ctx.currentTime);
+                g.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + 0.3);
+                o.start(ctx.currentTime); o.stop(ctx.currentTime + 0.3);
+            } catch(e) {}
+        }
+
+        // Notifications
+        let prevCount = 0;
         function toggleNotifications(){const d=document.getElementById('notification-dropdown');d.classList.toggle('hidden');if(!d.classList.contains('hidden'))fetchNotifications();}
-        function fetchNotifications(){fetch('/notifications/api/').then(r=>r.json()).then(d=>{const b=document.getElementById('notification-badge'),l=document.getElementById('notification-list');if(d.unread_count>0){b.textContent=d.unread_count;b.classList.remove('hidden');}else{b.classList.add('hidden');}if(d.notifications.length===0){l.innerHTML='<div class="p-4 text-center text-gray-500 text-sm">No new notifications</div>';return;}l.innerHTML=d.notifications.map(n=>`<a href="${n.link||'#'}" onclick="markRead(${n.id})" class="block p-3 hover:bg-slate-700/50 transition cursor-pointer"><p class="text-white text-sm font-medium">${n.title}</p><p class="text-gray-400 text-xs mt-1">${n.message}</p><p class="text-gray-500 text-xs mt-1">${n.created}</p></a>`).join('');});}
+        function fetchNotifications(){fetch('/notifications/api/').then(r=>r.json()).then(d=>{const b=document.getElementById('notification-badge'),l=document.getElementById('notification-list');if(d.unread_count>0){b.textContent=d.unread_count;b.classList.remove('hidden');if(d.unread_count>prevCount)playNotificationSound();}else{b.classList.add('hidden');}prevCount=d.unread_count;if(d.notifications.length===0){l.innerHTML='<div class="p-4 text-center text-gray-500 text-sm">No new notifications</div>';return;}l.innerHTML=d.notifications.map(n=>`<a href="${n.link||'#'}" onclick="markRead(${n.id})" class="block p-3 hover:bg-slate-700/50 transition cursor-pointer"><p class="text-white text-sm font-medium">${n.title}</p><p class="text-gray-400 text-xs mt-1">${n.message}</p><p class="text-gray-500 text-xs mt-1">${n.created}</p></a>`).join('');});}
         function markRead(id){fetch('/notifications/mark-read/'+id+'/',{method:'POST',headers:{'X-CSRFToken':getCookie('csrftoken')}});}
         function markAllRead(){fetch('/notifications/mark-all-read/',{method:'POST',headers:{'X-CSRFToken':getCookie('csrftoken')}}).then(()=>{document.getElementById('notification-badge').classList.add('hidden');document.getElementById('notification-list').innerHTML='<div class="p-4 text-center text-gray-500 text-sm">No new notifications</div>';});}
         function getCookie(n){let v='; '+document.cookie;let p=v.split('; '+n+'=');if(p.length===2)return p.pop().split(';').shift();}
         setInterval(fetchNotifications,15000);fetchNotifications();
         document.addEventListener('click',function(e){const b=document.getElementById('notification-bell');if(b&&!b.contains(e.target))document.getElementById('notification-dropdown').classList.add('hidden');});
 
+        // PWA
         let deferredPrompt;
         window.addEventListener('beforeinstallprompt',(e)=>{e.preventDefault();deferredPrompt=e;document.getElementById('pwa-install-banner').classList.remove('hidden');});
         function installPWA(){if(deferredPrompt){deferredPrompt.prompt();deferredPrompt.userChoice.then(()=>{deferredPrompt=null;document.getElementById('pwa-install-banner').classList.add('hidden');});}}
