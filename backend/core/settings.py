@@ -143,7 +143,7 @@ MEDIA_URL = '/media/'
 MEDIA_ROOT = BASE_DIR / 'media'
 
 # File upload limits
-FILE_UPLOAD_MAX_MEMORY_SIZE = 10 * 1024 * 1024  # 10MB
+FILE_UPLOAD_MAX_MEMORY_SIZE = 10 * 1024 * 1024
 DATA_UPLOAD_MAX_MEMORY_SIZE = 10 * 1024 * 1024
 
 # Default primary key
@@ -152,16 +152,16 @@ DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 # Custom User Model
 AUTH_USER_MODEL = 'accounts.CustomUser'
 
-# Email - Console backend for testing, switch to SMTP later
+# Email
 EMAIL_BACKEND = 'django.core.mail.backends.console.EmailBackend'
 DEFAULT_FROM_EMAIL = 'PrintHub <noreply@printlink.com>'
 
 # Payment
 PAYMENT_EXPIRY_MINUTES = 30
-DEFAULT_MTN_MERCHANT_PHONE = '0765511075'
-DEFAULT_MTN_MERCHANT_NAME = 'Matovu Evaristo'
-DEFAULT_AIRTEL_MERCHANT_PHONE = '0775523720'
-DEFAULT_AIRTEL_MERCHANT_NAME = 'Ezra Nasaasira'
+DEFAULT_MTN_MERCHANT_PHONE = os.getenv('DEFAULT_MTN_MERCHANT_PHONE', '')
+DEFAULT_MTN_MERCHANT_NAME = os.getenv('DEFAULT_MTN_MERCHANT_NAME', '')
+DEFAULT_AIRTEL_MERCHANT_PHONE = os.getenv('DEFAULT_AIRTEL_MERCHANT_PHONE', '')
+DEFAULT_AIRTEL_MERCHANT_NAME = os.getenv('DEFAULT_AIRTEL_MERCHANT_NAME', '')
 
 # Printing
 DEFAULT_SLA_MINUTES = 120
@@ -171,6 +171,10 @@ SPIRAL_BINDING_FEE = 1000
 
 # PythonAnywhere proxy fix
 SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')
+
+# Push Notifications (VAPID)
+VAPID_PRIVATE_KEY = os.getenv('VAPID_PRIVATE_KEY', '')
+VAPID_PUBLIC_KEY = os.getenv('VAPID_PUBLIC_KEY', '')
 
 # Logging
 LOGGING = {
