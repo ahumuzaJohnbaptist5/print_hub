@@ -20,9 +20,6 @@ from stations.models import Station
 from .models import Order, SystemSettings, DeliveryZone
 from .utils import apply_order_status_change, send_delayed_order_email
 
-
-
-
 User = get_user_model()
 
 ALLOWED_EXTENSIONS = {'.pdf', '.docx', '.doc', '.txt', '.png', '.jpg', '.jpeg', '.pptx'}
@@ -57,7 +54,6 @@ def _can_view_order(user, order):
 def dashboard_view(request):
     orders = Order.objects.filter(client=request.user).order_by('-created_at')
     
-    # Get order statistics for client
     stats = Order.objects.filter(client=request.user).aggregate(
         total_orders=Count('id'),
         completed_orders=Count('id', filter=Q(status='collected')),
@@ -148,6 +144,8 @@ def upload_view(request):
         'delivery_zones': delivery_zones,
         'upload_error': upload_error,
     })
+
+
 @login_required
 def order_receipt_view(request, order_id):
     order = get_object_or_404(Order.objects.select_related('station', 'delivery_zone'), id=order_id)
@@ -157,7 +155,6 @@ def order_receipt_view(request, order_id):
 
     estimated_ready = order.estimated_ready_at()
     
-    # Get payment status
     payment = None
     try:
         from payments.models import Payment
@@ -173,10 +170,7 @@ def order_receipt_view(request, order_id):
 
 
 def _build_order_queryset(request):
-    """Build optimized order queryset with filters."""
-    qs = Order.objects.select_related(
-        'client', 'station', 'delivery_zone'
-    ).order_by('-created_at')
+    qs = Order.objects.select_related('client', 'station', 'delivery_zone').order_by('-created_at')
 
     status = request.GET.get('status', '').strip()
     if status:
@@ -210,7 +204,6 @@ def _build_order_queryset(request):
 
 
 def _order_summary_counts():
-    """Get order summary statistics."""
     now = timezone.now()
     today_start = now.replace(hour=0, minute=0, second=0, microsecond=0)
     
@@ -221,13 +214,9 @@ def _order_summary_counts():
         'printing': Order.objects.filter(status='printing').count(),
         'in_transit': Order.objects.filter(status='in_transit').count(),
         'ready': Order.objects.filter(status='ready').count(),
-        'collected_today': Order.objects.filter(
-            status='collected', collected_at__gte=today_start
-        ).count(),
+        'collected_today': Order.objects.filter(status='collected', collected_at__gte=today_start).count(),
         'cancelled': Order.objects.filter(status='cancelled').count(),
-        'overdue': Order.objects.filter(
-            status__in=['paid', 'printing', 'in_transit', 'ready']
-        ).count(),  # Will calculate properly in template
+        'overdue': Order.objects.filter(status__in=['paid', 'printing', 'in_transit', 'ready']).count(),
     }
 
 
@@ -269,7 +258,6 @@ def admin_dashboard_view(request):
     orders_qs = _build_order_queryset(request)
     summary = _order_summary_counts()
     
-    # Add overdue count properly
     overdue_count = 0
     for order in orders_qs.filter(status__in=['paid', 'printing', 'in_transit', 'ready']):
         if order.is_overdue:
@@ -286,12 +274,7 @@ def admin_dashboard_view(request):
     system_settings = SystemSettings.load()
 
     active_filters = []
-    for key, label in [
-        ('status', 'Status'),
-        ('station', 'Station'),
-        ('date', 'Date'),
-        ('search', 'Search'),
-    ]:
+    for key, label in [('status', 'Status'), ('station', 'Station'), ('date', 'Date'), ('search', 'Search')]:
         val = request.GET.get(key, '').strip()
         if val:
             active_filters.append({'key': key, 'value': val, 'label': label})
@@ -350,7 +333,6 @@ def is_agent_or_admin(user):
 @login_required
 @user_passes_test(is_agent_or_admin, login_url='login')
 def agent_dashboard_view(request):
-    # Filter orders by station if agent
     if request.user.role == 'agent':
         if request.user.station:
             orders = Order.objects.filter(
@@ -364,7 +346,6 @@ def agent_dashboard_view(request):
             'client', 'station', 'delivery_zone'
         ).order_by('-created_at')
 
-    # Agent earnings summary
     agent_earnings = None
     if request.user.role == 'agent':
         try:
@@ -388,7 +369,6 @@ def agent_dashboard_view(request):
             new_status = request.POST.get('status')
             order = get_object_or_404(Order, id=order_id)
             
-            # Verify agent can only update their station's orders
             if request.user.role == 'agent' and order.station != request.user.station:
                 messages.error(request, 'You can only update orders for your station.')
                 return redirect('agent_dashboard')
@@ -402,10 +382,20 @@ def agent_dashboard_view(request):
             order = get_object_or_404(Order, id=order_id)
             reason = request.POST.get('delay_reason', '').strip()
             
-            if send_delayed_order_email(order, reason):
-                messages.success(request, f'Delay notification sent for Order #{order.id}.')
-            else:
-                messages.error(request, 'Failed to send delay notification.')
+            # Create in-app notification for the client
+            from notifications.models import Notification
+            Notification.create_notification(
+                user=order.client,
+                notification_type='order_delayed',
+                title='Order Delayed',
+                message=f'Your Order #{order.id} ({order.file_name}) has been delayed. Reason: {reason}',
+                link=f'/orders/{order.id}/receipt/'
+            )
+            
+            # Also try sending email
+            send_delayed_order_email(order, reason)
+            
+            messages.success(request, f'Delay notification sent for Order #{order.id}.')
             
         elif action == 'cancel_order':
             order = get_object_or_404(Order, id=order_id)
@@ -497,21 +487,15 @@ def download_order_file_view(request, order_id):
         return redirect('dashboard')
 
     content_type, _ = mimetypes.guess_type(order.file_name)
-    response = FileResponse(
-        order.file.open('rb'),
-        content_type=content_type or 'application/octet-stream',
-    )
+    response = FileResponse(order.file.open('rb'), content_type=content_type or 'application/octet-stream')
     response['Content-Disposition'] = f'attachment; filename="{order.file_name}"'
     return response
 
 
 def _get_tracked_orders(order_id=None, email=None):
-    """Get orders for tracking with optimized queries."""
     qs = Order.objects.select_related('station', 'client', 'delivery_zone')
-    if order_id:
-        return qs.filter(id=order_id)
-    if email:
-        return qs.filter(client__email__iexact=email).order_by('-created_at')
+    if order_id: return qs.filter(id=order_id)
+    if email: return qs.filter(client__email__iexact=email).order_by('-created_at')
     return Order.objects.none()
 
 
@@ -524,168 +508,109 @@ def order_track_view(request):
     if order_id or email:
         if order_id:
             orders = _get_tracked_orders(order_id=order_id)
-            if not orders.exists():
-                lookup_error = 'No order found with that order ID.'
-                orders = None
+            if not orders.exists(): lookup_error = 'No order found with that order ID.'; orders = None
         elif email:
             orders = _get_tracked_orders(email=email)
-            if not orders.exists():
-                lookup_error = 'No orders found for that email address.'
-                orders = None
+            if not orders.exists(): lookup_error = 'No orders found for that email address.'; orders = None
 
     timeline_steps = [
-        ('submitted', 'Submitted', 'created_at'),
-        ('paid', 'Paid', 'paid_at'),
-        ('printing', 'Printing', 'printing_at'),
-        ('in_transit', 'In Transit', 'in_transit_at'),
-        ('ready', 'Ready for Pickup', 'ready_at'),
-        ('collected', 'Collected', 'collected_at'),
+        ('submitted', 'Submitted', 'created_at'), ('paid', 'Paid', 'paid_at'),
+        ('printing', 'Printing', 'printing_at'), ('in_transit', 'In Transit', 'in_transit_at'),
+        ('ready', 'Ready for Pickup', 'ready_at'), ('collected', 'Collected', 'collected_at'),
     ]
 
     order_timelines = []
     if orders:
-        status_step_map = {
-            'pending': 0, 'paid': 1, 'printing': 2, 
-            'in_transit': 3, 'ready': 4, 'collected': 5
-        }
+        status_step_map = {'pending': 0, 'paid': 1, 'printing': 2, 'in_transit': 3, 'ready': 4, 'collected': 5}
         for order in orders:
             current_step = status_step_map.get(order.status, 0)
-            if order.status == 'cancelled':
-                current_step = -1  # Show all steps as future or add cancelled state
-            
+            if order.status == 'cancelled': current_step = -1
             steps = []
             for i, (key, label, ts_field) in enumerate(timeline_steps):
                 ts = getattr(order, ts_field, None)
-                if order.status == 'cancelled':
-                    state = 'cancelled'
-                elif i < current_step:
-                    state = 'completed'
-                elif i == current_step:
-                    state = 'current'
-                else:
-                    state = 'future'
-                steps.append({
-                    'key': key,
-                    'label': label,
-                    'timestamp': ts,
-                    'state': state,
-                })
+                if order.status == 'cancelled': state = 'cancelled'
+                elif i < current_step: state = 'completed'
+                elif i == current_step: state = 'current'
+                else: state = 'future'
+                steps.append({'key': key, 'label': label, 'timestamp': ts, 'state': state})
             order_timelines.append({
-                'order': order,
-                'steps': steps,
-                'estimated_ready': order.estimated_ready_at(),
+                'order': order, 'steps': steps, 'estimated_ready': order.estimated_ready_at(),
                 'is_overdue': order.is_overdue,
                 'progress_width': int(current_step / (len(timeline_steps) - 1) * 100) if len(timeline_steps) > 1 and current_step >= 0 else 0,
             })
 
     return render(request, 'orders/track.html', {
-        'orders': orders,
-        'order_timelines': order_timelines,
-        'lookup_error': lookup_error,
-        'query_order_id': order_id,
-        'query_email': email,
+        'orders': orders, 'order_timelines': order_timelines,
+        'lookup_error': lookup_error, 'query_order_id': order_id, 'query_email': email,
     })
 
 
 def home_view(request):
-    # Show some stats on homepage
     try:
         total_orders = Order.objects.count()
         stations = Station.objects.filter(is_active=True).count()
     except Exception:
-        total_orders = 0
-        stations = 0
-    
-    return render(request, 'home.html', {
-        'total_orders': total_orders,
-        'total_stations': stations,
-    })
+        total_orders = 0; stations = 0
+    return render(request, 'home.html', {'total_orders': total_orders, 'total_stations': stations})
 
 
 @login_required
 def live_board_view(request):
     return render(request, 'orders/live_board.html')
 
+
 def live_board_api_view(request):
-    """API endpoint for live board - optimized with bulk priority calculation."""
     active_statuses = ['paid', 'printing', 'in_transit', 'ready']
-    orders = Order.objects.filter(
-        status__in=active_statuses
-    ).select_related('station', 'client')
-    
-    cancelled_orders = Order.objects.filter(
-        status='cancelled',
-        cancelled_at__gte=timezone.now() - timedelta(minutes=30)
-    ).select_related('station', 'client')
-    
+    orders = Order.objects.filter(status__in=active_statuses).select_related('station', 'client')
+    cancelled_orders = Order.objects.filter(status='cancelled', cancelled_at__gte=timezone.now() - timedelta(minutes=30)).select_related('station', 'client')
     all_orders = list(orders) + list(cancelled_orders)
-    
     sys_settings = SystemSettings.load()
     
     board_data = []
     for order in all_orders:
         priority = order.priority_info
         board_data.append({
-            'id': order.id,
-            'client': order.client.username,
+            'id': order.id, 'client': order.client.username,
             'station': order.station.name if order.station else 'Unassigned',
-            'file_name': order.file_name,
-            'status': order.get_status_display(),
-            'status_raw': order.status,
-            'time_left': priority['time_display'],
+            'file_name': order.file_name, 'status': order.get_status_display(),
+            'status_raw': order.status, 'time_left': priority['time_display'],
             'remaining_seconds': priority['remaining_seconds'],
-            'priority': priority['display'],
-            'priority_level': priority['level'],
-            'is_overdue': priority['is_overdue'],
-            'page_count': order.page_count,
-            'is_color': order.is_color,
-            'binding': order.get_binding_display(),
+            'priority': priority['display'], 'priority_level': priority['level'],
+            'is_overdue': priority['is_overdue'], 'page_count': order.page_count,
+            'is_color': order.is_color, 'binding': order.get_binding_display(),
         })
         
-    board_data.sort(key=lambda x: (
-        x['status_raw'] == 'cancelled',
-        x['remaining_seconds']
-    ))
+    board_data.sort(key=lambda x: (x['status_raw'] == 'cancelled', x['remaining_seconds']))
     
     response = JsonResponse({
-        'orders': board_data,
-        'system_paused': sys_settings.is_paused,
-        'pause_reason': sys_settings.pause_reason,
-        'total_active': len(orders),
-        'total_cancelled': len(cancelled_orders),
-        'last_updated': timezone.now().isoformat(),
+        'orders': board_data, 'system_paused': sys_settings.is_paused,
+        'pause_reason': sys_settings.pause_reason, 'total_active': len(orders),
+        'total_cancelled': len(cancelled_orders), 'last_updated': timezone.now().isoformat(),
     })
     response["Access-Control-Allow-Origin"] = "*"
     return response
+
+
 def all_links_view(request):
     links_data = [
-        ('home', 'Home', 'Landing page'),
-        ('dashboard', 'Client Dashboard', 'View your past orders'),
+        ('home', 'Home', 'Landing page'), ('dashboard', 'Client Dashboard', 'View your past orders'),
         ('upload', 'Upload / Place Order', 'Upload files for printing'),
         ('track_order', 'Track Order', 'Track order status by ID or email'),
         ('admin_dashboard', 'Admin Dashboard', 'Admin overview and management'),
         ('agent_dashboard', 'Agent Dashboard', 'Station agent dashboard'),
         ('live_board', 'Live Board', 'Full screen live board'),
-        ('login', 'Login', 'User login page'),
-        ('register', 'Register', 'User registration page'),
+        ('login', 'Login', 'User login page'), ('register', 'Register', 'User registration page'),
     ]
-    
     links = []
     for url_name, name, desc in links_data:
-        try:
-            url = reverse(url_name)
-        except Exception:
-            url = '#'
+        try: url = reverse(url_name)
+        except Exception: url = '#'
         links.append({'name': name, 'url': url, 'desc': desc})
-        
     links.append({'name': 'Django Admin', 'url': '/admin/', 'desc': 'Built-in database admin panel'})
-    
     return render(request, 'all_links.html', {'links': links})
 
 
-# Helper function for sending order confirmation email
 def send_order_confirmation_email(order):
-    """Send confirmation email when order is placed."""
     subject = f'Order #{order.id} Confirmed - PrintHub'
     message = f"""
     Dear {order.client.username},
@@ -705,11 +630,4 @@ def send_order_confirmation_email(order):
     
     Thank you for choosing PrintHub!
     """
-    
-    send_mail(
-        subject,
-        message,
-        settings.DEFAULT_FROM_EMAIL,
-        [order.client.email],
-        fail_silently=True,
-    )
+    send_mail(subject, message, settings.DEFAULT_FROM_EMAIL, [order.client.email], fail_silently=True)
