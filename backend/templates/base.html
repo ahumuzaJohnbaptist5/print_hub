@@ -263,6 +263,39 @@
         setInterval(fetchNotifications,15000);fetchNotifications();
         document.addEventListener('click',function(e){const b=document.getElementById('notification-bell');if(b&&!b.contains(e.target))document.getElementById('notification-dropdown').classList.add('hidden');});
 
+        // Push notification subscription
+        async function subscribeToPush() {
+            try {
+                const data = await fetch('/notifications/api/').then(r => r.json());
+                const vapidKey = data.vapid_public_key;
+                if (!vapidKey) return;
+                
+                const registration = await navigator.serviceWorker.ready;
+                let subscription = await registration.pushManager.getSubscription();
+                
+                if (!subscription) {
+                    subscription = await registration.pushManager.subscribe({
+                        userVisibleOnly: true,
+                        applicationServerKey: vapidKey
+                    });
+                }
+                
+                await fetch('/notifications/push/subscribe/', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json', 'X-CSRFToken': getCookie('csrftoken') },
+                    body: JSON.stringify({ subscription: subscription.toJSON() })
+                });
+            } catch(e) {
+                console.log('Push subscription skipped');
+            }
+        }
+        
+        {% if user.is_authenticated %}
+        if ('serviceWorker' in navigator && 'PushManager' in window) {
+            subscribeToPush();
+        }
+        {% endif %}
+
         // PWA
         let deferredPrompt;
         window.addEventListener('beforeinstallprompt',(e)=>{e.preventDefault();deferredPrompt=e;document.getElementById('pwa-install-banner').classList.remove('hidden');});
