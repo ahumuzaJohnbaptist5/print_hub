@@ -1,6 +1,5 @@
 const CACHE_NAME = 'printhub-v3';
 const urlsToCache = [
-    '/',
     '/static/manifest.json',
     '/static/icons/icon.svg',
 ];
@@ -22,6 +21,13 @@ self.addEventListener('activate', event => {
 });
 
 self.addEventListener('fetch', event => {
+    // Never cache HTML pages - always get fresh from server
+    if (event.request.dest === 'document' || event.request.mode === 'navigate') {
+        event.respondWith(fetch(event.request));
+        return;
+    }
+    
+    // Cache static assets only
     event.respondWith(
         caches.match(event.request).then(response => response || fetch(event.request))
     );
@@ -31,15 +37,8 @@ self.addEventListener('fetch', event => {
 self.addEventListener('push', event => {
     let data = {};
     if (event.data) {
-        try {
-            data = event.data.json();
-        } catch(e) {
-            data = {
-                title: 'PrintHub',
-                body: event.data.text(),
-                icon: '/static/icons/icon.svg'
-            };
-        }
+        try { data = event.data.json(); }
+        catch(e) { data = { title: 'PrintHub', body: event.data.text(), icon: '/static/icons/icon.svg' }; }
     }
     
     const options = {
@@ -47,9 +46,7 @@ self.addEventListener('push', event => {
         icon: data.icon || '/static/icons/icon.svg',
         badge: '/static/icons/icon.svg',
         vibrate: [200, 100, 200],
-        data: {
-            url: data.url || '/'
-        },
+        data: { url: data.url || '/' },
         actions: [
             { action: 'open', title: 'Open' },
             { action: 'close', title: 'Dismiss' }
@@ -57,39 +54,27 @@ self.addEventListener('push', event => {
     };
     
     event.waitUntil(
-        self.registration.showNotification(
-            data.title || 'PrintHub',
-            options
-        )
+        self.registration.showNotification(data.title || 'PrintHub', options)
     );
 });
 
-// Notification click handler
 self.addEventListener('notificationclick', event => {
     event.notification.close();
-    
     const url = event.notification.data.url || '/';
-    
     event.waitUntil(
         clients.matchAll({ type: 'window' }).then(clientsList => {
             for (let client of clientsList) {
-                if (client.url.includes(url) && 'focus' in client) {
-                    return client.focus();
-                }
+                if (client.url.includes(url) && 'focus' in client) return client.focus();
             }
-            if (clients.openWindow) {
-                return clients.openWindow(url);
-            }
+            if (clients.openWindow) return clients.openWindow(url);
         })
     );
 });
 
-// Push subscription change
 self.addEventListener('pushsubscriptionchange', event => {
     event.waitUntil(
         self.registration.pushManager.subscribe(event.oldSubscription.options)
             .then(subscription => {
-                // Send new subscription to server
                 return fetch('/notifications/push/subscribe/', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
