@@ -18,10 +18,10 @@
         page-break-inside: avoid;
     }
     .receipt-card * { color: black !important; }
-    .bg-white\/5, .bg-white\/10, .bg-slate-700 { background: #f5f5f5 !important; }
+    .bg-white\/5, .bg-white\/10, .bg-slate-700, .bg-slate-700\/30 { background: #f5f5f5 !important; }
     .text-white, .text-gray-300, .text-gray-400 { color: black !important; }
     .text-gray-500 { color: #666 !important; }
-    .border-white\/10, .border-slate-700 { border-color: #ccc !important; }
+    .border-white\/10, .border-slate-700, .border-slate-600 { border-color: #ccc !important; }
     .text-green-400, .text-green-300 { color: #16a34a !important; }
     .text-red-400, .text-red-300 { color: #dc2626 !important; }
     .text-blue-400, .text-blue-300 { color: #2563eb !important; }
@@ -30,7 +30,7 @@
     .text-orange-400 { color: #ea580c !important; }
     .max-w-2xl { max-width: 100% !important; }
     .py-12 { padding: 10px !important; }
-    .rounded-3xl, .rounded-xl { border-radius: 4px !important; }
+    .rounded-3xl, .rounded-xl, .rounded { border-radius: 4px !important; }
     h1 { font-size: 18px !important; }
     h2 { font-size: 14px !important; }
     .text-5xl { font-size: 24px !important; }
@@ -96,7 +96,7 @@
     </div>
 
     <!-- Main Receipt Card -->
-    <div class="bg-slate-800 border border-slate-700 rounded p-4 sm:p-6">
+    <div class="bg-slate-800 border border-slate-700 rounded p-4 sm:p-6" id="receipt-card">
         
         <!-- Header -->
         <div class="text-center mb-4 pb-4 border-b border-slate-700">
@@ -192,6 +192,16 @@
             <p class="text-2xl sm:text-3xl font-extrabold text-green-400">{{ order.total_price|floatformat:0|intcomma }} UGX</p>
         </div>
 
+        <!-- QR Code -->
+        <div class="text-center mb-4">
+            <img src="https://api.qrserver.com/v1/create-qr-code/?size=120x120&data=https://printlink.pythonanywhere.com/track/?order_id={{ order.id }}" 
+                 alt="Track Order QR" 
+                 class="mx-auto rounded"
+                 width="120" height="120"
+                 crossorigin="anonymous">
+            <p class="text-gray-500 text-xs mt-1">Scan to track this order</p>
+        </div>
+
         <!-- Status Message -->
         {% if order.status == 'pending' %}
         <div class="bg-yellow-500/10 border border-yellow-500/30 rounded p-3 mb-4 text-center">
@@ -223,7 +233,7 @@
                 Print Receipt
             </button>
             
-            <button onclick="shareWhatsApp()" class="flex-1 bg-green-700 hover:bg-green-600 text-white font-bold py-2.5 rounded text-sm transition-all">
+            <button onclick="shareAsImage()" class="flex-1 bg-green-700 hover:bg-green-600 text-white font-bold py-2.5 rounded text-sm transition-all">
                 Share on WhatsApp
             </button>
             
@@ -239,8 +249,50 @@
     </div>
 </div>
 
+<script src="https://html2canvas.hertzen.com/dist/html2canvas.min.js"></script>
 <script>
-function shareWhatsApp() {
+function shareAsImage() {
+    const receipt = document.getElementById('receipt-card');
+    
+    html2canvas(receipt, {
+        scale: 2,
+        backgroundColor: '#1e293b',
+        useCORS: true,
+        allowTaint: true
+    }).then(canvas => {
+        canvas.toBlob(function(blob) {
+            const file = new File([blob], 'PrintHub-Receipt-{{ order.id }}.png', { type: 'image/png' });
+            
+            // Try Web Share API first (works on mobile)
+            if (navigator.share && navigator.canShare && navigator.canShare({ files: [file] })) {
+                navigator.share({
+                    files: [file],
+                    title: 'PrintHub Receipt #{{ order.id }}',
+                    text: 'Receipt for Order #{{ order.id }} - {{ order.total_price|floatformat:0|intcomma }} UGX'
+                }).catch(() => {
+                    // User cancelled or failed - download instead
+                    downloadImage(canvas);
+                });
+            } else {
+                // Desktop fallback - download image
+                downloadImage(canvas);
+            }
+        }, 'image/png');
+    }).catch(() => {
+        // html2canvas failed - fallback to text share
+        shareAsText();
+    });
+}
+
+function downloadImage(canvas) {
+    const link = document.createElement('a');
+    link.download = 'PrintHub-Receipt-{{ order.id }}.png';
+    link.href = canvas.toDataURL('image/png');
+    link.click();
+    alert('Receipt image saved! You can now share it on WhatsApp.');
+}
+
+function shareAsText() {
     const text = `PrintHub Receipt #{{ order.id }}%0A%0A` +
         `Student: {{ order.client.get_full_name|default:order.client.username }}%0A` +
         `Document: {{ order.file_name }}%0A` +
