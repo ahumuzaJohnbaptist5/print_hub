@@ -278,9 +278,7 @@
         function markRead(id){fetch('/notifications/mark-read/'+id+'/',{method:'POST',headers:{'X-CSRFToken':getCookie('csrftoken')}});}
         function markAllRead(){fetch('/notifications/mark-all-read/',{method:'POST',headers:{'X-CSRFToken':getCookie('csrftoken')}}).then(()=>{document.getElementById('notification-badge').classList.add('hidden');document.getElementById('notification-list').innerHTML='<div class="p-4 text-center text-gray-500 text-sm">No new notifications</div>';});}
         function getCookie(n){let v='; '+document.cookie;let p=v.split('; '+n+'=');if(p.length===2)return p.pop().split(';').shift();}
-        {% if user.is_authenticated %}
         setInterval(fetchNotifications,15000);fetchNotifications();
-        {% endif %}
         document.addEventListener('click',function(e){const b=document.getElementById('notification-bell');if(b&&!b.contains(e.target))document.getElementById('notification-dropdown').classList.add('hidden');});
 
         // Push notification subscription
