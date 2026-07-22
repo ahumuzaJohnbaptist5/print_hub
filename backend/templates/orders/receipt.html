@@ -9,39 +9,86 @@
 @media print {
     * { margin: 0; padding: 0; box-sizing: border-box; }
     nav, footer, .no-print { display: none !important; }
-    @page { margin: 8mm; size: 80mm auto; }
-    body { background: white !important; font-family: 'Courier New', monospace !important; }
+    @page { margin: 10mm; size: 80mm auto; }
+    body { background: white !important; font-family: 'Georgia', 'Times New Roman', serif !important; }
     
     .receipt-card {
         background: white !important;
-        border: 2px solid #000 !important;
-        padding: 12px 14px !important;
-        max-width: 72mm !important;
+        border: 2px solid #1a1a2e !important;
+        border-radius: 8px !important;
+        padding: 14px 16px !important;
+        max-width: 74mm !important;
         margin: 0 auto !important;
         font-size: 9px !important;
-        line-height: 1.4 !important;
-        color: #000 !important;
+        line-height: 1.5 !important;
+        color: #1a1a2e !important;
     }
-    .receipt-card * { color: #000 !important; font-size: 9px !important; }
-    .receipt-card h1 { font-size: 12px !important; letter-spacing: 2px !important; text-align: center !important; }
-    .receipt-card .order-id { font-size: 16px !important; font-weight: bold !important; text-align: center !important; }
-    .receipt-card .total { font-size: 14px !important; font-weight: bold !important; text-align: center !important; }
-    .receipt-card .divider { border-top: 1px dashed #000 !important; margin: 6px 0 !important; }
-    .receipt-card .divider-double { border-top: 2px solid #000 !important; margin: 6px 0 !important; }
-    .receipt-card .row { display: flex !important; justify-content: space-between !important; margin: 2px 0 !important; }
-    .receipt-card .label { color: #555 !important; }
-    .receipt-card .value { text-align: right !important; font-weight: bold !important; }
-    .receipt-card .center { text-align: center !important; }
-    .receipt-card img.qr { display: block !important; margin: 4px auto !important; width: 55px !important; height: 55px !important; }
-    .receipt-card .thanks { text-align: center !important; font-style: italic !important; margin-top: 6px !important; }
+    .receipt-card * { color: #1a1a2e !important; }
+    
+    .receipt-header {
+        text-align: center !important;
+        padding-bottom: 8px !important;
+        border-bottom: 1px solid #e2e8f0 !important;
+        margin-bottom: 8px !important;
+    }
+    .receipt-header .logo-text {
+        font-size: 16px !important;
+        font-weight: 900 !important;
+        letter-spacing: 3px !important;
+        color: #4f46e5 !important;
+    }
+    .receipt-header .subtitle {
+        font-size: 7px !important;
+        color: #64748b !important;
+        letter-spacing: 1px !important;
+    }
+    
+    .order-number {
+        text-align: center !important;
+        font-size: 22px !important;
+        font-weight: 900 !important;
+        color: #4f46e5 !important;
+        margin: 6px 0 !important;
+    }
+    .order-date {
+        text-align: center !important;
+        font-size: 8px !important;
+        color: #64748b !important;
+        margin-bottom: 8px !important;
+    }
+    
+    .info-table { width: 100% !important; border-collapse: collapse !important; margin: 8px 0 !important; }
+    .info-table td { padding: 3px 0 !important; font-size: 9px !important; vertical-align: top !important; }
+    .info-table .lbl { color: #64748b !important; width: 35% !important; font-size: 8px !important; text-transform: uppercase !important; letter-spacing: 0.5px !important; }
+    .info-table .val { font-weight: 600 !important; text-align: right !important; }
+    
+    .total-box {
+        background: #f8fafc !important;
+        border: 1px solid #e2e8f0 !important;
+        border-radius: 4px !important;
+        padding: 6px !important;
+        text-align: center !important;
+        margin: 8px 0 !important;
+    }
+    .total-box .total-label { font-size: 7px !important; color: #64748b !important; text-transform: uppercase !important; letter-spacing: 1px !important; }
+    .total-box .total-amount { font-size: 16px !important; font-weight: 900 !important; color: #4f46e5 !important; }
+    
+    .qr-section { text-align: center !important; margin: 8px 0 !important; }
+    .qr-section img { width: 55px !important; height: 55px !important; border: 1px solid #e2e8f0 !important; border-radius: 4px !important; padding: 3px !important; }
+    .qr-section .qr-label { font-size: 7px !important; color: #64748b !important; margin-top: 2px !important; }
+    
+    .thanks { text-align: center !important; font-style: italic !important; font-size: 8px !important; color: #4f46e5 !important; margin-top: 8px !important; padding-top: 8px !important; border-top: 1px solid #e2e8f0 !important; }
+    
+    .receipt-footer { text-align: center !important; font-size: 6px !important; color: #94a3b8 !important; margin-top: 4px !important; }
     
     /* Hide everything except receipt */
     .max-w-2xl { max-width: 100% !important; }
     .py-6, .px-4 { padding: 0 !important; }
-    .bg-slate-800, .bg-slate-700, .bg-slate-700\/30, .bg-slate-700\/50 { background: white !important; }
-    .border-slate-700, .border-slate-600 { border: none !important; }
-    .text-white, .text-gray-300, .text-gray-400, .text-gray-500, .text-green-400 { color: #000 !important; }
-    .rounded { border-radius: 0 !important; }
+    .bg-slate-800, .bg-slate-700, .bg-slate-700\/30 { background: white !important; }
+    .border-slate-700 { border: none !important; }
+    .text-white, .text-gray-300, .text-gray-400, .text-gray-500, .text-green-400 { color: #1a1a2e !important; }
+    .rounded { border-radius: 8px !important; }
+    .mt-4 { margin-top: 0 !important; }
 }
 </style>
 {% endblock %}
@@ -51,49 +98,43 @@
 
     <div class="bg-slate-800 border border-slate-700 rounded p-4" id="receipt-card">
         
-        <!-- Top Border -->
-        <div class="divider-double"></div>
-        
-        <!-- Logo & Name -->
-        <h1>PRINT HUB</h1>
-        <p class="center">Kabale University</p>
-        <p class="center" style="font-size:7px;color:#777;">Printing Service</p>
-        
-        <div class="divider"></div>
+        <!-- Header -->
+        <div class="receipt-header">
+            <div class="logo-text">PRINTHUB</div>
+            <div class="subtitle">KABALE UNIVERSITY PRINTING SERVICE</div>
+        </div>
         
         <!-- Order ID -->
-        <p class="order-id">#{{ order.id }}</p>
-        <p class="center">{{ order.created_at|date:"d M Y  H:i" }}</p>
+        <div class="order-number">#{{ order.id }}</div>
+        <div class="order-date">{{ order.created_at|date:"d M Y  |  H:i" }}</div>
         
-        <div class="divider"></div>
-        
-        <!-- Student Info -->
-        <div class="row"><span class="label">Student</span><span class="value">{{ order.client.get_full_name|default:order.client.username|truncatechars:22 }}</span></div>
-        <div class="row"><span class="label">Document</span><span class="value" style="font-size:8px;">{{ order.file_name|truncatechars:20 }}</span></div>
-        <div class="row"><span class="label">Pages</span><span class="value">{{ order.page_count }}{% if order.is_double_sided %} ({{ order.paper_used }} sheets){% endif %}</span></div>
-        <div class="row"><span class="label">Type</span><span class="value">{% if order.is_color %}Color{% else %}B&amp;W{% endif %}{% if order.is_double_sided %} | Duplex{% endif %}{% if order.binding == 'spiral' %} | Spiral{% elif order.binding == 'staple' %} | Stapled{% endif %}</span></div>
-        <div class="row"><span class="label">Station</span><span class="value">{{ order.station.name|default:"N/A"|truncatechars:18 }}</span></div>
-        <div class="row"><span class="label">Status</span><span class="value">{{ order.get_status_display }}</span></div>
-        
-        <div class="divider"></div>
+        <!-- Info Table -->
+        <table class="info-table">
+            <tr><td class="lbl">Student</td><td class="val">{{ order.client.get_full_name|default:order.client.username|truncatechars:22 }}</td></tr>
+            <tr><td class="lbl">Document</td><td class="val" style="font-size:8px;">{{ order.file_name|truncatechars:22 }}</td></tr>
+            <tr><td class="lbl">Pages</td><td class="val">{{ order.page_count }}{% if order.is_double_sided %} ({{ order.paper_used }} sheets){% endif %}</td></tr>
+            <tr><td class="lbl">Print Type</td><td class="val">{% if order.is_color %}Color{% else %}Black &amp; White{% endif %}{% if order.is_double_sided %} / Duplex{% endif %}</td></tr>
+            {% if order.binding != 'none' %}<tr><td class="lbl">Binding</td><td class="val">{{ order.get_binding_display }}</td></tr>{% endif %}
+            <tr><td class="lbl">Station</td><td class="val">{{ order.station.name|default:"N/A"|truncatechars:18 }}</td></tr>
+            <tr><td class="lbl">Status</td><td class="val">{{ order.get_status_display }}</td></tr>
+        </table>
         
         <!-- Total -->
-        <p class="total">TOTAL: UGX {{ order.total_price|floatformat:0|intcomma }}</p>
-        
-        <div class="divider"></div>
+        <div class="total-box">
+            <div class="total-label">Total Amount Paid</div>
+            <div class="total-amount">UGX {{ order.total_price|floatformat:0|intcomma }}</div>
+        </div>
         
         <!-- QR Code -->
-        <img class="qr" src="https://api.qrserver.com/v1/create-qr-code/?size=55x55&data=https://printlink.pythonanywhere.com/track/?order_id={{ order.id }}" 
-             alt="Track Order" crossorigin="anonymous">
-        <p class="center" style="font-size:7px;">Scan to track your order</p>
+        <div class="qr-section">
+            <img src="https://api.qrserver.com/v1/create-qr-code/?size=55x55&data=https://printlink.pythonanywhere.com/track/?order_id={{ order.id }}" 
+                 alt="Track Order" crossorigin="anonymous">
+            <div class="qr-label">Scan to track your order</div>
+        </div>
         
-        <div class="divider"></div>
-        
-        <!-- Thank You -->
-        <p class="thanks">Thank you for choosing PrintHub.</p>
-        <p class="center" style="font-size:7px;">We appreciate your trust.</p>
-        
-        <div class="divider-double"></div>
+        <!-- Thanks -->
+        <div class="thanks">Thank you for choosing PrintHub.</div>
+        <div class="receipt-footer">We appreciate your trust in our service.</div>
     </div>
 
     <!-- Buttons -->
