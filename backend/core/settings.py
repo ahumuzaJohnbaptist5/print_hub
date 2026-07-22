@@ -18,6 +18,7 @@ ALLOWED_HOSTS = [
     'printlink.pythonanywhere.com',
     'www.printlink.pythonanywhere.com',
     '.pythonanywhere.com',
+    '.trycloudflare.com',
 ]
 
 SITE_URL = os.environ.get('SITE_URL', 'https://printlink.pythonanywhere.com')
