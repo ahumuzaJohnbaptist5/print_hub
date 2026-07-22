@@ -9,85 +9,101 @@
 @media print {
     * { margin: 0; padding: 0; box-sizing: border-box; }
     nav, footer, .no-print { display: none !important; }
-    @page { margin: 10mm; size: 80mm auto; }
-    body { background: white !important; font-family: 'Georgia', 'Times New Roman', serif !important; }
+    @page { margin: 8mm; size: A5; }
+    body { background: white !important; font-family: 'Inter', 'Segoe UI', system-ui, sans-serif !important; }
     
-    .receipt-card {
+    .invoice {
         background: white !important;
-        border: 2px solid #1a1a2e !important;
-        border-radius: 8px !important;
-        padding: 14px 16px !important;
-        max-width: 74mm !important;
+        max-width: 130mm !important;
         margin: 0 auto !important;
-        font-size: 9px !important;
-        line-height: 1.5 !important;
-        color: #1a1a2e !important;
+        font-size: 8px !important;
+        color: #1e293b !important;
+        padding: 0 !important;
     }
-    .receipt-card * { color: #1a1a2e !important; }
+    .invoice * { color: #1e293b !important; }
     
-    .receipt-header {
-        text-align: center !important;
-        padding-bottom: 8px !important;
+    .invoice-header {
+        display: flex !important;
+        justify-content: space-between !important;
+        align-items: flex-start !important;
+        padding-bottom: 10px !important;
+        border-bottom: 2px solid #1e293b !important;
+        margin-bottom: 10px !important;
+    }
+    .invoice-header .brand { font-size: 16px !important; font-weight: 800 !important; letter-spacing: -0.5px !important; }
+    .invoice-header .brand-sub { font-size: 7px !important; color: #64748b !important; }
+    .invoice-header .invoice-label { text-align: right !important; }
+    .invoice-header .invoice-label .inv { font-size: 10px !important; font-weight: 700 !important; letter-spacing: 1px !important; text-transform: uppercase !important; color: #64748b !important; }
+    .invoice-header .invoice-label .inv-num { font-size: 14px !important; font-weight: 900 !important; }
+    
+    .invoice-meta {
+        display: flex !important;
+        justify-content: space-between !important;
+        margin-bottom: 10px !important;
+        font-size: 8px !important;
+    }
+    .invoice-meta .meta-label { color: #64748b !important; font-size: 7px !important; text-transform: uppercase !important; letter-spacing: 0.5px !important; }
+    .invoice-meta .meta-value { font-weight: 600 !important; }
+    
+    .invoice-table {
+        width: 100% !important;
+        border-collapse: collapse !important;
+        margin-bottom: 10px !important;
+    }
+    .invoice-table th {
+        text-align: left !important;
+        font-size: 7px !important;
+        text-transform: uppercase !important;
+        letter-spacing: 0.5px !important;
+        color: #64748b !important;
+        padding: 4px 0 !important;
         border-bottom: 1px solid #e2e8f0 !important;
-        margin-bottom: 8px !important;
     }
-    .receipt-header .logo-text {
-        font-size: 16px !important;
-        font-weight: 900 !important;
-        letter-spacing: 3px !important;
-        color: #4f46e5 !important;
+    .invoice-table td {
+        padding: 4px 0 !important;
+        border-bottom: 1px solid #f1f5f9 !important;
+        font-size: 8px !important;
+        vertical-align: top !important;
     }
-    .receipt-header .subtitle {
+    .invoice-table .text-right { text-align: right !important; }
+    .invoice-table .text-center { text-align: center !important; }
+    .invoice-table .bold { font-weight: 700 !important; }
+    
+    .invoice-total {
+        display: flex !important;
+        justify-content: flex-end !important;
+        margin-bottom: 10px !important;
+    }
+    .invoice-total .total-box {
+        background: #1e293b !important;
+        color: white !important;
+        padding: 8px 16px !important;
+        border-radius: 4px !important;
+        text-align: right !important;
+    }
+    .invoice-total .total-box * { color: white !important; }
+    .invoice-total .total-label { font-size: 7px !important; text-transform: uppercase !important; letter-spacing: 1px !important; }
+    .invoice-total .total-amount { font-size: 16px !important; font-weight: 900 !important; }
+    
+    .invoice-footer {
+        display: flex !important;
+        justify-content: space-between !important;
+        align-items: flex-end !important;
+        padding-top: 10px !important;
+        border-top: 1px solid #e2e8f0 !important;
         font-size: 7px !important;
         color: #64748b !important;
-        letter-spacing: 1px !important;
     }
+    .invoice-footer .qr-code img { width: 45px !important; height: 45px !important; }
+    .invoice-footer .notes { max-width: 60% !important; }
     
-    .order-number {
-        text-align: center !important;
-        font-size: 22px !important;
-        font-weight: 900 !important;
-        color: #4f46e5 !important;
-        margin: 6px 0 !important;
-    }
-    .order-date {
-        text-align: center !important;
-        font-size: 8px !important;
-        color: #64748b !important;
-        margin-bottom: 8px !important;
-    }
-    
-    .info-table { width: 100% !important; border-collapse: collapse !important; margin: 8px 0 !important; }
-    .info-table td { padding: 3px 0 !important; font-size: 9px !important; vertical-align: top !important; }
-    .info-table .lbl { color: #64748b !important; width: 35% !important; font-size: 8px !important; text-transform: uppercase !important; letter-spacing: 0.5px !important; }
-    .info-table .val { font-weight: 600 !important; text-align: right !important; }
-    
-    .total-box {
-        background: #f8fafc !important;
-        border: 1px solid #e2e8f0 !important;
-        border-radius: 4px !important;
-        padding: 6px !important;
-        text-align: center !important;
-        margin: 8px 0 !important;
-    }
-    .total-box .total-label { font-size: 7px !important; color: #64748b !important; text-transform: uppercase !important; letter-spacing: 1px !important; }
-    .total-box .total-amount { font-size: 16px !important; font-weight: 900 !important; color: #4f46e5 !important; }
-    
-    .qr-section { text-align: center !important; margin: 8px 0 !important; }
-    .qr-section img { width: 55px !important; height: 55px !important; border: 1px solid #e2e8f0 !important; border-radius: 4px !important; padding: 3px !important; }
-    .qr-section .qr-label { font-size: 7px !important; color: #64748b !important; margin-top: 2px !important; }
-    
-    .thanks { text-align: center !important; font-style: italic !important; font-size: 8px !important; color: #4f46e5 !important; margin-top: 8px !important; padding-top: 8px !important; border-top: 1px solid #e2e8f0 !important; }
-    
-    .receipt-footer { text-align: center !important; font-size: 6px !important; color: #94a3b8 !important; margin-top: 4px !important; }
-    
-    /* Hide everything except receipt */
+    /* Hide everything */
     .max-w-2xl { max-width: 100% !important; }
     .py-6, .px-4 { padding: 0 !important; }
     .bg-slate-800, .bg-slate-700, .bg-slate-700\/30 { background: white !important; }
     .border-slate-700 { border: none !important; }
-    .text-white, .text-gray-300, .text-gray-400, .text-gray-500, .text-green-400 { color: #1a1a2e !important; }
-    .rounded { border-radius: 8px !important; }
+    .text-white, .text-gray-300, .text-gray-400, .text-gray-500, .text-green-400 { color: #1e293b !important; }
+    .rounded { border-radius: 0 !important; }
     .mt-4 { margin-top: 0 !important; }
 }
 </style>
@@ -98,43 +114,110 @@
 
     <div class="bg-slate-800 border border-slate-700 rounded p-4" id="receipt-card">
         
-        <!-- Header -->
-        <div class="receipt-header">
-            <div class="logo-text">PRINTHUB</div>
-            <div class="subtitle">KABALE UNIVERSITY PRINTING SERVICE</div>
+        <div class="invoice">
+            
+            <!-- Header -->
+            <div class="invoice-header">
+                <div>
+                    <div class="brand">PRINTHUB</div>
+                    <div class="brand-sub">Kabale University Printing Service</div>
+                </div>
+                <div class="invoice-label">
+                    <div class="inv">Invoice</div>
+                    <div class="inv-num">#{{ order.id }}</div>
+                </div>
+            </div>
+            
+            <!-- Meta -->
+            <div class="invoice-meta">
+                <div>
+                    <div class="meta-label">Bill To</div>
+                    <div class="meta-value">{{ order.client.get_full_name|default:order.client.username }}</div>
+                    <div style="color:#64748b;font-size:7px;">{{ order.client.email|default:"" }}</div>
+                </div>
+                <div style="text-align:right;">
+                    <div class="meta-label">Date</div>
+                    <div class="meta-value">{{ order.created_at|date:"d M Y" }}</div>
+                    <div style="color:#64748b;font-size:7px;">{{ order.created_at|date:"H:i" }}</div>
+                </div>
+                <div style="text-align:right;">
+                    <div class="meta-label">Status</div>
+                    <div class="meta-value">{{ order.get_status_display }}</div>
+                    <div style="color:#64748b;font-size:7px;">{{ order.station.name|default:"N/A" }}</div>
+                </div>
+            </div>
+            
+            <!-- Items Table -->
+            <table class="invoice-table">
+                <thead>
+                    <tr>
+                        <th>Description</th>
+                        <th class="text-center">Qty</th>
+                        <th class="text-right">Rate</th>
+                        <th class="text-right">Amount</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td class="bold">{{ order.file_name|truncatechars:25 }}</td>
+                        <td class="text-center">{{ order.page_count }} pg</td>
+                        <td class="text-right">
+                            {% if order.is_color %}300{% else %}200{% endif %} UGX
+                        </td>
+                        <td class="text-right bold">
+                            {% widthratio order.page_count 1 1 as pages %}
+                            {% if order.is_color %}{% widthratio pages 1 300 as subtotal %}{% else %}{% widthratio pages 1 200 as subtotal %}{% endif %}
+                            {{ subtotal|default:0|intcomma }} UGX
+                        </td>
+                    </tr>
+                    {% if order.is_double_sided %}
+                    <tr>
+                        <td style="color:#64748b;">Duplex Printing</td>
+                        <td class="text-center">-</td>
+                        <td class="text-right">-</td>
+                        <td class="text-right" style="color:#16a34a;">Included</td>
+                    </tr>
+                    {% endif %}
+                    {% if order.binding != 'none' %}
+                    <tr>
+                        <td style="color:#64748b;">{{ order.get_binding_display }}</td>
+                        <td class="text-center">1</td>
+                        <td class="text-right">{% if order.binding == 'spiral' %}1,000{% else %}0{% endif %} UGX</td>
+                        <td class="text-right bold">{% if order.binding == 'spiral' %}1,000{% else %}0{% endif %} UGX</td>
+                    </tr>
+                    {% endif %}
+                    {% if order.delivery_type == 'delivery' and order.delivery_zone %}
+                    <tr>
+                        <td style="color:#64748b;">Delivery - {{ order.delivery_zone.name }}</td>
+                        <td class="text-center">1</td>
+                        <td class="text-right">{{ order.delivery_zone.delivery_fee|intcomma }} UGX</td>
+                        <td class="text-right bold">{{ order.delivery_zone.delivery_fee|intcomma }} UGX</td>
+                    </tr>
+                    {% endif %}
+                </tbody>
+            </table>
+            
+            <!-- Total -->
+            <div class="invoice-total">
+                <div class="total-box">
+                    <div class="total-label">Total Amount</div>
+                    <div class="total-amount">UGX {{ order.total_price|floatformat:0|intcomma }}</div>
+                </div>
+            </div>
+            
+            <!-- Footer -->
+            <div class="invoice-footer">
+                <div class="notes">
+                    <strong>Payment:</strong> {% if payment %}{{ payment.get_payment_method_display }}{% else %}Cash{% endif %}{% if payment %} | TX: {{ payment.transaction_id }}{% endif %}<br>
+                    Thank you for your business.
+                </div>
+                <div class="qr-code">
+                    <img src="https://api.qrserver.com/v1/create-qr-code/?size=45x45&data=https://printlink.pythonanywhere.com/track/?order_id={{ order.id }}" 
+                         alt="QR" crossorigin="anonymous">
+                </div>
+            </div>
+            
         </div>
-        
-        <!-- Order ID -->
-        <div class="order-number">#{{ order.id }}</div>
-        <div class="order-date">{{ order.created_at|date:"d M Y  |  H:i" }}</div>
-        
-        <!-- Info Table -->
-        <table class="info-table">
-            <tr><td class="lbl">Student</td><td class="val">{{ order.client.get_full_name|default:order.client.username|truncatechars:22 }}</td></tr>
-            <tr><td class="lbl">Document</td><td class="val" style="font-size:8px;">{{ order.file_name|truncatechars:22 }}</td></tr>
-            <tr><td class="lbl">Pages</td><td class="val">{{ order.page_count }}{% if order.is_double_sided %} ({{ order.paper_used }} sheets){% endif %}</td></tr>
-            <tr><td class="lbl">Print Type</td><td class="val">{% if order.is_color %}Color{% else %}Black &amp; White{% endif %}{% if order.is_double_sided %} / Duplex{% endif %}</td></tr>
-            {% if order.binding != 'none' %}<tr><td class="lbl">Binding</td><td class="val">{{ order.get_binding_display }}</td></tr>{% endif %}
-            <tr><td class="lbl">Station</td><td class="val">{{ order.station.name|default:"N/A"|truncatechars:18 }}</td></tr>
-            <tr><td class="lbl">Status</td><td class="val">{{ order.get_status_display }}</td></tr>
-        </table>
-        
-        <!-- Total -->
-        <div class="total-box">
-            <div class="total-label">Total Amount Paid</div>
-            <div class="total-amount">UGX {{ order.total_price|floatformat:0|intcomma }}</div>
-        </div>
-        
-        <!-- QR Code -->
-        <div class="qr-section">
-            <img src="https://api.qrserver.com/v1/create-qr-code/?size=55x55&data=https://printlink.pythonanywhere.com/track/?order_id={{ order.id }}" 
-                 alt="Track Order" crossorigin="anonymous">
-            <div class="qr-label">Scan to track your order</div>
-        </div>
-        
-        <!-- Thanks -->
-        <div class="thanks">Thank you for choosing PrintHub.</div>
-        <div class="receipt-footer">We appreciate your trust in our service.</div>
     </div>
 
     <!-- Buttons -->
@@ -154,15 +237,15 @@ function shareAsImage() {
     const r = document.getElementById('receipt-card');
     html2canvas(r, { scale: 2, backgroundColor: '#ffffff', useCORS: true, allowTaint: true }).then(c => {
         c.toBlob(b => {
-            const f = new File([b], 'Receipt-{{ order.id }}.png', { type: 'image/png' });
+            const f = new File([b], 'Invoice-{{ order.id }}.png', { type: 'image/png' });
             if (navigator.share && navigator.canShare({ files: [f] })) {
-                navigator.share({ files: [f], title: 'Receipt #{{ order.id }}', text: 'UGX {{ order.total_price|floatformat:0|intcomma }}' }).catch(() => download(c));
+                navigator.share({ files: [f], title: 'Invoice #{{ order.id }}', text: 'UGX {{ order.total_price|floatformat:0|intcomma }}' }).catch(() => download(c));
             } else { download(c); }
         }, 'image/png');
     }).catch(() => {
-        window.open('https://wa.me/?text=PrintHub%20Receipt%20%23{{ order.id }}%20-%20UGX%20{{ order.total_price|floatformat:0|intcomma }}%20-%20https://printlink.pythonanywhere.com/track/?order_id={{ order.id }}', '_blank');
+        window.open('https://wa.me/?text=PrintHub%20Invoice%20%23{{ order.id }}%20-%20UGX%20{{ order.total_price|floatformat:0|intcomma }}', '_blank');
     });
 }
-function download(c) { const a = document.createElement('a'); a.download = 'Receipt-{{ order.id }}.png'; a.href = c.toDataURL('image/png'); a.click(); }
+function download(c) { const a = document.createElement('a'); a.download = 'Invoice-{{ order.id }}.png'; a.href = c.toDataURL('image/png'); a.click(); }
 </script>
 {% endblock %}
