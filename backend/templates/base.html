@@ -25,14 +25,6 @@
         })();
     </script>
     <style>
-        @keyframes blob {
-            0%, 100% { transform: translate(0, 0) scale(1); }
-            33% { transform: translate(30px, -50px) scale(1.1); }
-            66% { transform: translate(-20px, 20px) scale(0.9); }
-        }
-        .animate-blob { animation: blob 7s infinite; }
-        .animation-delay-2000 { animation-delay: 2s; }
-        
         select option { background: #1e293b !important; color: #e2e8f0 !important; }
         
         .theme-toggle-btn {
@@ -94,17 +86,15 @@
         html[data-theme="light"] .divide-white\/10 > * { border-color: #e2e8f0 !important; }
         html[data-theme="light"] .divide-white\/5 > * { border-color: #f1f5f9 !important; }
         html[data-theme="light"] .divide-slate-700 > * { border-color: #e2e8f0 !important; }
-        html[data-theme="light"] .shadow-lg { box-shadow: 0 4px 6px rgba(0,0,0,0.05) !important; }
-        html[data-theme="light"] .shadow-2xl { box-shadow: 0 25px 50px rgba(0,0,0,0.1) !important; }
+        html[data-theme="light"] .shadow { box-shadow: 0 1px 3px rgba(0,0,0,0.1) !important; }
         html[data-theme="light"] select option { background: #ffffff !important; color: #1e293b !important; }
         html[data-theme="light"] .theme-toggle-btn { border-color: #94a3b8; color: #475569; }
     </style>
 </head>
 <body class="bg-slate-900 min-h-screen overflow-x-hidden text-white">
 
-    <!-- ANNOUNCEMENT BANNER -->
     {% if announcement %}
-    <div id="announcement-bar" class="{{ announcement.background_color }} text-white text-center py-2 px-4 text-sm font-medium">
+    <div id="announcement-bar" class="bg-blue-600 text-white text-center py-2 px-4 text-sm font-medium">
         <span>{{ announcement.message }}</span>
         <button onclick="document.getElementById('announcement-bar').remove()" class="ml-3 text-white/70 hover:text-white text-lg">&times;</button>
     </div>
@@ -114,10 +104,10 @@
         <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
             <div class="flex justify-between items-center h-16">
                 <div class="flex-shrink-0 flex items-center">
-                   <a href="/" class="flex items-center space-x-2">
-    <img src="{% static 'logo.png' %}" alt="PrintHub Logo" class="h-14 w-auto object-contain">
-    <span class="text-white font-bold text-xl">PrintHub</span>
-</a>
+                    <a href="/" class="flex items-center space-x-2">
+                        <img src="{% static 'logo.png' %}" alt="PrintHub Logo" class="h-14 w-auto object-contain">
+                        <span class="text-white font-bold text-xl">PrintHub</span>
+                    </a>
                 </div>
                 <div class="flex items-center space-x-2">
                     <button class="theme-toggle-btn" onclick="toggleTheme()" title="Toggle theme" id="themeBtn">&#9788;</button>
@@ -128,7 +118,7 @@
                             <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9"/></svg>
                             <span id="notification-badge" class="hidden absolute -top-1 -right-1 bg-red-500 text-white text-xs rounded-full w-5 h-5 flex items-center justify-center font-bold">0</span>
                         </button>
-                        <div id="notification-dropdown" class="hidden absolute right-0 mt-2 w-[calc(100vw-32px)] max-w-sm bg-slate-800 border border-slate-700 rounded-xl shadow-2xl z-50 max-h-80 overflow-y-auto">
+                        <div id="notification-dropdown" class="hidden absolute right-0 mt-2 w-[calc(100vw-32px)] max-w-sm bg-slate-800 border border-slate-700 rounded shadow z-50 max-h-80 overflow-y-auto">
                             <div class="p-3 border-b border-slate-700 flex justify-between items-center">
                                 <span class="text-white font-bold text-sm">Notifications</span>
                                 <button onclick="markAllRead()" class="text-blue-400 hover:text-blue-300 text-xs">Mark all read</button>
@@ -138,7 +128,7 @@
                     </div>
                     {% endif %}
                     
-                    <a href="{% url 'upload' %}" class="md:hidden bg-gradient-to-r from-blue-500 to-purple-600 text-white px-3 py-1.5 rounded-lg text-sm font-medium flex items-center space-x-1">
+                    <a href="{% url 'upload' %}" class="md:hidden bg-blue-600 text-white px-3 py-1.5 rounded text-sm font-medium flex items-center space-x-1">
                         <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12"/></svg>
                         <span>Upload</span>
                     </a>
@@ -152,7 +142,7 @@
                     </div>
 
                     <div class="hidden md:flex items-center space-x-3">
-                        <a href="{% url 'upload' %}" class="bg-gradient-to-r from-blue-500 to-purple-600 text-white px-4 py-2 rounded-lg hover:shadow-lg transition-all text-sm font-medium flex items-center space-x-2">
+                        <a href="{% url 'upload' %}" class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded text-sm font-medium flex items-center space-x-2 transition-all">
                             <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/></svg>
                             <span>Place an Order</span>
                         </a>
@@ -173,13 +163,13 @@
                         {% else %}
                             <a href="{% url 'track_order' %}" class="text-gray-300 hover:text-white px-3 py-2 rounded-md text-sm font-medium hover:bg-white/10">Track Order</a>
                             <a href="{% url 'login' %}" class="text-gray-300 hover:text-white px-3 py-2 rounded-md text-sm font-medium hover:bg-white/10">Login</a>
-                            <a href="{% url 'register' %}" class="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition-all text-sm font-medium">Register</a>
+                            <a href="{% url 'register' %}" class="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700 transition-all text-sm font-medium">Register</a>
                         {% endif %}
                     </div>
                 </div>
             </div>
         </div>
-        <div id="mobile-menu" class="hidden md:hidden absolute top-16 left-0 w-full bg-slate-800/95 backdrop-blur-md border-b border-white/10 shadow-lg">
+        <div id="mobile-menu" class="hidden md:hidden absolute top-16 left-0 w-full bg-slate-800/95 backdrop-blur-md border-b border-white/10 shadow">
             <div class="px-4 pt-2 pb-4 space-y-2">
                 {% if user.is_authenticated %}
                     <a href="{% url 'dashboard' %}" class="block px-3 py-2 rounded-md text-base font-medium text-gray-300 hover:text-white hover:bg-white/10">My Orders</a>
@@ -207,7 +197,7 @@
     {% if messages %}
     <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 mt-4">
         {% for message in messages %}
-        <div class="px-4 py-3 rounded-xl mb-4 text-sm {% if message.tags == 'success' %}bg-green-500/20 border border-green-500/50 text-green-300{% elif message.tags == 'error' %}bg-red-500/20 border border-red-500/50 text-red-300{% else %}bg-blue-500/20 border border-blue-500/50 text-blue-300{% endif %}">{{ message }}</div>
+        <div class="px-4 py-3 rounded mb-4 text-sm {% if message.tags == 'success' %}bg-green-500/20 border border-green-500/50 text-green-300{% elif message.tags == 'error' %}bg-red-500/20 border border-red-500/50 text-red-300{% else %}bg-blue-500/20 border border-blue-500/50 text-blue-300{% endif %}">{{ message }}</div>
         {% endfor %}
     </div>
     {% endif %}
@@ -218,24 +208,23 @@
         <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8"><p class="text-center text-gray-400 text-sm">&copy; 2026 PrintHub. All rights reserved.</p></div>
     </footer>
 
-   <div id="pwa-install-banner" class="hidden fixed bottom-0 left-0 right-0 bg-slate-800 border-t border-slate-700 p-4 z-50">
-    <div class="max-w-7xl mx-auto flex items-center justify-between">
-        <div class="flex items-center gap-3">
-            <img src="{% static 'logo.png' %}" alt="PrintHub Logo" class="h-10 w-auto object-contain">
-            <div>
-                <p class="text-white font-medium text-sm">Install PrintHub</p>
-                <p class="text-gray-400 text-xs">Add to your home screen</p>
+    <div id="pwa-install-banner" class="hidden fixed bottom-0 left-0 right-0 bg-slate-800 border-t border-slate-700 p-4 z-50">
+        <div class="max-w-7xl mx-auto flex items-center justify-between">
+            <div class="flex items-center gap-3">
+                <img src="{% static 'logo.png' %}" alt="PrintHub Logo" class="h-10 w-auto object-contain">
+                <div>
+                    <p class="text-white font-medium text-sm">Install PrintHub</p>
+                    <p class="text-gray-400 text-xs">Add to your home screen</p>
+                </div>
+            </div>
+            <div class="flex gap-2">
+                <button onclick="dismissPWA()" class="text-gray-400 hover:text-white text-sm px-3 py-1">Later</button>
+                <button onclick="installPWA()" class="bg-indigo-600 hover:bg-indigo-500 text-white text-sm font-bold px-4 py-2 rounded">Install</button>
             </div>
         </div>
-        <div class="flex gap-2">
-            <button onclick="dismissPWA()" class="text-gray-400 hover:text-white text-sm px-3 py-1">Later</button>
-            <button onclick="installPWA()" class="bg-indigo-600 hover:bg-indigo-500 text-white text-sm font-bold px-4 py-2 rounded-lg">Install</button>
-        </div>
     </div>
-</div>
 
     <script>
-        // Theme
         function toggleTheme() {
             const html = document.documentElement;
             const btn = document.getElementById('themeBtn');
@@ -249,13 +238,11 @@
         }
         (function(){document.getElementById('themeBtn').innerHTML=(localStorage.getItem('theme')||'dark')==='dark'?'&#9788;':'&#9790;';})();
         
-        // Mobile menu
         document.addEventListener('DOMContentLoaded',function(){
             const btn=document.getElementById('mobile-menu-btn'),menu=document.getElementById('mobile-menu'),hi=document.getElementById('hamburger-icon'),ci=document.getElementById('close-icon');
             if(btn)btn.addEventListener('click',function(){menu.classList.toggle('hidden');hi.classList.toggle('hidden');ci.classList.toggle('hidden');});
         });
 
-        // Notification sound
         function playNotificationSound() {
             try {
                 const ctx = new (window.AudioContext || window.webkitAudioContext)();
@@ -271,7 +258,6 @@
             } catch(e) {}
         }
 
-        // Notifications
         let prevCount = 0;
         function toggleNotifications(){const d=document.getElementById('notification-dropdown');d.classList.toggle('hidden');if(!d.classList.contains('hidden'))fetchNotifications();}
         function fetchNotifications(){fetch('/notifications/api/').then(r=>r.json()).then(d=>{const b=document.getElementById('notification-badge'),l=document.getElementById('notification-list');if(d.unread_count>0){b.textContent=d.unread_count;b.classList.remove('hidden');if(d.unread_count>prevCount)playNotificationSound();}else{b.classList.add('hidden');}prevCount=d.unread_count;if(d.notifications.length===0){l.innerHTML='<div class="p-4 text-center text-gray-500 text-sm">No new notifications</div>';return;}l.innerHTML=d.notifications.map(n=>`<a href="${n.link||'#'}" onclick="markRead(${n.id})" class="block p-3 hover:bg-slate-700/50 transition cursor-pointer"><p class="text-white text-sm font-medium">${n.title}</p><p class="text-gray-400 text-xs mt-1">${n.message}</p><p class="text-gray-500 text-xs mt-1">${n.created}</p></a>`).join('');});}
@@ -281,40 +267,24 @@
         setInterval(fetchNotifications,15000);fetchNotifications();
         document.addEventListener('click',function(e){const b=document.getElementById('notification-bell');if(b&&!b.contains(e.target))document.getElementById('notification-dropdown').classList.add('hidden');});
 
-        // Push notification subscription
         async function subscribeToPush() {
             try {
                 const data = await fetch('/notifications/api/').then(r => r.json());
                 const vapidKey = data.vapid_public_key;
                 if (!vapidKey) return;
-                
                 const registration = await navigator.serviceWorker.ready;
                 let subscription = await registration.pushManager.getSubscription();
-                
                 if (!subscription) {
-                    subscription = await registration.pushManager.subscribe({
-                        userVisibleOnly: true,
-                        applicationServerKey: vapidKey
-                    });
+                    subscription = await registration.pushManager.subscribe({userVisibleOnly: true, applicationServerKey: vapidKey});
                 }
-                
-                await fetch('/notifications/push/subscribe/', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json', 'X-CSRFToken': getCookie('csrftoken') },
-                    body: JSON.stringify({ subscription: subscription.toJSON() })
-                });
-            } catch(e) {
-                console.log('Push subscription skipped');
-            }
+                await fetch('/notifications/push/subscribe/', {method:'POST',headers:{'Content-Type':'application/json','X-CSRFToken':getCookie('csrftoken')},body:JSON.stringify({subscription:subscription.toJSON()})});
+            } catch(e) {}
         }
         
         {% if user.is_authenticated %}
-        if ('serviceWorker' in navigator && 'PushManager' in window) {
-            subscribeToPush();
-        }
+        if ('serviceWorker' in navigator && 'PushManager' in window) { subscribeToPush(); }
         {% endif %}
 
-        // PWA
         let deferredPrompt;
         window.addEventListener('beforeinstallprompt',(e)=>{e.preventDefault();deferredPrompt=e;document.getElementById('pwa-install-banner').classList.remove('hidden');});
         function installPWA(){if(deferredPrompt){deferredPrompt.prompt();deferredPrompt.userChoice.then(()=>{deferredPrompt=null;document.getElementById('pwa-install-banner').classList.add('hidden');});}}
