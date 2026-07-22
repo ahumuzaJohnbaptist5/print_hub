@@ -4,26 +4,20 @@
 <head>
     <meta charset="UTF-8">
     <!-- Open Graph / WhatsApp / Facebook -->
-<meta property="og:title" content="PrintHub - Kabale University Printing Service">
-<meta property="og:description" content="PrintHub is giving HEC members an exclusive discount on all print orders.
+    <meta property="og:title" content="PrintHub - Kabale University Printing Service">
+    <meta property="og:description" content="Upload documents, pay with MTN or Airtel, and pick up at your campus station. Fast, affordable printing for students.">
+    <meta property="og:image" content="https://printlink.pythonanywhere.com/static/icons/icon.svg">
+    <meta property="og:image:width" content="512">
+    <meta property="og:image:height" content="512">
+    <meta property="og:url" content="https://printlink.pythonanywhere.com">
+    <meta property="og:type" content="website">
+    <meta property="og:site_name" content="PrintHub">
 
-Use code HEC10 when uploading for 10% OFF.
-
-📄 Upload your assignment, course work, or lecture slides
-💳 Pay instantly with MTN or Airtel
-📍 Pick up at any campus station – no queue.">
-<meta property="og:image" content="https://printlink.pythonanywhere.com/static/icons/icon.svg">
-<meta property="og:image:width" content="512">
-<meta property="og:image:height" content="512">
-<meta property="og:url" content="https://printlink.pythonanywhere.com">
-<meta property="og:type" content="website">
-<meta property="og:site_name" content="PrintHub">
-
-<!-- Twitter Card -->
-<meta name="twitter:card" content="summary_large_image">
-<meta name="twitter:title" content="PrintHub - Kabale University Printing Service">
-<meta name="twitter:description" content="Upload, pay with mobile money, and pick up your prints. Fast, easy, and affordable.">
-<meta name="twitter:image" content="https://printlink.pythonanywhere.com/static/icons/icon.svg">
+    <!-- Twitter Card -->
+    <meta name="twitter:card" content="summary_large_image">
+    <meta name="twitter:title" content="PrintHub - Kabale University Printing Service">
+    <meta name="twitter:description" content="Upload, pay with mobile money, and pick up your prints. Fast, easy, and affordable.">
+    <meta name="twitter:image" content="https://printlink.pythonanywhere.com/static/icons/icon.svg">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>{% block title %}PrintHub{% endblock %}</title>
     
@@ -119,7 +113,8 @@ Use code HEC10 when uploading for 10% OFF.
             <div class="flex justify-between items-center h-16">
                 <div class="flex-shrink-0 flex items-center">
                     <a href="/" class="flex items-center space-x-2">
-                        <img src="{% static 'logo.png' %}" alt="PrintHub Logo" class="h-14 w-auto object-contain">
+                        <!-- Using the existing SVG icon as the logo -->
+                        <img src="{% static 'icons/icon.svg' %}" alt="PrintHub Logo" class="h-10 w-10 object-contain">
                         <span class="text-white font-bold text-xl">PrintHub</span>
                     </a>
                 </div>
@@ -225,7 +220,7 @@ Use code HEC10 when uploading for 10% OFF.
     <div id="pwa-install-banner" class="hidden fixed bottom-0 left-0 right-0 bg-slate-800 border-t border-slate-700 p-4 z-50">
         <div class="max-w-7xl mx-auto flex items-center justify-between">
             <div class="flex items-center gap-3">
-                <img src="{% static 'logo.png' %}" alt="PrintHub Logo" class="h-10 w-auto object-contain">
+                <img src="{% static 'icons/icon.svg' %}" alt="PrintHub Logo" class="h-10 w-auto object-contain">
                 <div>
                     <p class="text-white font-medium text-sm">Install PrintHub</p>
                     <p class="text-gray-400 text-xs">Add to your home screen</p>
