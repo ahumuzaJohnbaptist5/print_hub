@@ -17,7 +17,7 @@ from django.core.mail import send_mail
 
 from stations.models import Station
 
-from .models import Order, SystemSettings, DeliveryZone
+from .models import Order, SystemSettings, DeliveryZone, Announcement
 from .utils import apply_order_status_change, send_delayed_order_email
 
 User = get_user_model()
@@ -255,6 +255,33 @@ def admin_dashboard_view(request):
                 messages.success(request, f'Updated {updated_count} order(s) to {new_status}.')
             return redirect(request.get_full_path() or 'admin_dashboard')
 
+        if action == 'update_announcement':
+            if request.POST.get('delete_announcement'):
+                Announcement.objects.filter(is_active=True).update(is_active=False)
+                messages.success(request, 'Announcement removed.')
+            else:
+                title = request.POST.get('announcement_title', 'Announcement')
+                message_text = request.POST.get('announcement_message', '')
+                color = request.POST.get('announcement_color', 'bg-blue-600')
+                is_active = request.POST.get('announcement_active') == 'on'
+                show_home = request.POST.get('announcement_home') == 'on'
+                
+                if message_text:
+                    Announcement.objects.update_or_create(
+                        is_active=True,
+                        defaults={
+                            'title': title,
+                            'message': message_text,
+                            'background_color': color,
+                            'is_active': is_active,
+                            'show_on_home': show_home,
+                        }
+                    )
+                    messages.success(request, 'Announcement updated!')
+                else:
+                    messages.error(request, 'Message cannot be empty.')
+            return redirect('admin_dashboard')
+
     orders_qs = _build_order_queryset(request)
     summary = _order_summary_counts()
     
@@ -293,6 +320,7 @@ def admin_dashboard_view(request):
         'filter_search': request.GET.get('search', ''),
         'total_filtered': orders_qs.count(),
         'system_settings': system_settings,
+        'active_announcement': Announcement.get_active(),
     })
 
 
@@ -382,7 +410,6 @@ def agent_dashboard_view(request):
             order = get_object_or_404(Order, id=order_id)
             reason = request.POST.get('delay_reason', '').strip()
             
-            # Create in-app notification for the client
             from notifications.models import Notification
             Notification.create_notification(
                 user=order.client,
@@ -392,7 +419,6 @@ def agent_dashboard_view(request):
                 link=f'/orders/{order.id}/receipt/'
             )
             
-            # Also try sending email
             send_delayed_order_email(order, reason)
             
             messages.success(request, f'Delay notification sent for Order #{order.id}.')
