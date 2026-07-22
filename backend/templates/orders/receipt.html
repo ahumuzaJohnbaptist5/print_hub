@@ -6,164 +6,177 @@
 
 {% block extra_head %}
 <style>
-@media print {
-    * { margin: 0; padding: 0; box-sizing: border-box; }
-    nav, footer, .no-print { display: none !important; }
-    @page { margin: 6mm; size: 80mm auto; }
-    body {
-        background: white !important;
-        font-family: 'Courier New', 'Liberation Mono', monospace !important;
-        font-size: 8px !important;
-        line-height: 1.3 !important;
-        color: black !important;
-        -webkit-print-color-adjust: exact;
-        print-color-adjust: exact;
+    /* ========== SCREEN STYLES (visible on website) ========== */
+    .receipt-screen {
+        background: #ffffff;
+        color: #000000;
+        font-family: 'Courier New', 'Liberation Mono', monospace;
+        font-size: 14px;
+        line-height: 1.4;
+        padding: 20px 18px;
+        max-width: 320px;
+        margin: 0 auto;
+        box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+        border-radius: 4px;
     }
-    .receipt {
-        background: white !important;
-        max-width: 72mm !important;
-        margin: 0 auto !important;
-        padding: 0 !important;
-        color: black !important;
-        font-family: 'Courier New', monospace !important;
-        font-size: 8px !important;
-        line-height: 1.3 !important;
+    .receipt-screen .center { text-align: center; }
+    .receipt-screen .right { text-align: right; }
+    .receipt-screen .bold { font-weight: 700; }
+    .receipt-screen .divider { border-top: 1px solid #000; margin: 8px 0; }
+    .receipt-screen .divider-dash { border-top: 1px dashed #000; margin: 8px 0; }
+    .receipt-screen .divider-double { border-top: 2px solid #000; margin: 10px 0; }
+    .receipt-screen .store-name { font-size: 16px; font-weight: 700; letter-spacing: 1px; }
+    .receipt-screen .meta { font-size: 11px; color: #333; }
+    .receipt-screen .item-row { display: flex; justify-content: space-between; margin: 4px 0; font-size: 13px; }
+    .receipt-screen .total-row { font-weight: 700; font-size: 15px; }
+    .receipt-screen .qr-code { text-align: center; margin: 12px 0; }
+    .receipt-screen .qr-code img { width: 90px; height: 90px; }
+    .receipt-screen .barcode { text-align: center; margin: 12px 0; }
+    .receipt-screen .barcode img { height: 35px; width: 100%; max-width: 250px; }
+    .receipt-screen .footer-text { font-size: 11px; text-align: center; color: #333; }
+    .receipt-screen .customer-info { margin: 8px 0; }
+
+    /* ========== PRINT STYLES (when printed) ========== */
+    @media print {
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        nav, footer, .no-print { display: none !important; }
+        @page { margin: 6mm; size: 80mm auto; }
+        body {
+            background: white !important;
+            font-family: 'Courier New', monospace !important;
+            font-size: 8px !important;
+            line-height: 1.3 !important;
+            color: black !important;
+        }
+        .receipt-screen {
+            box-shadow: none !important;
+            border-radius: 0 !important;
+            padding: 0 !important;
+            max-width: 72mm !important;
+            font-size: 8px !important;
+            line-height: 1.3 !important;
+        }
+        .receipt-screen * { font-size: 8px !important; }
+        .receipt-screen .store-name { font-size: 9px !important; }
+        .receipt-screen .meta { font-size: 7px !important; }
+        .receipt-screen .item-row { font-size: 8px !important; margin: 2px 0 !important; }
+        .receipt-screen .total-row { font-size: 9px !important; }
+        .receipt-screen .qr-code img { width: 70px !important; height: 70px !important; }
+        .receipt-screen .barcode img { height: 25px !important; max-width: 60mm !important; }
+        .receipt-screen .footer-text { font-size: 7px !important; }
+        .receipt-screen .divider { margin: 4px 0 !important; }
+        .receipt-screen .divider-dash { margin: 4px 0 !important; }
+        .receipt-screen .divider-double { margin: 6px 0 !important; }
+        .max-w-2xl { max-width: 100% !important; }
+        .py-6, .px-4 { padding: 0 !important; }
+        .mt-4 { margin-top: 0 !important; }
     }
-    .receipt * { color: black !important; font-family: 'Courier New', monospace !important; font-size: 8px !important; }
-    .receipt .center { text-align: center !important; }
-    .receipt .right { text-align: right !important; }
-    .receipt .bold { font-weight: bold !important; }
-    .receipt .divider { border-top: 1px solid black !important; margin: 4px 0 !important; }
-    .receipt .divider-dash { border-top: 1px dashed black !important; margin: 4px 0 !important; }
-    .receipt .divider-double { border-top: 2px solid black !important; margin: 6px 0 !important; }
-    .receipt .logo-text { font-size: 10px !important; font-weight: bold !important; letter-spacing: 1px !important; }
-    .receipt .store-name { font-size: 9px !important; font-weight: bold !important; }
-    .receipt .meta { font-size: 7px !important; }
-    .receipt .item-row { display: flex !important; justify-content: space-between !important; margin: 2px 0 !important; }
-    .receipt .total-row { font-weight: bold !important; font-size: 9px !important; }
-    .receipt .qr-code { text-align: center !important; margin: 6px 0 !important; }
-    .receipt .qr-code img { width: 50px !important; height: 50px !important; }
-    .receipt .barcode { text-align: center !important; margin: 4px 0 !important; }
-    .receipt .barcode img { height: 20px !important; width: 100% !important; max-width: 60mm !important; }
-    .receipt .footer-text { font-size: 7px !important; text-align: center !important; }
-    .receipt .customer-info { margin: 4px 0 !important; }
-    
-    .max-w-2xl { max-width: 100% !important; }
-    .py-6, .px-4 { padding: 0 !important; }
-    .bg-slate-800, .bg-slate-700, .bg-slate-700\/30 { background: white !important; }
-    .border-slate-700 { border: none !important; }
-    .text-white, .text-gray-300, .text-gray-400, .text-gray-500, .text-green-400 { color: black !important; }
-    .rounded { border-radius: 0 !important; }
-    .mt-4 { margin-top: 0 !important; }
-}
 </style>
 {% endblock %}
 
 {% block content %}
 <div class="max-w-2xl mx-auto px-4 py-6">
 
-    <!-- Receipt (visible on screen but styled for print) -->
-    <div class="bg-white border border-gray-300 rounded p-3 sm:p-4" id="receipt-card">
-        <div class="receipt">
-            
-            <!-- Header -->
-            <div class="center">
-                <div class="store-name">PRINTHUB</div>
-                <div class="meta">Kabale University Printing Service</div>
-                <div class="meta">Served by: {{ order.station.name|default:"Agent" }}</div>
-                <div class="meta">Receipt #{{ order.id }} / {{ order.created_at|date:"j M Y" }} {{ order.created_at|date:"g:iA"|lower }}</div>
-            </div>
-            
-            <div class="divider-double"></div>
-            
-            <!-- Line Items -->
-            <div class="item-row">
-                <span>{{ order.file_name|truncatechars:28 }}</span>
-            </div>
-            <div class="item-row">
-                <span>{{ order.page_count }} page{{ order.page_count|pluralize }} @ UGX {% if order.is_color %}300{% else %}200{% endif %}</span>
-                <span class="right">
-                    {% if order.is_color %}
-                        {% widthratio order.page_count 1 300 %}
-                    {% else %}
-                        {% widthratio order.page_count 1 200 %}
-                    {% endif %} UGX
-                </span>
-            </div>
-            {% if order.is_double_sided %}
-            <div class="item-row">
-                <span>Duplex printing</span>
-                <span class="right">Included</span>
-            </div>
-            {% endif %}
-            {% if order.binding != 'none' %}
-            <div class="item-row">
-                <span>{{ order.get_binding_display }}</span>
-                <span class="right">
-                    {% if order.binding == 'spiral' %}
-                        UGX 1,000
-                    {% else %}
-                        UGX 0
-                    {% endif %}
-                </span>
-            </div>
-            {% endif %}
-            {% if order.delivery_type == 'delivery' and order.delivery_zone %}
-            <div class="item-row">
-                <span>Delivery ({{ order.delivery_zone.name }})</span>
-                <span class="right">UGX {{ order.delivery_zone.delivery_fee|intcomma }}</span>
-            </div>
-            {% endif %}
-            
-            <div class="divider"></div>
-            
-            <!-- Totals -->
-            <div class="item-row total-row">
-                <span>TOTAL ({{ order.page_count }} item{{ order.page_count|pluralize }})</span>
-                <span class="right">UGX {{ order.total_price|floatformat:0|intcomma }}</span>
-            </div>
-            <div class="item-row">
-                <span>Payment: {% if payment %}{{ payment.get_payment_method_display }} {{ payment.transaction_id }}{% else %}Pending{% endif %}</span>
-            </div>
-            <div class="item-row">
-                <span>TO PAY</span>
-                <span class="right">UGX 0</span>
-            </div>
-            
-            <div class="divider-dash"></div>
-            
-            <!-- QR Code -->
-            <div class="qr-code">
-                <img src="https://api.qrserver.com/v1/create-qr-code/?size=50x50&data=https://printlink.pythonanywhere.com/track/?order_id={{ order.id }}" 
-                     alt="QR" crossorigin="anonymous">
-                <div class="meta">E-RECEIPT</div>
-            </div>
-            
-            <!-- Barcode (1D) -->
-            <div class="barcode">
-                <img src="https://barcodeapi.org/api/auto/{{ order.id }}" 
-                     alt="Barcode" crossorigin="anonymous"
-                     onerror="this.style.display='none'">
-            </div>
-            
-            <div class="divider"></div>
-            
-            <!-- Customer Info -->
-            <div class="customer-info">
-                <div class="center bold">{{ order.client.get_full_name|default:order.client.username|upper }}</div>
-            </div>
-            
-            <div class="footer-text">
-                PrintHub &bull; Kabale University<br>
-                printhub@kab.ac.ug &bull; 0700000000 &bull; UG<br>
-                Thank you for your business.
-            </div>
-            
-            <div class="divider-double"></div>
+    <!-- Receipt Card – looks like a real POS slip both on screen and when printed -->
+    <div id="receipt-card" class="receipt-screen">
+        
+        <!-- Header -->
+        <div class="center">
+            <div class="store-name">PRINTHUB</div>
+            <div class="meta">Kabale University Printing Service</div>
+            <div class="meta">Served by: {{ order.station.name|default:"Agent" }}</div>
+            <div class="meta">Receipt #{{ order.id }} / {{ order.created_at|date:"j M Y" }} {{ order.created_at|date:"g:iA"|lower }}</div>
         </div>
+        
+        <div class="divider-double"></div>
+        
+        <!-- Line Items -->
+        <div class="item-row">
+            <span>{{ order.file_name|truncatechars:28 }}</span>
+        </div>
+        <div class="item-row">
+            <span>{{ order.page_count }} page{{ order.page_count|pluralize }} @ UGX {% if order.is_color %}300{% else %}200{% endif %}</span>
+            <span class="right">
+                {% if order.is_color %}
+                    {% widthratio order.page_count 1 300 %}
+                {% else %}
+                    {% widthratio order.page_count 1 200 %}
+                {% endif %} UGX
+            </span>
+        </div>
+        {% if order.is_double_sided %}
+        <div class="item-row">
+            <span>Duplex printing</span>
+            <span class="right">Included</span>
+        </div>
+        {% endif %}
+        {% if order.binding != 'none' %}
+        <div class="item-row">
+            <span>{{ order.get_binding_display }}</span>
+            <span class="right">
+                {% if order.binding == 'spiral' %}
+                    UGX 1,000
+                {% else %}
+                    UGX 0
+                {% endif %}
+            </span>
+        </div>
+        {% endif %}
+        {% if order.delivery_type == 'delivery' and order.delivery_zone %}
+        <div class="item-row">
+            <span>Delivery ({{ order.delivery_zone.name }})</span>
+            <span class="right">UGX {{ order.delivery_zone.delivery_fee|intcomma }}</span>
+        </div>
+        {% endif %}
+        
+        <div class="divider"></div>
+        
+        <!-- Totals -->
+        <div class="item-row total-row">
+            <span>TOTAL ({{ order.page_count }} item{{ order.page_count|pluralize }})</span>
+            <span class="right">UGX {{ order.total_price|floatformat:0|intcomma }}</span>
+        </div>
+        <div class="item-row">
+            <span>Payment: {% if payment %}{{ payment.get_payment_method_display }} {{ payment.transaction_id }}{% else %}Pending{% endif %}</span>
+        </div>
+        <div class="item-row">
+            <span>TO PAY</span>
+            <span class="right">UGX 0</span>
+        </div>
+        
+        <div class="divider-dash"></div>
+        
+        <!-- QR Code -->
+        <div class="qr-code">
+            <img src="https://api.qrserver.com/v1/create-qr-code/?size=90x90&data=https://printlink.pythonanywhere.com/track/?order_id={{ order.id }}" 
+                 alt="QR" crossorigin="anonymous">
+            <div class="meta" style="margin-top:4px;">E-RECEIPT</div>
+        </div>
+        
+        <!-- Barcode -->
+        <div class="barcode">
+            <img src="https://barcodeapi.org/api/auto/{{ order.id }}" 
+                 alt="Barcode" crossorigin="anonymous"
+                 onerror="this.style.display='none'">
+        </div>
+        
+        <div class="divider"></div>
+        
+        <!-- Customer Info -->
+        <div class="customer-info">
+            <div class="center bold">{{ order.client.get_full_name|default:order.client.username|upper }}</div>
+        </div>
+        
+        <div class="footer-text">
+            PrintHub &bull; Kabale University<br>
+            printhub@kab.ac.ug &bull; 0700000000 &bull; UG<br>
+            Thank you for your business.
+        </div>
+        
+        <div class="divider-double"></div>
     </div>
 
-    <!-- Action Buttons -->
+    <!-- Action Buttons (not printed) -->
     <div class="flex flex-wrap gap-2 mt-4 no-print">
         {% if order.status == 'pending' %}
         <a href="{% url 'payment_page' order.id %}" class="flex-1 bg-green-600 hover:bg-green-700 text-white font-bold py-2.5 rounded text-sm text-center min-w-[120px]">Pay Now</a>
