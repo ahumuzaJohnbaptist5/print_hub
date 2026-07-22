@@ -34,6 +34,28 @@ class SystemSettings(models.Model):
         return total
 
 
+class Announcement(models.Model):
+    """Custom announcement banner shown at top of all pages."""
+    message = models.TextField(help_text="Message to display in the announcement bar")
+    is_active = models.BooleanField(default=True)
+    background_color = models.CharField(max_length=30, default='bg-blue-600',
+        help_text="Tailwind class: bg-blue-600, bg-red-600, bg-green-600, bg-purple-600, bg-orange-600, etc.")
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+    
+    class Meta:
+        ordering = ['-created_at']
+        verbose_name = "Announcement"
+        verbose_name_plural = "Announcements"
+    
+    def __str__(self):
+        return self.message[:60]
+    
+    @classmethod
+    def get_active(cls):
+        return cls.objects.filter(is_active=True).first()
+
+
 class DeliveryZone(models.Model):
     name = models.CharField(max_length=100, help_text="e.g., Main Campus, City Center")
     description = models.CharField(max_length=255, blank=True, null=True)
