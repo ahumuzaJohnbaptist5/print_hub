@@ -35,7 +35,7 @@
     <!-- Announcement Banner -->
     {% if announcement %}
     <div id="announcement-banner" class="mb-6">
-        <div class="{{ announcement.background_color }}/80 border border-white/10 text-white p-4 rounded-xl shadow-lg flex items-center justify-between backdrop-blur-sm">
+        <div class="bg-blue-600/80 border border-white/10 text-white p-4 rounded-lg shadow flex items-center justify-between backdrop-blur-sm">
             <div class="flex items-center space-x-3">
                 <svg class="h-8 w-8 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5.882V19.24a1.76 1.76 0 01-3.417.592l-2.147-6.15M18 13a3 3 0 100-6M5.436 13.683A4.001 4.001 0 017 6h1.832c4.1 0 7.625-1.234 9.168-3v14c-1.543-1.766-5.067-3-9.168-3H7a3.988 3.988 0 01-1.564-.317z" />
@@ -52,7 +52,7 @@
 
     <!-- System Pause Banner -->
     <div id="pause-banner" class="hidden mb-6">
-        <div class="bg-red-600/80 border border-red-500 text-white p-4 rounded-xl shadow-lg flex items-center justify-between backdrop-blur-sm">
+        <div class="bg-red-600/80 border border-red-500 text-white p-4 rounded-lg shadow flex items-center justify-between backdrop-blur-sm">
             <div class="flex items-center space-x-3">
                 <svg class="h-8 w-8 animate-pulse text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
@@ -75,7 +75,7 @@
     </div>
 
     <!-- Desktop Table -->
-    <div class="hidden md:block bg-slate-800/50 backdrop-blur-md border border-white/10 rounded-xl overflow-hidden shadow-lg">
+    <div class="hidden md:block bg-slate-800/50 backdrop-blur-md border border-white/10 rounded-xl overflow-hidden shadow">
         <div class="overflow-x-auto">
             <table class="w-full text-left border-collapse min-w-[700px]">
                 <thead>
@@ -106,10 +106,10 @@
     <div class="text-center mt-8 sm:mt-12 pb-8">
         <p class="text-gray-400 mb-4">Need something printed?</p>
         <div class="flex justify-center gap-4">
-            <a href="{% url 'upload' %}" class="bg-gradient-to-r from-blue-600 to-purple-600 text-white font-bold px-6 py-3 rounded-xl hover:shadow-lg transition-all">
+            <a href="{% url 'upload' %}" class="bg-blue-600 hover:bg-blue-700 text-white font-bold px-6 py-3 rounded-lg transition-all">
                 Place an Order
             </a>
-            <a href="{% url 'track_order' %}" class="bg-white/10 border border-white/20 text-white font-bold px-6 py-3 rounded-xl hover:bg-white/20 transition-all">
+            <a href="{% url 'track_order' %}" class="bg-slate-700 hover:bg-slate-600 text-white font-bold px-6 py-3 rounded-lg transition-all">
                 Track Order
             </a>
         </div>
@@ -187,7 +187,7 @@
                     desktopBody.appendChild(row);
 
                     const card = document.createElement('div');
-                    card.className = `bg-slate-800/80 border border-white/10 rounded-xl p-4 shadow-lg ${rowOpacity}`;
+                    card.className = `bg-slate-800/80 border border-white/10 rounded-lg p-4 ${rowOpacity}`;
                     card.innerHTML = `
                         <div class="flex justify-between items-start mb-3 border-b border-white/10 pb-3">
                             <div>
@@ -213,7 +213,7 @@
                                 <p class="text-gray-500 text-xs uppercase">Priority</p>
                                 <p class="font-bold ${priorityClass}">${order.priority}</p>
                             </div>
-                            <div class="col-span-2 bg-black/20 rounded-lg p-3 text-center mt-2">
+                            <div class="col-span-2 bg-black/20 rounded p-3 text-center mt-2">
                                 <p class="text-gray-500 text-xs uppercase mb-1">Time Left</p>
                                 <p class="text-2xl font-mono font-bold ${priorityClass}">${order.time_left}</p>
                             </div>
