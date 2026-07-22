@@ -218,12 +218,23 @@
         <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8"><p class="text-center text-gray-400 text-sm">&copy; 2026 PrintHub. All rights reserved.</p></div>
     </footer>
 
-    <div id="pwa-install-banner" class="hidden fixed bottom-0 left-0 right-0 bg-slate-800 border-t border-slate-700 p-4 z-50">
-        <div class="max-w-7xl mx-auto flex items-center justify-between">
-            <div class="flex items-center gap-3"><div class="w-10 h-10 bg-gradient-to-tr from-blue-500 to-purple-600 rounded-lg flex items-center justify-center font-bold text-white">P</div><div><p class="text-white font-medium text-sm">Install PrintHub</p><p class="text-gray-400 text-xs">Add to your home screen</p></div></div>
-            <div class="flex gap-2"><button onclick="dismissPWA()" class="text-gray-400 hover:text-white text-sm px-3 py-1">Later</button><button onclick="installPWA()" class="bg-indigo-600 hover:bg-indigo-500 text-white text-sm font-bold px-4 py-2 rounded-lg">Install</button></div>
+   <div id="pwa-install-banner" class="hidden fixed bottom-0 left-0 right-0 bg-slate-800 border-t border-slate-700 p-4 z-50">
+    <div class="max-w-7xl mx-auto flex items-center justify-between">
+        <div class="flex items-center gap-3">
+            <!-- 👇 REPLACED THE 'P' DIV WITH YOUR REAL LOGO 👇 -->
+            <img src="{% static 'logo.png' %}" alt="PrintHub Logo" class="h-10 w-auto object-contain">
+            
+            <div>
+                <p class="text-white font-medium text-sm">Install PrintHub</p>
+                <p class="text-gray-400 text-xs">Add to your home screen</p>
+            </div>
+        </div>
+        <div class="flex gap-2">
+            <button onclick="dismissPWA()" class="text-gray-400 hover:text-white text-sm px-3 py-1">Later</button>
+            <button onclick="installPWA()" class="bg-indigo-600 hover:bg-indigo-500 text-white text-sm font-bold px-4 py-2 rounded-lg">Install</button>
         </div>
     </div>
+</div>
 
     <script>
         // Theme
