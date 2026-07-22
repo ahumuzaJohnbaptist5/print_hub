@@ -7,33 +7,31 @@
 <style>
 @media print {
     nav, footer, .no-print { display: none !important; }
-    body { background: white !important; color: black !important; font-size: 12px; }
+    body { background: white !important; color: black !important; font-size: 11px; margin: 0; padding: 0; }
+    .max-w-2xl { max-width: 100% !important; }
+    .py-6 { padding: 8px !important; }
+    .px-4 { padding-left: 8px !important; padding-right: 8px !important; }
     .receipt-card {
-        background: white !important;
-        border: 1px solid #ccc !important;
-        color: black !important;
-        box-shadow: none !important;
-        padding: 16px !important;
-        margin-bottom: 12px !important;
-        page-break-inside: avoid;
+        background: white !important; border: 2px solid #1e293b !important;
+        color: black !important; box-shadow: none !important;
+        padding: 12px !important; margin: 0 !important;
+        max-width: 80mm; margin: 0 auto;
     }
     .receipt-card * { color: black !important; }
-    .bg-white\/5, .bg-white\/10, .bg-slate-700, .bg-slate-700\/30 { background: #f5f5f5 !important; }
-    .text-white, .text-gray-300, .text-gray-400 { color: black !important; }
-    .text-gray-500 { color: #666 !important; }
-    .border-white\/10, .border-slate-700, .border-slate-600 { border-color: #ccc !important; }
+    .bg-slate-700, .bg-slate-700\/30, .bg-slate-800 { background: #f8f8f8 !important; }
+    .text-white, .text-gray-300 { color: black !important; }
+    .text-gray-400 { color: #555 !important; }
+    .text-gray-500 { color: #777 !important; }
+    .border-slate-700, .border-slate-600 { border-color: #ddd !important; }
     .text-green-400, .text-green-300 { color: #16a34a !important; }
-    .text-red-400, .text-red-300 { color: #dc2626 !important; }
-    .text-blue-400, .text-blue-300 { color: #2563eb !important; }
-    .text-yellow-400, .text-yellow-300 { color: #d97706 !important; }
+    .text-red-400 { color: #dc2626 !important; }
+    .text-blue-400 { color: #2563eb !important; }
+    .text-yellow-400 { color: #d97706 !important; }
     .text-purple-400 { color: #7c3aed !important; }
-    .text-orange-400 { color: #ea580c !important; }
-    .max-w-2xl { max-width: 100% !important; }
-    .py-12 { padding: 10px !important; }
-    .rounded-3xl, .rounded-xl, .rounded { border-radius: 4px !important; }
-    h1 { font-size: 18px !important; }
-    h2 { font-size: 14px !important; }
-    .text-5xl { font-size: 24px !important; }
+    .rounded { border-radius: 2px !important; }
+    h1 { font-size: 16px !important; }
+    .text-3xl { font-size: 20px !important; }
+    .text-2xl { font-size: 16px !important; }
 }
 </style>
 {% endblock %}
@@ -98,128 +96,67 @@
     <!-- Main Receipt Card -->
     <div class="bg-slate-800 border border-slate-700 rounded p-4 sm:p-6" id="receipt-card">
         
-        <!-- Header -->
+        <!-- Header with Logo -->
         <div class="text-center mb-4 pb-4 border-b border-slate-700">
-            <div class="w-12 h-12 sm:w-16 sm:h-16 bg-indigo-600 rounded flex items-center justify-center font-bold text-white text-xl sm:text-2xl mx-auto mb-2">P</div>
+            <img src="{% static 'logo.png' %}" alt="PrintHub" class="h-12 sm:h-16 mx-auto mb-2" onerror="this.style.display='none'">
             <h1 class="text-xl sm:text-2xl font-bold text-white">PrintHub</h1>
-            <p class="text-gray-400 text-xs sm:text-sm">Kabale University</p>
-            
-            {% if order.status == 'cancelled' %}
-            <div class="mt-3 bg-red-500/10 border border-red-500/30 rounded p-2">
-                <p class="text-red-400 font-bold text-sm">Order Cancelled</p>
-                {% if order.cancellation_reason %}<p class="text-red-400/80 text-xs mt-1">{{ order.cancellation_reason }}</p>{% endif %}
-                <p class="text-red-400/60 text-xs mt-1">{{ order.cancelled_at|date:"M d, Y H:i" }}</p>
-            </div>
-            {% endif %}
+            <p class="text-gray-400 text-xs">Kabale University Printing Service</p>
         </div>
 
-        <!-- Order ID -->
+        <!-- Order ID & Date -->
         <div class="text-center mb-4">
-            <p class="text-gray-400 text-xs uppercase tracking-wider">Order ID</p>
             <p class="text-3xl sm:text-4xl font-black text-white">#{{ order.id }}</p>
-            <span class="inline-block mt-2 px-3 py-1 rounded-full text-xs font-semibold
-                {% if order.status == 'pending' %}bg-yellow-500/20 text-yellow-300
-                {% elif order.status == 'paid' %}bg-blue-500/20 text-blue-300
-                {% elif order.status == 'printing' %}bg-purple-500/20 text-purple-300
-                {% elif order.status == 'in_transit' %}bg-orange-500/20 text-orange-300
-                {% elif order.status == 'ready' %}bg-green-500/20 text-green-300
-                {% elif order.status == 'collected' %}bg-gray-500/20 text-gray-300
-                {% elif order.status == 'cancelled' %}bg-red-500/20 text-red-300
-                {% endif %}">
-                {{ order.get_status_display }}
-            </span>
+            <p class="text-gray-400 text-xs mt-1">{{ order.created_at|date:"F d, Y - h:i A" }}</p>
         </div>
 
-        <!-- Order Details - Compact Grid -->
-        <div class="grid grid-cols-2 gap-2 text-xs sm:text-sm mb-4">
+        <!-- Order Info -->
+        <div class="grid grid-cols-2 gap-2 text-xs mb-4">
             <div class="bg-slate-700/30 rounded p-2">
                 <p class="text-gray-400">Student</p>
                 <p class="text-white font-medium">{{ order.client.get_full_name|default:order.client.username }}</p>
             </div>
             <div class="bg-slate-700/30 rounded p-2">
                 <p class="text-gray-400">Document</p>
-                <p class="text-white truncate" title="{{ order.file_name }}">{{ order.file_name }}</p>
+                <p class="text-white truncate">{{ order.file_name }}</p>
             </div>
             <div class="bg-slate-700/30 rounded p-2">
                 <p class="text-gray-400">Pages</p>
                 <p class="text-white">{{ order.page_count }}{% if order.is_double_sided %} <span class="text-gray-500">({{ order.paper_used }} sheets)</span>{% endif %}</p>
             </div>
             <div class="bg-slate-700/30 rounded p-2">
-                <p class="text-gray-400">Print Mode</p>
-                <p class="text-white">{% if order.is_color %}Color{% else %}B&amp;W{% endif %}{% if order.is_double_sided %} | Double-sided{% endif %}</p>
+                <p class="text-gray-400">Type</p>
+                <p class="text-white">{% if order.is_color %}Color{% else %}B&W{% endif %}{% if order.is_double_sided %} | Double{% endif %}{% if order.binding != 'none' %} | {{ order.get_binding_display }}{% endif %}</p>
             </div>
-            {% if order.binding != 'none' %}
-            <div class="bg-slate-700/30 rounded p-2">
-                <p class="text-gray-400">Binding</p>
-                <p class="text-purple-400">{{ order.get_binding_display }}</p>
-            </div>
-            {% endif %}
             <div class="bg-slate-700/30 rounded p-2">
                 <p class="text-gray-400">Station</p>
                 <p class="text-white">{{ order.station.name|default:"N/A" }}</p>
             </div>
-            {% if order.delivery_type == 'delivery' and order.delivery_zone %}
             <div class="bg-slate-700/30 rounded p-2">
-                <p class="text-gray-400">Delivery</p>
-                <p class="text-white">{{ order.delivery_zone.name }}</p>
+                <p class="text-gray-400">Status</p>
+                <p class="text-white">{{ order.get_status_display }}</p>
             </div>
-            {% endif %}
-            <div class="bg-slate-700/30 rounded p-2">
-                <p class="text-gray-400">Payment</p>
-                <p class="text-white">{% if payment %}{{ payment.get_payment_method_display }}{% else %}Cash{% endif %}</p>
-            </div>
-            {% if payment %}
-            <div class="bg-slate-700/30 rounded p-2">
-                <p class="text-gray-400">Transaction ID</p>
-                <p class="text-blue-400 font-mono text-xs">{{ payment.transaction_id }}</p>
-            </div>
-            {% endif %}
-            <div class="bg-slate-700/30 rounded p-2">
-                <p class="text-gray-400">Created</p>
-                <p class="text-white">{{ order.created_at|date:"M d, Y H:i" }}</p>
-            </div>
-            {% if estimated_ready %}
-            <div class="bg-slate-700/30 rounded p-2">
-                <p class="text-gray-400">Est. Ready</p>
-                <p class="{% if order.is_overdue %}text-red-400{% else %}text-blue-400{% endif %} font-medium">{{ estimated_ready|date:"M d, H:i" }}</p>
-            </div>
-            {% endif %}
         </div>
 
         <!-- Price -->
         <div class="bg-slate-700/30 rounded p-3 mb-4 text-center">
-            <p class="text-gray-400 text-xs uppercase">Amount Paid</p>
+            <p class="text-gray-400 text-xs uppercase">Total Paid</p>
             <p class="text-2xl sm:text-3xl font-extrabold text-green-400">{{ order.total_price|floatformat:0|intcomma }} UGX</p>
         </div>
 
         <!-- QR Code -->
         <div class="text-center mb-4">
-            <img src="https://api.qrserver.com/v1/create-qr-code/?size=120x120&data=https://printlink.pythonanywhere.com/track/?order_id={{ order.id }}" 
-                 alt="Track Order QR" 
+            <img src="https://api.qrserver.com/v1/create-qr-code/?size=100x100&data=https://printlink.pythonanywhere.com/track/?order_id={{ order.id }}" 
+                 alt="Track Order" 
                  class="mx-auto rounded"
-                 width="120" height="120"
+                 width="100" height="100"
                  crossorigin="anonymous">
-            <p class="text-gray-500 text-xs mt-1">Scan to track this order</p>
+            <p class="text-gray-500 text-xs mt-1">Scan to track your order</p>
         </div>
 
-        <!-- Status Message -->
-        {% if order.status == 'pending' %}
-        <div class="bg-yellow-500/10 border border-yellow-500/30 rounded p-3 mb-4 text-center">
-            <p class="text-yellow-400 font-semibold text-sm">Payment Required</p>
+        <!-- Thank You -->
+        <div class="text-center mb-4">
+            <p class="text-gray-300 text-sm font-medium">Thank you for trusting PrintHub with your printing!</p>
         </div>
-        {% elif order.status == 'ready' %}
-        <div class="bg-green-500/10 border border-green-500/30 rounded p-3 mb-4 text-center">
-            <p class="text-green-400 font-semibold text-sm">Ready for Pickup at {{ order.station.name }}</p>
-        </div>
-        {% endif %}
-
-        <!-- Notes -->
-        {% if order.notes %}
-        <div class="bg-slate-700/30 border border-slate-600 rounded p-3 mb-4">
-            <p class="text-gray-400 text-xs mb-1">Notes</p>
-            <p class="text-gray-300 text-xs">{{ order.notes }}</p>
-        </div>
-        {% endif %}
 
         <!-- Action Buttons -->
         <div class="flex flex-col sm:flex-row gap-2 no-print">
@@ -241,11 +178,6 @@
                 Back
             </a>
         </div>
-        
-        <!-- Footer -->
-        <div class="text-center mt-4 pt-3 border-t border-slate-700">
-            <p class="text-gray-500 text-xs">PrintHub - Kabale University | Generated {{ order.created_at|date:"M d, Y" }}</p>
-        </div>
     </div>
 </div>
 
@@ -263,24 +195,24 @@ function shareAsImage() {
         canvas.toBlob(function(blob) {
             const file = new File([blob], 'PrintHub-Receipt-{{ order.id }}.png', { type: 'image/png' });
             
-            // Try Web Share API first (works on mobile)
             if (navigator.share && navigator.canShare && navigator.canShare({ files: [file] })) {
                 navigator.share({
                     files: [file],
                     title: 'PrintHub Receipt #{{ order.id }}',
                     text: 'Receipt for Order #{{ order.id }} - {{ order.total_price|floatformat:0|intcomma }} UGX'
-                }).catch(() => {
-                    // User cancelled or failed - download instead
-                    downloadImage(canvas);
-                });
+                }).catch(() => downloadImage(canvas));
             } else {
-                // Desktop fallback - download image
                 downloadImage(canvas);
             }
         }, 'image/png');
     }).catch(() => {
-        // html2canvas failed - fallback to text share
-        shareAsText();
+        const text = `PrintHub Receipt #{{ order.id }}%0A%0A` +
+            `Student: {{ order.client.get_full_name|default:order.client.username }}%0A` +
+            `Document: {{ order.file_name }}%0A` +
+            `Pages: {{ order.page_count }}%0A` +
+            `Total: {{ order.total_price|floatformat:0|intcomma }} UGX%0A%0A` +
+            `Track: https://printlink.pythonanywhere.com/track/?order_id={{ order.id }}`;
+        window.open('https://wa.me/?text=' + text, '_blank');
     });
 }
 
@@ -289,21 +221,6 @@ function downloadImage(canvas) {
     link.download = 'PrintHub-Receipt-{{ order.id }}.png';
     link.href = canvas.toDataURL('image/png');
     link.click();
-    alert('Receipt image saved! You can now share it on WhatsApp.');
-}
-
-function shareAsText() {
-    const text = `PrintHub Receipt #{{ order.id }}%0A%0A` +
-        `Student: {{ order.client.get_full_name|default:order.client.username }}%0A` +
-        `Document: {{ order.file_name }}%0A` +
-        `Pages: {{ order.page_count }}{% if order.is_double_sided %} ({{ order.paper_used }} sheets){% endif %}%0A` +
-        `Type: {% if order.is_color %}Color{% else %}B&W{% endif %}{% if order.is_double_sided %} Double-sided{% endif %}{% if order.binding != 'none' %} | {{ order.get_binding_display }}{% endif %}%0A` +
-        `Station: {{ order.station.name|default:'N/A' }}%0A` +
-        `Status: {{ order.get_status_display }}%0A` +
-        `Total: {{ order.total_price|floatformat:0|intcomma }} UGX%0A%0A` +
-        `Track: https://printlink.pythonanywhere.com/track/?order_id={{ order.id }}`;
-    
-    window.open('https://wa.me/?text=' + text, '_blank');
 }
 </script>
 {% endblock %}
