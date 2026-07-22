@@ -21,6 +21,54 @@
             </a>
         </div>
     </div>
+        <!-- Announcement Management -->
+    <div class="bg-white/5 border border-white/10 rounded-2xl p-6 mb-8">
+        <h2 class="text-lg font-bold text-white mb-4">Announcement Banner</h2>
+        <form method="POST" class="space-y-4">
+            {% csrf_token %}
+            <input type="hidden" name="action" value="update_announcement">
+            
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <div>
+                    <label class="block text-xs text-gray-400 mb-1">Title</label>
+                    <input type="text" name="announcement_title" value="{{ active_announcement.title|default:'Announcement' }}" class="w-full bg-slate-700 border border-white/10 rounded-lg px-3 py-2 text-white text-sm">
+                </div>
+                <div>
+                    <label class="block text-xs text-gray-400 mb-1">Color</label>
+                    <select name="announcement_color" class="w-full bg-slate-700 border border-white/10 rounded-lg px-3 py-2 text-white text-sm">
+                        <option value="bg-blue-600" {% if active_announcement.background_color == 'bg-blue-600' %}selected{% endif %}>Blue</option>
+                        <option value="bg-green-600" {% if active_announcement.background_color == 'bg-green-600' %}selected{% endif %}>Green</option>
+                        <option value="bg-red-600" {% if active_announcement.background_color == 'bg-red-600' %}selected{% endif %}>Red</option>
+                        <option value="bg-purple-600" {% if active_announcement.background_color == 'bg-purple-600' %}selected{% endif %}>Purple</option>
+                        <option value="bg-orange-600" {% if active_announcement.background_color == 'bg-orange-600' %}selected{% endif %}>Orange</option>
+                        <option value="bg-teal-600" {% if active_announcement.background_color == 'bg-teal-600' %}selected{% endif %}>Teal</option>
+                    </select>
+                </div>
+                <div class="flex items-end gap-4">
+                    <label class="flex items-center gap-2 text-gray-300 text-sm">
+                        <input type="checkbox" name="announcement_active" {% if active_announcement and active_announcement.is_active %}checked{% endif %} class="rounded">
+                        Active
+                    </label>
+                    <label class="flex items-center gap-2 text-gray-300 text-sm">
+                        <input type="checkbox" name="announcement_home" {% if active_announcement and active_announcement.show_on_home %}checked{% endif %} class="rounded">
+                        Show on Home
+                    </label>
+                </div>
+            </div>
+            
+            <div>
+                <label class="block text-xs text-gray-400 mb-1">Message</label>
+                <textarea name="announcement_message" rows="2" class="w-full bg-slate-700 border border-white/10 rounded-lg px-3 py-2 text-white text-sm" placeholder="Enter announcement message...">{{ active_announcement.message|default:'' }}</textarea>
+            </div>
+            
+            <div class="flex gap-2">
+                <button type="submit" class="bg-indigo-600 hover:bg-indigo-700 text-white font-medium px-6 py-2 rounded-lg text-sm transition-all">Save Announcement</button>
+                {% if active_announcement %}
+                <button type="submit" name="delete_announcement" value="1" class="bg-red-600 hover:bg-red-700 text-white font-medium px-6 py-2 rounded-lg text-sm transition-all">Remove</button>
+                {% endif %}
+            </div>
+        </form>
+    </div>
 
     <!-- System Pause Control -->
     <div class="bg-white/5 border {% if system_settings.is_paused %}border-red-500/50{% else %}border-white/10{% endif %} rounded-2xl p-6 mb-8">
