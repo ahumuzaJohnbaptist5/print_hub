@@ -8,45 +8,52 @@
 <style>
 @media print {
     nav, footer, .no-print { display: none !important; }
-    body { background: white !important; margin: 0; padding: 0; }
+    @page { margin: 0; size: 80mm 120mm; }
+    body { background: white !important; margin: 0; padding: 0; font-size: 9px !important; }
     .max-w-2xl { max-width: 100% !important; }
-    .py-6 { padding: 0 !important; }
+    .py-6, .sm\:py-12 { padding: 0 !important; }
     .px-4 { padding: 0 !important; }
     
     .receipt-card {
         background: white !important;
-        border: 2px dashed #1e293b !important;
+        border: 1px solid #000 !important;
         color: black !important;
         box-shadow: none !important;
-        padding: 16px !important;
-        margin: 10px auto !important;
-        max-width: 80mm !important;
+        padding: 8px 10px !important;
+        margin: 0 auto !important;
+        max-width: 72mm !important;
         font-family: 'Courier New', monospace !important;
-        font-size: 10px !important;
+        font-size: 9px !important;
+        line-height: 1.3 !important;
     }
-    .receipt-card * { color: black !important; font-size: 10px !important; }
-    .receipt-card img { max-width: 50px !important; max-height: 50px !important; }
+    .receipt-card * { color: black !important; font-size: 9px !important; line-height: 1.3 !important; }
+    .receipt-card img { max-width: 40px !important; max-height: 40px !important; }
     .text-white, .text-gray-300, .text-gray-400, .text-gray-500 { color: black !important; }
-    .text-green-400 { color: #16a34a !important; }
-    .text-red-400 { color: #dc2626 !important; }
+    .text-green-400 { color: #000 !important; font-weight: bold !important; }
+    .text-red-400 { color: #000 !important; }
     .bg-slate-700, .bg-slate-700\/30, .bg-slate-800 { background: white !important; }
-    .border-slate-700, .border-slate-600 { border: none !important; }
-    .border-b { border-bottom: 1px dashed #ccc !important; }
+    .border-slate-700, .border-slate-600 { border-color: #000 !important; }
+    .border-dashed { border-style: dashed !important; }
     .rounded { border-radius: 0 !important; }
-    .grid { display: block !important; }
-    .grid > * { display: block !important; padding: 1px 0 !important; }
-    .text-3xl { font-size: 18px !important; }
     .text-2xl { font-size: 14px !important; }
-    h1 { font-size: 14px !important; }
-    .mb-4 { margin-bottom: 6px !important; }
-    .mb-2 { margin-bottom: 4px !important; }
-    .pb-4 { padding-bottom: 6px !important; }
-    .pt-3 { padding-top: 6px !important; }
+    .text-xl { font-size: 12px !important; }
+    .text-lg { font-size: 11px !important; }
+    h1 { font-size: 12px !important; }
+    .mb-4, .mb-3 { margin-bottom: 4px !important; }
+    .mb-2 { margin-bottom: 2px !important; }
+    .pb-3 { padding-bottom: 4px !important; }
+    .pb-4 { padding-bottom: 4px !important; }
+    .pt-2 { padding-top: 4px !important; }
+    .pt-3 { padding-top: 4px !important; }
     .p-2 { padding: 2px !important; }
     .p-3 { padding: 4px !important; }
     .p-4 { padding: 6px !important; }
-    .gap-2 { gap: 2px !important; }
-    .space-y-2 > * { margin-bottom: 2px !important; }
+    .mt-1 { margin-top: 1px !important; }
+    .mt-2 { margin-top: 2px !important; }
+    .mt-4 { margin-top: 4px !important; }
+    .space-y-1\.5 > * { margin-bottom: 1px !important; }
+    .gap-2 { gap: 3px !important; }
+    .max-w-\[150px\] { max-width: 100px !important; }
 }
 </style>
 {% endblock %}
@@ -108,71 +115,62 @@
         </div>
     </div>
 
-    <!-- Main Receipt Card - Compact Half Page -->
-    <div class="bg-slate-800 border border-slate-700 rounded p-4 sm:p-6" id="receipt-card">
+    <!-- Receipt Card - Ultra Compact -->
+    <div class="bg-slate-800 border border-slate-700 rounded p-3 sm:p-4" id="receipt-card">
         
         <!-- Header -->
-        <div class="text-center mb-3 pb-3 border-b border-slate-700">
-            <img src="{% static 'logo.png' %}" alt="PrintHub" class="h-10 mx-auto mb-1" onerror="this.style.display='none'">
-            <h1 class="text-lg font-bold text-white">PrintHub</h1>
+        <div class="text-center mb-2 pb-2 border-b border-dashed border-slate-700">
+            <img src="{% static 'logo.png' %}" alt="P" class="h-8 mx-auto mb-1" onerror="this.style.display='none'">
+            <h1 class="text-base font-bold text-white">PRINTHUB</h1>
             <p class="text-gray-400 text-xs">Kabale University</p>
         </div>
 
-        <!-- Order ID -->
-        <div class="text-center mb-3 pb-3 border-b border-dashed border-slate-700">
-            <p class="text-2xl font-black text-white">#{{ order.id }}</p>
-            <p class="text-gray-400 text-xs">{{ order.created_at|date:"d M Y  H:i" }}</p>
+        <!-- Order ID & Date -->
+        <div class="text-center mb-2 pb-2 border-b border-dashed border-slate-700">
+            <p class="text-xl font-black text-white">#{{ order.id }}</p>
+            <p class="text-gray-400 text-xs">{{ order.created_at|date:"d/m/Y H:i" }}</p>
         </div>
 
-        <!-- Details - Compact List -->
-        <div class="text-xs space-y-1.5 mb-3 pb-3 border-b border-dashed border-slate-700">
-            <div class="flex justify-between"><span class="text-gray-400">Student</span><span class="text-white">{{ order.client.get_full_name|default:order.client.username }}</span></div>
-            <div class="flex justify-between"><span class="text-gray-400">File</span><span class="text-white truncate max-w-[150px]">{{ order.file_name }}</span></div>
-            <div class="flex justify-between"><span class="text-gray-400">Pages</span><span class="text-white">{{ order.page_count }}{% if order.is_double_sided %} ({{ order.paper_used }} sheets){% endif %}</span></div>
-            <div class="flex justify-between"><span class="text-gray-400">Type</span><span class="text-white">{% if order.is_color %}Color{% else %}B&W{% endif %}{% if order.is_double_sided %} | Double{% endif %}{% if order.binding != 'none' %} | {{ order.get_binding_display }}{% endif %}</span></div>
-            <div class="flex justify-between"><span class="text-gray-400">Station</span><span class="text-white">{{ order.station.name|default:"N/A" }}</span></div>
-            <div class="flex justify-between"><span class="text-gray-400">Status</span><span class="text-white font-semibold">{{ order.get_status_display }}</span></div>
+        <!-- Details -->
+        <div class="text-xs space-y-1 mb-2 pb-2 border-b border-dashed border-slate-700">
+            <div class="flex justify-between"><span class="text-gray-400">Student</span><span class="text-white">{{ order.client.get_full_name|default:order.client.username|truncatechars:20 }}</span></div>
+            <div class="flex justify-between"><span class="text-gray-400">File</span><span class="text-white truncate max-w-[120px]">{{ order.file_name|truncatechars:18 }}</span></div>
+            <div class="flex justify-between"><span class="text-gray-400">Pages</span><span class="text-white">{{ order.page_count }}{% if order.is_double_sided %}({{ order.paper_used }} sh){% endif %}</span></div>
+            <div class="flex justify-between"><span class="text-gray-400">Type</span><span class="text-white">{% if order.is_color %}Color{% else %}B&W{% endif %}{% if order.is_double_sided %}/Dbl{% endif %}{% if order.binding == 'spiral' %}/Spiral{% elif order.binding == 'staple' %}/Staple{% endif %}</span></div>
+            <div class="flex justify-between"><span class="text-gray-400">Station</span><span class="text-white">{{ order.station.name|default:"N/A"|truncatechars:15 }}</span></div>
         </div>
 
         <!-- Total -->
-        <div class="text-center mb-3 pb-3 border-b border-dashed border-slate-700">
-            <p class="text-gray-400 text-xs">Total Paid</p>
-            <p class="text-xl font-extrabold text-green-400">{{ order.total_price|floatformat:0|intcomma }} UGX</p>
+        <div class="text-center mb-2 pb-2 border-b border-dashed border-slate-700">
+            <p class="text-gray-400 text-xs">TOTAL</p>
+            <p class="text-lg font-extrabold text-green-400">UGX {{ order.total_price|floatformat:0|intcomma }}</p>
         </div>
 
-        <!-- QR & Thank You -->
-        <div class="text-center mb-2">
-            <img src="https://api.qrserver.com/v1/create-qr-code/?size=80x80&data=https://printlink.pythonanywhere.com/track/?order_id={{ order.id }}" 
-                 alt="Track Order" 
+        <!-- QR & Thanks -->
+        <div class="text-center mb-2 pb-2 border-b border-dashed border-slate-700">
+            <img src="https://api.qrserver.com/v1/create-qr-code/?size=60x60&data=https://printlink.pythonanywhere.com/track/?order_id={{ order.id }}" 
+                 alt="QR" 
                  class="mx-auto"
-                 width="80" height="80"
+                 width="60" height="60"
                  crossorigin="anonymous">
-            <p class="text-gray-500 text-xs mt-1">Scan to track</p>
+            <p class="text-gray-500 text-xs mt-1">Scan to track order</p>
         </div>
 
-        <div class="text-center pt-2 border-t border-dashed border-slate-700">
-            <p class="text-gray-300 text-xs">Thank you for choosing PrintHub!</p>
+        <div class="text-center pt-1">
+            <p class="text-gray-300 text-xs">Thank you - PrintHub</p>
         </div>
 
-        <!-- Action Buttons -->
-        <div class="flex flex-col sm:flex-row gap-2 mt-4 no-print">
+        <!-- Buttons -->
+        <div class="flex flex-col sm:flex-row gap-2 mt-3 no-print">
             {% if order.status == 'pending' %}
-            <a href="{% url 'payment_page' order.id %}" class="flex-1 bg-green-600 hover:bg-green-700 text-white font-bold py-2.5 rounded text-sm text-center transition-all">
-                Pay Now - {{ order.total_price|floatformat:0|intcomma }} UGX
+            <a href="{% url 'payment_page' order.id %}" class="flex-1 bg-green-600 hover:bg-green-700 text-white font-bold py-2 rounded text-xs text-center transition-all">
+                Pay {{ order.total_price|floatformat:0|intcomma }} UGX
             </a>
             {% endif %}
             
-            <button onclick="window.print()" class="flex-1 bg-indigo-600 hover:bg-indigo-500 text-white font-bold py-2.5 rounded text-sm transition-all">
-                Print
-            </button>
-            
-            <button onclick="shareAsImage()" class="flex-1 bg-green-700 hover:bg-green-600 text-white font-bold py-2.5 rounded text-sm transition-all">
-                Share WhatsApp
-            </button>
-            
-            <a href="{% url 'dashboard' %}" class="flex-1 text-center bg-slate-700 hover:bg-slate-600 text-white font-bold py-2.5 rounded text-sm transition-all">
-                Back
-            </a>
+            <button onclick="window.print()" class="flex-1 bg-indigo-600 hover:bg-indigo-500 text-white font-bold py-2 rounded text-xs transition-all">Print</button>
+            <button onclick="shareAsImage()" class="flex-1 bg-green-700 hover:bg-green-600 text-white font-bold py-2 rounded text-xs transition-all">WhatsApp</button>
+            <a href="{% url 'dashboard' %}" class="flex-1 text-center bg-slate-700 hover:bg-slate-600 text-white font-bold py-2 rounded text-xs transition-all">Back</a>
         </div>
     </div>
 </div>
@@ -181,42 +179,17 @@
 <script>
 function shareAsImage() {
     const receipt = document.getElementById('receipt-card');
-    
-    html2canvas(receipt, {
-        scale: 2,
-        backgroundColor: '#1e293b',
-        useCORS: true,
-        allowTaint: true
-    }).then(canvas => {
+    html2canvas(receipt, { scale: 2, backgroundColor: '#1e293b', useCORS: true, allowTaint: true }).then(canvas => {
         canvas.toBlob(function(blob) {
-            const file = new File([blob], 'PrintHub-Receipt-{{ order.id }}.png', { type: 'image/png' });
-            
+            const file = new File([blob], 'Receipt-{{ order.id }}.png', { type: 'image/png' });
             if (navigator.share && navigator.canShare && navigator.canShare({ files: [file] })) {
-                navigator.share({
-                    files: [file],
-                    title: 'PrintHub Receipt #{{ order.id }}',
-                    text: 'Receipt for Order #{{ order.id }} - {{ order.total_price|floatformat:0|intcomma }} UGX'
-                }).catch(() => downloadImage(canvas));
-            } else {
-                downloadImage(canvas);
-            }
+                navigator.share({ files: [file], title: 'Receipt #{{ order.id }}', text: '{{ order.total_price|floatformat:0|intcomma }} UGX' }).catch(() => downloadImage(canvas));
+            } else { downloadImage(canvas); }
         }, 'image/png');
     }).catch(() => {
-        const text = `PrintHub Receipt #{{ order.id }}%0A%0A` +
-            `Student: {{ order.client.get_full_name|default:order.client.username }}%0A` +
-            `File: {{ order.file_name }}%0A` +
-            `Pages: {{ order.page_count }}%0A` +
-            `Total: {{ order.total_price|floatformat:0|intcomma }} UGX%0A%0A` +
-            `Track: https://printlink.pythonanywhere.com/track/?order_id={{ order.id }}`;
-        window.open('https://wa.me/?text=' + text, '_blank');
+        window.open('https://wa.me/?text=Receipt%20%23{{ order.id }}%20-%20{{ order.total_price|floatformat:0|intcomma }}%20UGX%20-%20https://printlink.pythonanywhere.com/track/?order_id={{ order.id }}', '_blank');
     });
 }
-
-function downloadImage(canvas) {
-    const link = document.createElement('a');
-    link.download = 'PrintHub-Receipt-{{ order.id }}.png';
-    link.href = canvas.toDataURL('image/png');
-    link.click();
-}
+function downloadImage(canvas) { const a = document.createElement('a'); a.download = 'Receipt-{{ order.id }}.png'; a.href = canvas.toDataURL('image/png'); a.click(); }
 </script>
 {% endblock %}
