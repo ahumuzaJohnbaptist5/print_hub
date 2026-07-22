@@ -8,31 +8,45 @@
 <style>
 @media print {
     nav, footer, .no-print { display: none !important; }
-    body { background: white !important; color: black !important; font-size: 11px; margin: 0; padding: 0; }
+    body { background: white !important; margin: 0; padding: 0; }
     .max-w-2xl { max-width: 100% !important; }
-    .py-6 { padding: 8px !important; }
-    .px-4 { padding-left: 8px !important; padding-right: 8px !important; }
+    .py-6 { padding: 0 !important; }
+    .px-4 { padding: 0 !important; }
+    
     .receipt-card {
-        background: white !important; border: 2px solid #1e293b !important;
-        color: black !important; box-shadow: none !important;
-        padding: 12px !important; margin: 0 !important;
-        max-width: 80mm; margin: 0 auto;
+        background: white !important;
+        border: 2px dashed #1e293b !important;
+        color: black !important;
+        box-shadow: none !important;
+        padding: 16px !important;
+        margin: 10px auto !important;
+        max-width: 80mm !important;
+        font-family: 'Courier New', monospace !important;
+        font-size: 10px !important;
     }
-    .receipt-card * { color: black !important; }
-    .bg-slate-700, .bg-slate-700\/30, .bg-slate-800 { background: #f8f8f8 !important; }
-    .text-white, .text-gray-300 { color: black !important; }
-    .text-gray-400 { color: #555 !important; }
-    .text-gray-500 { color: #777 !important; }
-    .border-slate-700, .border-slate-600 { border-color: #ddd !important; }
-    .text-green-400, .text-green-300 { color: #16a34a !important; }
+    .receipt-card * { color: black !important; font-size: 10px !important; }
+    .receipt-card img { max-width: 50px !important; max-height: 50px !important; }
+    .text-white, .text-gray-300, .text-gray-400, .text-gray-500 { color: black !important; }
+    .text-green-400 { color: #16a34a !important; }
     .text-red-400 { color: #dc2626 !important; }
-    .text-blue-400 { color: #2563eb !important; }
-    .text-yellow-400 { color: #d97706 !important; }
-    .text-purple-400 { color: #7c3aed !important; }
-    .rounded { border-radius: 2px !important; }
-    h1 { font-size: 16px !important; }
-    .text-3xl { font-size: 20px !important; }
-    .text-2xl { font-size: 16px !important; }
+    .bg-slate-700, .bg-slate-700\/30, .bg-slate-800 { background: white !important; }
+    .border-slate-700, .border-slate-600 { border: none !important; }
+    .border-b { border-bottom: 1px dashed #ccc !important; }
+    .rounded { border-radius: 0 !important; }
+    .grid { display: block !important; }
+    .grid > * { display: block !important; padding: 1px 0 !important; }
+    .text-3xl { font-size: 18px !important; }
+    .text-2xl { font-size: 14px !important; }
+    h1 { font-size: 14px !important; }
+    .mb-4 { margin-bottom: 6px !important; }
+    .mb-2 { margin-bottom: 4px !important; }
+    .pb-4 { padding-bottom: 6px !important; }
+    .pt-3 { padding-top: 6px !important; }
+    .p-2 { padding: 2px !important; }
+    .p-3 { padding: 4px !important; }
+    .p-4 { padding: 6px !important; }
+    .gap-2 { gap: 2px !important; }
+    .space-y-2 > * { margin-bottom: 2px !important; }
 }
 </style>
 {% endblock %}
@@ -94,73 +108,54 @@
         </div>
     </div>
 
-    <!-- Main Receipt Card -->
+    <!-- Main Receipt Card - Compact Half Page -->
     <div class="bg-slate-800 border border-slate-700 rounded p-4 sm:p-6" id="receipt-card">
         
-        <!-- Header with Logo -->
-        <div class="text-center mb-4 pb-4 border-b border-slate-700">
-            <img src="{% static 'logo.png' %}" alt="PrintHub" class="h-12 sm:h-16 mx-auto mb-2" onerror="this.style.display='none'">
-            <h1 class="text-xl sm:text-2xl font-bold text-white">PrintHub</h1>
-            <p class="text-gray-400 text-xs">Kabale University Printing Service</p>
+        <!-- Header -->
+        <div class="text-center mb-3 pb-3 border-b border-slate-700">
+            <img src="{% static 'logo.png' %}" alt="PrintHub" class="h-10 mx-auto mb-1" onerror="this.style.display='none'">
+            <h1 class="text-lg font-bold text-white">PrintHub</h1>
+            <p class="text-gray-400 text-xs">Kabale University</p>
         </div>
 
-        <!-- Order ID & Date -->
-        <div class="text-center mb-4">
-            <p class="text-3xl sm:text-4xl font-black text-white">#{{ order.id }}</p>
-            <p class="text-gray-400 text-xs mt-1">{{ order.created_at|date:"F d, Y - h:i A" }}</p>
+        <!-- Order ID -->
+        <div class="text-center mb-3 pb-3 border-b border-dashed border-slate-700">
+            <p class="text-2xl font-black text-white">#{{ order.id }}</p>
+            <p class="text-gray-400 text-xs">{{ order.created_at|date:"d M Y  H:i" }}</p>
         </div>
 
-        <!-- Order Info -->
-        <div class="grid grid-cols-2 gap-2 text-xs mb-4">
-            <div class="bg-slate-700/30 rounded p-2">
-                <p class="text-gray-400">Student</p>
-                <p class="text-white font-medium">{{ order.client.get_full_name|default:order.client.username }}</p>
-            </div>
-            <div class="bg-slate-700/30 rounded p-2">
-                <p class="text-gray-400">Document</p>
-                <p class="text-white truncate">{{ order.file_name }}</p>
-            </div>
-            <div class="bg-slate-700/30 rounded p-2">
-                <p class="text-gray-400">Pages</p>
-                <p class="text-white">{{ order.page_count }}{% if order.is_double_sided %} <span class="text-gray-500">({{ order.paper_used }} sheets)</span>{% endif %}</p>
-            </div>
-            <div class="bg-slate-700/30 rounded p-2">
-                <p class="text-gray-400">Type</p>
-                <p class="text-white">{% if order.is_color %}Color{% else %}B&W{% endif %}{% if order.is_double_sided %} | Double{% endif %}{% if order.binding != 'none' %} | {{ order.get_binding_display }}{% endif %}</p>
-            </div>
-            <div class="bg-slate-700/30 rounded p-2">
-                <p class="text-gray-400">Station</p>
-                <p class="text-white">{{ order.station.name|default:"N/A" }}</p>
-            </div>
-            <div class="bg-slate-700/30 rounded p-2">
-                <p class="text-gray-400">Status</p>
-                <p class="text-white">{{ order.get_status_display }}</p>
-            </div>
+        <!-- Details - Compact List -->
+        <div class="text-xs space-y-1.5 mb-3 pb-3 border-b border-dashed border-slate-700">
+            <div class="flex justify-between"><span class="text-gray-400">Student</span><span class="text-white">{{ order.client.get_full_name|default:order.client.username }}</span></div>
+            <div class="flex justify-between"><span class="text-gray-400">File</span><span class="text-white truncate max-w-[150px]">{{ order.file_name }}</span></div>
+            <div class="flex justify-between"><span class="text-gray-400">Pages</span><span class="text-white">{{ order.page_count }}{% if order.is_double_sided %} ({{ order.paper_used }} sheets){% endif %}</span></div>
+            <div class="flex justify-between"><span class="text-gray-400">Type</span><span class="text-white">{% if order.is_color %}Color{% else %}B&W{% endif %}{% if order.is_double_sided %} | Double{% endif %}{% if order.binding != 'none' %} | {{ order.get_binding_display }}{% endif %}</span></div>
+            <div class="flex justify-between"><span class="text-gray-400">Station</span><span class="text-white">{{ order.station.name|default:"N/A" }}</span></div>
+            <div class="flex justify-between"><span class="text-gray-400">Status</span><span class="text-white font-semibold">{{ order.get_status_display }}</span></div>
         </div>
 
-        <!-- Price -->
-        <div class="bg-slate-700/30 rounded p-3 mb-4 text-center">
-            <p class="text-gray-400 text-xs uppercase">Total Paid</p>
-            <p class="text-2xl sm:text-3xl font-extrabold text-green-400">{{ order.total_price|floatformat:0|intcomma }} UGX</p>
+        <!-- Total -->
+        <div class="text-center mb-3 pb-3 border-b border-dashed border-slate-700">
+            <p class="text-gray-400 text-xs">Total Paid</p>
+            <p class="text-xl font-extrabold text-green-400">{{ order.total_price|floatformat:0|intcomma }} UGX</p>
         </div>
 
-        <!-- QR Code -->
-        <div class="text-center mb-4">
-            <img src="https://api.qrserver.com/v1/create-qr-code/?size=100x100&data=https://printlink.pythonanywhere.com/track/?order_id={{ order.id }}" 
+        <!-- QR & Thank You -->
+        <div class="text-center mb-2">
+            <img src="https://api.qrserver.com/v1/create-qr-code/?size=80x80&data=https://printlink.pythonanywhere.com/track/?order_id={{ order.id }}" 
                  alt="Track Order" 
-                 class="mx-auto rounded"
-                 width="100" height="100"
+                 class="mx-auto"
+                 width="80" height="80"
                  crossorigin="anonymous">
-            <p class="text-gray-500 text-xs mt-1">Scan to track your order</p>
+            <p class="text-gray-500 text-xs mt-1">Scan to track</p>
         </div>
 
-        <!-- Thank You -->
-        <div class="text-center mb-4">
-            <p class="text-gray-300 text-sm font-medium">Thank you for trusting PrintHub with your printing!</p>
+        <div class="text-center pt-2 border-t border-dashed border-slate-700">
+            <p class="text-gray-300 text-xs">Thank you for choosing PrintHub!</p>
         </div>
 
         <!-- Action Buttons -->
-        <div class="flex flex-col sm:flex-row gap-2 no-print">
+        <div class="flex flex-col sm:flex-row gap-2 mt-4 no-print">
             {% if order.status == 'pending' %}
             <a href="{% url 'payment_page' order.id %}" class="flex-1 bg-green-600 hover:bg-green-700 text-white font-bold py-2.5 rounded text-sm text-center transition-all">
                 Pay Now - {{ order.total_price|floatformat:0|intcomma }} UGX
@@ -168,11 +163,11 @@
             {% endif %}
             
             <button onclick="window.print()" class="flex-1 bg-indigo-600 hover:bg-indigo-500 text-white font-bold py-2.5 rounded text-sm transition-all">
-                Print Receipt
+                Print
             </button>
             
             <button onclick="shareAsImage()" class="flex-1 bg-green-700 hover:bg-green-600 text-white font-bold py-2.5 rounded text-sm transition-all">
-                Share on WhatsApp
+                Share WhatsApp
             </button>
             
             <a href="{% url 'dashboard' %}" class="flex-1 text-center bg-slate-700 hover:bg-slate-600 text-white font-bold py-2.5 rounded text-sm transition-all">
@@ -209,7 +204,7 @@ function shareAsImage() {
     }).catch(() => {
         const text = `PrintHub Receipt #{{ order.id }}%0A%0A` +
             `Student: {{ order.client.get_full_name|default:order.client.username }}%0A` +
-            `Document: {{ order.file_name }}%0A` +
+            `File: {{ order.file_name }}%0A` +
             `Pages: {{ order.page_count }}%0A` +
             `Total: {{ order.total_price|floatformat:0|intcomma }} UGX%0A%0A` +
             `Track: https://printlink.pythonanywhere.com/track/?order_id={{ order.id }}`;
