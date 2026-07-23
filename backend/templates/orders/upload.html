@@ -20,20 +20,28 @@
     </div>
 
     <!-- MODE SWITCHER -->
-    <div class="flex gap-2 mb-6">
+    <div class="flex gap-2 mb-4">
         <button onclick="switchMode('document')" id="btn-document" 
                 class="flex-1 py-3 rounded-lg font-bold text-sm bg-indigo-600 text-white transition-all">
-            📄upload Document
+            Upload Document
         </button>
         <button onclick="switchMode('passport')" id="btn-passport" 
                 class="flex-1 py-3 rounded-lg font-bold text-sm bg-slate-700 text-gray-400 hover:bg-slate-600 transition-all">
-            📸 take Passport
+            Take Passport
         </button>
         <button onclick="switchMode('scanner')" id="btn-scanner" 
                 class="flex-1 py-3 rounded-lg font-bold text-sm bg-slate-700 text-gray-400 hover:bg-slate-600 transition-all">
-            📷 Scan to photocopy
+            Scan to Photocopy
         </button>
     </div>
+    
+    <!-- MODE INFO -->
+    <div id="mode-info" class="bg-slate-700/50 border border-slate-600 rounded-lg p-3 mb-6 text-center">
+        <p id="mode-info-text" class="text-gray-300 text-sm">
+            <strong>Upload your file</strong> - PDF, Word, PowerPoint, or images from your device
+        </p>
+    </div>
+
     <input type="hidden" id="order_type" name="order_type" value="document">
     <input type="hidden" id="paper_size" name="paper_size" value="A4">
     <input type="hidden" id="copies" name="copies" value="1">
@@ -50,7 +58,7 @@
             {% csrf_token %}
             
             <!-- ============================================================ -->
-            <!-- DOCUMENT MODE - Your existing upload zone -->
+            <!-- DOCUMENT MODE -->
             <!-- ============================================================ -->
             <div id="document-mode">
                 <div class="mb-6">
@@ -73,15 +81,15 @@
             <!-- ============================================================ -->
             <div id="passport-mode" style="display:none;">
                 <div class="mb-4">
-                    <label class="block text-sm font-bold text-gray-300 mb-2">Passport Photo Size</label>
+                    <label class="block text-sm font-bold text-gray-300 mb-2">Photo Size</label>
                     <div class="grid grid-cols-2 gap-3">
                         <label class="flex items-center justify-center p-3 border-2 border-slate-600 rounded cursor-pointer hover:border-indigo-500 has-[:checked]:bg-indigo-500/10 has-[:checked]:border-indigo-500">
-                            <input type="radio" name="passport_size" value="2x2" class="hidden">
-                            <span class="text-sm font-semibold text-gray-300">2×2 (Visa)</span>
+                            <input type="radio" name="passport_size" value="2x2" class="hidden" onchange="document.getElementById('paper_size').value='2x2'; calculatePrice();">
+                            <span class="text-sm font-semibold text-gray-300">2x2 (Visa)</span>
                         </label>
                         <label class="flex items-center justify-center p-3 border-2 border-slate-600 rounded cursor-pointer hover:border-indigo-500 has-[:checked]:bg-indigo-500/10 has-[:checked]:border-indigo-500">
-                            <input type="radio" name="passport_size" value="4x6" checked class="hidden">
-                            <span class="text-sm font-semibold text-gray-300">4×6 (Standard)</span>
+                            <input type="radio" name="passport_size" value="4x6" checked class="hidden" onchange="document.getElementById('paper_size').value='4x6'; calculatePrice();">
+                            <span class="text-sm font-semibold text-gray-300">4x6 (Standard)</span>
                         </label>
                     </div>
                 </div>
@@ -94,15 +102,14 @@
                             <p>Click "Start Camera" to begin</p>
                         </div>
                     </div>
-                    <!-- Face guide overlay -->
                     <div id="face-guide" style="display:none; position:absolute; top:50%; left:50%; transform:translate(-50%,-50%); width:200px; height:250px; border:3px dashed #22c55e; border-radius:50%; pointer-events:none;"></div>
                     <div id="face-status" style="display:none; position:absolute; bottom:10px; left:50%; transform:translateX(-50%); background:rgba(0,0,0,0.7); color:white; padding:4px 12px; border-radius:20px; font-size:12px;"></div>
                 </div>
                 <div class="flex gap-3 mb-4">
-                    <button type="button" id="start-passport-camera" onclick="startPassportCamera()" class="flex-1 bg-indigo-600 hover:bg-indigo-500 text-white font-bold py-3 rounded transition-all">📷 Start Camera</button>
-                    <button type="button" id="capture-passport" onclick="capturePassport()" class="flex-1 bg-green-600 hover:bg-green-500 text-white font-bold py-3 rounded transition-all" style="display:none;">📸 Capture</button>
+                    <button type="button" id="start-passport-camera" onclick="startPassportCamera()" class="flex-1 bg-indigo-600 hover:bg-indigo-500 text-white font-bold py-3 rounded transition-all">Start Camera</button>
+                    <button type="button" id="capture-passport" onclick="capturePassport()" class="flex-1 bg-green-600 hover:bg-green-500 text-white font-bold py-3 rounded transition-all" style="display:none;">Capture Photo</button>
                 </div>
-                <button type="button" id="retake-passport" onclick="retakePassport()" class="w-full bg-slate-600 hover:bg-slate-500 text-white font-bold py-2 rounded transition-all mb-4" style="display:none;">🔄 Retake</button>
+                <button type="button" id="retake-passport" onclick="retakePassport()" class="w-full bg-slate-600 hover:bg-slate-500 text-white font-bold py-2 rounded transition-all mb-4" style="display:none;">Retake</button>
                 <input type="hidden" id="passport-data" name="passport_data">
             </div>
 
@@ -110,6 +117,13 @@
             <!-- CAM SCANNER MODE -->
             <!-- ============================================================ -->
             <div id="scanner-mode" style="display:none;">
+                <div class="mb-4">
+                    <label class="block text-sm font-bold text-gray-300 mb-2">Paper Size</label>
+                    <select id="scanner-paper-size" class="w-full bg-slate-700 border border-slate-600 rounded px-4 py-3 text-white" onchange="document.getElementById('paper_size').value=this.value;">
+                        <option value="A4" selected>A4</option>
+                        <option value="4x6">4x6</option>
+                    </select>
+                </div>
                 <div class="relative bg-black rounded-lg overflow-hidden mb-4" style="min-height:300px;">
                     <video id="scanner-video" autoplay playsinline class="w-full" style="display:none;"></video>
                     <canvas id="scanner-canvas" class="w-full" style="display:none;"></canvas>
@@ -121,27 +135,27 @@
                     </div>
                 </div>
                 <div class="flex gap-3 mb-4">
-                    <button type="button" id="start-scanner-camera" onclick="startScannerCamera()" class="flex-1 bg-indigo-600 hover:bg-indigo-500 text-white font-bold py-3 rounded transition-all">📷 Start Scanner</button>
-                    <button type="button" id="scan-page" onclick="scanPage()" class="flex-1 bg-green-600 hover:bg-green-500 text-white font-bold py-3 rounded transition-all" style="display:none;">📄 Scan Page</button>
+                    <button type="button" id="start-scanner-camera" onclick="startScannerCamera()" class="flex-1 bg-indigo-600 hover:bg-indigo-500 text-white font-bold py-3 rounded transition-all">Start Scanner</button>
+                    <button type="button" id="scan-page" onclick="scanPage()" class="flex-1 bg-green-600 hover:bg-green-500 text-white font-bold py-3 rounded transition-all" style="display:none;">Scan Page</button>
                 </div>
                 <div class="mb-4">
                     <p class="text-sm text-gray-400 mb-2">Pages scanned: <span id="scanner-page-count" class="text-white font-bold">0</span></p>
                     <div id="scanner-thumbnails" class="flex gap-2 flex-wrap"></div>
                 </div>
-                <button type="button" id="finish-scanning" onclick="finishScanning()" class="w-full bg-indigo-600 hover:bg-indigo-500 text-white font-bold py-3 rounded transition-all mb-4" style="display:none;">✅ Finish & Create PDF</button>
+                <button type="button" id="finish-scanning" onclick="finishScanning()" class="w-full bg-indigo-600 hover:bg-indigo-500 text-white font-bold py-3 rounded transition-all mb-4" style="display:none;">Finish & Create PDF</button>
                 <input type="hidden" id="scanner-data" name="scanner_data">
             </div>
 
             <!-- ============================================================ -->
-            <!-- COMMON FIELDS (shown for all modes) -->
+            <!-- COMMON FIELDS -->
             <!-- ============================================================ -->
             <div id="common-fields">
                 <div class="mb-6">
-                    <label for="page_count" class="block text-sm font-bold text-gray-300 mb-2">Number of Pages</label>
+                    <label for="page_count" class="block text-sm font-bold text-gray-300 mb-2">Number of Pages / Copies</label>
                     <input type="number" class="w-full bg-slate-700 border border-slate-600 rounded px-4 py-3 text-white focus:outline-none focus:ring-2 focus:ring-indigo-500 placeholder-gray-500" id="page_count" name="page_count" min="1" value="1" required>
                 </div>
 
-                <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6" id="print-options">
                     <div>
                         <label class="block text-sm font-bold text-gray-300 mb-2">Print Type</label>
                         <div class="space-y-2">
@@ -155,7 +169,7 @@
                             </label>
                         </div>
                     </div>
-                    <div>
+                    <div id="double-sided-option">
                         <label class="block text-sm font-bold text-gray-300 mb-2">Paper Options</label>
                         <label class="flex items-center p-3 border border-slate-600 rounded cursor-pointer hover:bg-slate-700/50 has-[:checked]:bg-indigo-500/10 has-[:checked]:border-indigo-500 h-full">
                             <input type="checkbox" class="price-trigger h-4 w-4 text-indigo-500 rounded" id="double_sided" name="is_double_sided">
@@ -164,7 +178,7 @@
                     </div>
                 </div>
 
-                <div class="mb-6">
+                <div class="mb-6" id="binding-option">
                     <label for="binding" class="block text-sm font-bold text-gray-300 mb-2">Binding / Finishing</label>
                     <select class="price-trigger w-full bg-slate-700 border border-slate-600 rounded px-4 py-3 text-white focus:outline-none focus:ring-2 focus:ring-indigo-500" id="binding" name="binding">
                         <option value="none" selected>No Binding</option>
@@ -216,8 +230,8 @@
                 </div>
 
                 <div class="mb-6">
-                    <label for="notes" class="block text-sm font-bold text-gray-300 mb-2">Special Instructions</label>
-                    <textarea class="w-full bg-slate-700 border border-slate-600 rounded px-4 py-3 text-white focus:outline-none focus:ring-2 focus:ring-indigo-500 placeholder-gray-500" id="notes" name="notes" rows="3"></textarea>
+                    <label for="notes" class="block text-sm font-bold text-gray-300 mb-2">Special Instructions <span class="text-gray-500 font-normal">(Optional)</span></label>
+                    <textarea class="w-full bg-slate-700 border border-slate-600 rounded px-4 py-3 text-white focus:outline-none focus:ring-2 focus:ring-indigo-500 placeholder-gray-500" id="notes" name="notes" rows="3" placeholder="Any special instructions?"></textarea>
                 </div>
 
                 <div class="bg-indigo-500/10 border border-indigo-500/20 rounded p-6 text-center mb-8">
@@ -239,12 +253,18 @@
     const BASE_PRICE_BW = {{ base_price_bw|default:200 }};
     const COLOR_SURCHARGE = {{ color_surcharge|default:100 }};
     const SPIRAL_FEE = {{ spiral_binding_fee|default:1000 }};
+    const PASSPORT_PRICE = {{ passport_photo_price|default:2000 }};
     const WORDS_PER_PAGE = 500;
 
-    // ═══════════════════════════════════════════════════
-    // MODE SWITCHING
-    // ═══════════════════════════════════════════════════
+    // Mode switching
     let currentMode = 'document';
+    
+    const infoTexts = {
+        'document': '<strong>Upload your file</strong> - PDF, Word, PowerPoint, or images from your device',
+        'passport': '<strong>Take a passport photo</strong> - Use your camera. Center your face in the oval guide.',
+        'scanner': '<strong>Scan physical documents</strong> - Point camera at your document. Scan page by page.'
+    };
+    
     function switchMode(mode) {
         currentMode = mode;
         document.getElementById('order_type').value = mode === 'passport' ? 'passport' : mode === 'scanner' ? 'scanned' : 'document';
@@ -253,24 +273,48 @@
         document.getElementById('passport-mode').style.display = mode === 'passport' ? 'block' : 'none';
         document.getElementById('scanner-mode').style.display = mode === 'scanner' ? 'block' : 'none';
         
+        document.getElementById('mode-info-text').innerHTML = infoTexts[mode];
+        
         ['btn-document', 'btn-passport', 'btn-scanner'].forEach(id => {
             const btn = document.getElementById(id);
-            btn.classList.remove('bg-indigo-600', 'text-white', 'bg-slate-700', 'text-gray-400');
+            btn.classList.remove('bg-indigo-600', 'text-white');
             btn.classList.add('bg-slate-700', 'text-gray-400');
         });
         const activeBtn = document.getElementById('btn-' + mode);
         activeBtn.classList.remove('bg-slate-700', 'text-gray-400');
         activeBtn.classList.add('bg-indigo-600', 'text-white');
         
-        if (mode === 'document') stopPassportCamera(); stopScannerCamera();
-        if (mode === 'passport') { stopScannerCamera(); document.getElementById('passport_size').value = document.querySelector('input[name="passport_size"]:checked').value; }
-        if (mode === 'scanner') stopPassportCamera();
+        stopPassportCamera();
+        stopScannerCamera();
+        
+        if (mode === 'passport') {
+            document.querySelector('input[name="passport_size"][value="4x6"]').checked = true;
+            document.getElementById('paper_size').value = '4x6';
+            document.querySelector('input[name="is_color"][value="True"]').checked = true;
+            document.getElementById('binding-option').style.opacity = '0.4';
+            document.getElementById('binding-option').style.pointerEvents = 'none';
+            document.getElementById('double-sided-option').style.opacity = '0.4';
+            document.getElementById('double-sided-option').style.pointerEvents = 'none';
+            document.getElementById('page_count').value = 1;
+        } else if (mode === 'scanner') {
+            document.getElementById('paper_size').value = 'A4';
+            document.getElementById('binding-option').style.opacity = '1';
+            document.getElementById('binding-option').style.pointerEvents = 'auto';
+            document.getElementById('double-sided-option').style.opacity = '1';
+            document.getElementById('double-sided-option').style.pointerEvents = 'auto';
+        } else {
+            document.getElementById('paper_size').value = 'A4';
+            document.getElementById('binding-option').style.opacity = '1';
+            document.getElementById('binding-option').style.pointerEvents = 'auto';
+            document.getElementById('double-sided-option').style.opacity = '1';
+            document.getElementById('double-sided-option').style.pointerEvents = 'auto';
+        }
+        
+        calculatePrice();
     }
 
-    // ═══════════════════════════════════════════════════
-    // PASSPORT PHOTO MODE
-    // ═══════════════════════════════════════════════════
-    let passportStream = null, faceDetectionInterval = null, passportCaptured = false;
+    // Passport photo mode
+    let passportStream = null, faceDetectionInterval = null;
 
     async function startPassportCamera() {
         try {
@@ -287,36 +331,47 @@
             await faceapi.nets.tinyFaceDetector.loadFromUri('https://cdn.jsdelivr.net/npm/face-api.js@0.22.2/weights/');
             startFaceDetection(video);
         } catch(e) {
-            alert('Camera access denied. Please allow camera permissions.');
+            alert('Camera access denied. Please allow camera permissions in your browser settings.');
         }
     }
 
     function startFaceDetection(video) {
         faceDetectionInterval = setInterval(async () => {
-            const detections = await faceapi.detectAllFaces(video, new faceapi.TinyFaceDetectorOptions());
-            const statusEl = document.getElementById('face-status');
-            const guideEl = document.getElementById('face-guide');
-            if (detections.length === 1) {
-                const face = detections[0].box;
-                const cx = face.x + face.width/2, cy = face.y + face.height/2;
-                const vw = video.videoWidth, vh = video.videoHeight;
-                const centerX = vw/2, centerY = vh/2;
-                const dist = Math.sqrt((cx-centerX)**2 + (cy-centerY)**2);
-                if (dist < 80 && face.width > 100) {
-                    statusEl.textContent = '✅ Face centered - Ready!'; statusEl.style.background = 'rgba(34,197,94,0.8)';
-                    guideEl.style.borderColor = '#22c55e';
-                } else if (dist < 150) {
-                    statusEl.textContent = '⚠️ Move face to center'; statusEl.style.background = 'rgba(234,179,8,0.8)';
-                    guideEl.style.borderColor = '#eab308';
+            try {
+                const detections = await faceapi.detectAllFaces(video, new faceapi.TinyFaceDetectorOptions());
+                const statusEl = document.getElementById('face-status');
+                const guideEl = document.getElementById('face-guide');
+                
+                if (detections.length === 1) {
+                    const face = detections[0].box;
+                    const cx = face.x + face.width/2, cy = face.y + face.height/2;
+                    const vw = video.videoWidth || 640, vh = video.videoHeight || 480;
+                    const centerX = vw/2, centerY = vh/2;
+                    const dist = Math.sqrt((cx-centerX)**2 + (cy-centerY)**2);
+                    
+                    if (dist < 80 && face.width > 100) {
+                        statusEl.textContent = 'Face centered - Ready!';
+                        statusEl.style.background = 'rgba(34,197,94,0.85)';
+                        guideEl.style.borderColor = '#22c55e';
+                    } else if (dist < 150) {
+                        statusEl.textContent = 'Move face to center';
+                        statusEl.style.background = 'rgba(234,179,8,0.85)';
+                        guideEl.style.borderColor = '#eab308';
+                    } else {
+                        statusEl.textContent = 'Position face in the oval';
+                        statusEl.style.background = 'rgba(148,163,184,0.85)';
+                        guideEl.style.borderColor = '#94a3b8';
+                    }
+                } else if (detections.length === 0) {
+                    statusEl.textContent = 'Looking for face...';
+                    statusEl.style.background = 'rgba(148,163,184,0.85)';
+                    guideEl.style.borderColor = '#94a3b8';
                 } else {
-                    statusEl.textContent = '❌ No face detected'; statusEl.style.background = 'rgba(239,68,68,0.8)';
+                    statusEl.textContent = 'Multiple faces detected';
+                    statusEl.style.background = 'rgba(239,68,68,0.85)';
                     guideEl.style.borderColor = '#ef4444';
                 }
-            } else {
-                statusEl.textContent = '❌ ' + (detections.length === 0 ? 'No face' : 'Multiple faces') + ' detected';
-                statusEl.style.background = 'rgba(239,68,68,0.8)';
-                guideEl.style.borderColor = '#ef4444';
-            }
+            } catch(e) {}
         }, 500);
     }
 
@@ -330,8 +385,8 @@
         canvas.height = size === '2x2' ? 600 : 1800;
         const ctx = canvas.getContext('2d');
         
-        const sw = video.videoWidth, sh = video.videoHeight;
-        const sx = sw * 0.15, sy = sh * 0.05, sWidth = sw * 0.7, sHeight = sh * 0.85;
+        const sw = video.videoWidth || 640, sh = video.videoHeight || 480;
+        const sx = sw * 0.15, sy = sh * 0.02, sWidth = sw * 0.7, sHeight = sh * 0.9;
         ctx.fillStyle = '#ffffff';
         ctx.fillRect(0, 0, canvas.width, canvas.height);
         ctx.drawImage(video, sx, sy, sWidth, sHeight, 0, 0, canvas.width, canvas.height);
@@ -344,9 +399,8 @@
         document.getElementById('retake-passport').style.display = 'block';
         document.getElementById('page_count').value = 1;
         
-        const dataUrl = canvas.toDataURL('image/jpeg', 0.9);
+        const dataUrl = canvas.toDataURL('image/jpeg', 0.92);
         document.getElementById('passport-data').value = dataUrl;
-        passportCaptured = true;
         createPassportFile();
         calculatePrice();
     }
@@ -356,14 +410,15 @@
         if (!dataUrl) return;
         fetch(dataUrl).then(r => r.blob()).then(blob => {
             const file = new File([blob], 'passport-photo.jpg', { type: 'image/jpeg' });
-            const dt = new DataTransfer(); dt.items.add(file);
+            const dt = new DataTransfer();
+            dt.items.add(file);
             document.getElementById('file').files = dt.files;
             document.getElementById('dropzone-text').innerText = 'passport-photo.jpg';
+            document.getElementById('dropzone-text').classList.add('font-bold');
         });
     }
 
     function retakePassport() {
-        passportCaptured = false;
         document.getElementById('passport-canvas').style.display = 'none';
         document.getElementById('passport-video').style.display = 'block';
         document.getElementById('face-guide').style.display = 'block';
@@ -378,14 +433,14 @@
         if (faceDetectionInterval) { clearInterval(faceDetectionInterval); faceDetectionInterval = null; }
     }
 
-    // ═══════════════════════════════════════════════════
-    // CAM SCANNER MODE
-    // ═══════════════════════════════════════════════════
+    // Cam scanner mode
     let scannerStream = null, scannedPages = [];
 
     async function startScannerCamera() {
         try {
-            scannerStream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'environment', width: 1920, height: 1080 } });
+            scannerStream = await navigator.mediaDevices.getUserMedia({ 
+                video: { facingMode: 'environment', width: { ideal: 1920 }, height: { ideal: 1080 } } 
+            });
             const video = document.getElementById('scanner-video');
             video.srcObject = scannerStream;
             video.style.display = 'block';
@@ -393,26 +448,26 @@
             document.getElementById('start-scanner-camera').style.display = 'none';
             document.getElementById('scan-page').style.display = 'block';
         } catch(e) {
-            alert('Camera access denied.');
+            alert('Camera access denied. Please allow camera permissions.');
         }
     }
 
     function scanPage() {
         const video = document.getElementById('scanner-video');
         const canvas = document.createElement('canvas');
-        canvas.width = video.videoWidth;
-        canvas.height = video.videoHeight;
+        canvas.width = video.videoWidth || 1920;
+        canvas.height = video.videoHeight || 1080;
         const ctx = canvas.getContext('2d');
         ctx.drawImage(video, 0, 0);
         
-        // Convert to grayscale (scanner effect)
         const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
         const data = imageData.data;
         for (let i = 0; i < data.length; i += 4) {
             const avg = (data[i] + data[i+1] + data[i+2]) / 3;
-            const contrast = ((avg - 128) * 1.5) + 128;
+            const contrast = ((avg - 128) * 1.4) + 128;
             const val = Math.max(0, Math.min(255, contrast));
-            data[i] = data[i+1] = data[i+2] = val > 128 ? 255 : val < 70 ? 0 : val;
+            const bw = val > 140 ? 255 : val < 60 ? 0 : val;
+            data[i] = data[i+1] = data[i+2] = bw;
         }
         ctx.putImageData(imageData, 0, 0);
         
@@ -426,7 +481,11 @@
     function updateScannerThumbnails() {
         const container = document.getElementById('scanner-thumbnails');
         container.innerHTML = scannedPages.map((page, i) => 
-            `<div class="relative"><img src="${page}" class="h-20 rounded border border-slate-600"><span class="absolute -top-2 -right-2 bg-red-500 text-white rounded-full w-5 h-5 text-xs flex items-center justify-center cursor-pointer" onclick="deleteScannedPage(${i})">×</span><p class="text-xs text-gray-400 text-center">Page ${i+1}</p></div>`
+            `<div class="relative group">
+                <img src="${page}" class="h-20 rounded border border-slate-600">
+                <span class="absolute -top-2 -right-2 bg-red-500 hover:bg-red-400 text-white rounded-full w-5 h-5 text-xs flex items-center justify-center cursor-pointer transition-all" onclick="deleteScannedPage(${i})">x</span>
+                <p class="text-xs text-gray-400 text-center mt-1">Page ${i+1}</p>
+            </div>`
         ).join('');
     }
 
@@ -439,9 +498,14 @@
     }
 
     async function finishScanning() {
-        if (scannedPages.length === 0) return alert('No pages scanned!');
+        if (scannedPages.length === 0) {
+            alert('No pages scanned yet. Click "Scan Page" to capture your documents.');
+            return;
+        }
+        
         const { jsPDF } = window.jspdf;
         const pdf = new jsPDF('p', 'mm', 'a4');
+        
         for (let i = 0; i < scannedPages.length; i++) {
             if (i > 0) pdf.addPage();
             const img = new Image();
@@ -449,29 +513,31 @@
             await new Promise(resolve => { img.onload = resolve; });
             pdf.addImage(img, 'JPEG', 0, 0, 210, 297);
         }
+        
         const pdfBlob = pdf.output('blob');
         const file = new File([pdfBlob], 'scanned-document.pdf', { type: 'application/pdf' });
-        const dt = new DataTransfer(); dt.items.add(file);
+        const dt = new DataTransfer();
+        dt.items.add(file);
         document.getElementById('file').files = dt.files;
         document.getElementById('dropzone-text').innerText = 'scanned-document.pdf (' + scannedPages.length + ' pages)';
+        document.getElementById('dropzone-text').classList.add('font-bold');
         document.getElementById('page_count').value = scannedPages.length;
-        document.getElementById('document-mode').style.display = 'block';
-        document.getElementById('scanner-mode').style.display = 'none';
-        document.getElementById('btn-document').click();
+        
+        switchMode('document');
+        document.getElementById('preview-container').classList.remove('hidden');
+        document.getElementById('preview-content').innerHTML = 
+            '<div class="text-center text-green-400"><p class="font-bold text-lg">PDF Created!</p><p>' + scannedPages.length + ' page(s) scanned</p><p class="text-sm text-gray-400 mt-2">Review your print options below and submit.</p></div>';
+        
         calculatePrice();
-        alert('✅ PDF created with ' + scannedPages.length + ' pages! Now choose your print options and submit.');
     }
 
     function stopScannerCamera() {
         if (scannerStream) { scannerStream.getTracks().forEach(t => t.stop()); scannerStream = null; }
     }
 
-    // ═══════════════════════════════════════════════════
-    // PRICE CALCULATOR (your existing code)
-    // ═══════════════════════════════════════════════════
+    // Price calculator
     const dropzone = document.getElementById('dropzone');
     const dropzoneText = document.getElementById('dropzone-text');
-    const dropzoneIcon = document.getElementById('dropzone-icon');
     const fileInput = document.getElementById('file');
     const pageCountInput = document.getElementById('page_count');
     const statusText = document.getElementById('page-count-status');
@@ -494,28 +560,51 @@
         document.body.addEventListener(eventName, preventDefaults, false);
     });
     function preventDefaults(e) { e.preventDefault(); e.stopPropagation(); }
-    ['dragenter', 'dragover'].forEach(eventName => dropzone.addEventListener(eventName, () => dropzone.classList.add('border-indigo-400', 'bg-indigo-500/10')));
-    ['dragleave', 'drop'].forEach(eventName => dropzone.addEventListener(eventName, () => dropzone.classList.remove('border-indigo-400', 'bg-indigo-500/10')));
-    dropzone.addEventListener('drop', e => { const f = e.dataTransfer.files; if (f.length > 0) { fileInput.files = f; handleFileSelect(f[0]); } });
-    fileInput.addEventListener('change', function() { if (this.files.length > 0) handleFileSelect(this.files[0]); });
+    ['dragenter', 'dragover'].forEach(eventName => 
+        dropzone.addEventListener(eventName, () => dropzone.classList.add('border-indigo-400', 'bg-indigo-500/10'))
+    );
+    ['dragleave', 'drop'].forEach(eventName => 
+        dropzone.addEventListener(eventName, () => dropzone.classList.remove('border-indigo-400', 'bg-indigo-500/10'))
+    );
+    dropzone.addEventListener('drop', e => {
+        const f = e.dataTransfer.files;
+        if (f.length > 0) { fileInput.files = f; handleFileSelect(f[0]); }
+    });
+    fileInput.addEventListener('change', function() {
+        if (this.files.length > 0) handleFileSelect(this.files[0]);
+    });
+    
     deliveryTriggers.forEach(t => t.addEventListener('change', function() {
         deliveryZoneContainer.classList.toggle('hidden', this.value !== 'delivery');
         if (this.value !== 'delivery') deliveryZoneSelect.value = '';
         calculatePrice();
     }));
 
-    function handleFileSelect(file) { dropzoneText.innerText = file.name; dropzoneText.classList.add('font-bold'); clearPreview(); processFile(file); }
+    function handleFileSelect(file) {
+        dropzoneText.innerText = file.name;
+        dropzoneText.classList.add('font-bold');
+        clearPreview();
+        processFile(file);
+    }
     function clearPreview() { previewContent.innerHTML = ''; previewContainer.classList.add('hidden'); }
     function showPreview(htmlContent) { previewContent.innerHTML = htmlContent; previewContainer.classList.remove('hidden'); }
 
     function animateCountUp(target, cb) {
         if (target < 2) { pageCountInput.value = target; calculatePrice(); if(cb) cb(); return; }
-        let current = 0; const stepTime = 40; const increment = target / 25;
-        statusText.innerHTML = 'Scanning...'; statusText.className = 'text-sm mt-2 text-blue-400 text-center h-5 font-medium';
+        let current = 0;
+        const stepTime = 40, increment = target / 25;
+        statusText.innerHTML = 'Scanning document...';
+        statusText.className = 'text-sm mt-2 text-blue-400 text-center h-5 font-medium';
         pageCountInput.value = 0;
         const timer = setInterval(() => {
-            current += increment; pageCountInput.value = Math.round(current); calculatePrice();
-            if (current >= target) { clearInterval(timer); pageCountInput.value = target; if(cb) cb(); }
+            current += increment;
+            pageCountInput.value = Math.round(current);
+            calculatePrice();
+            if (current >= target) {
+                clearInterval(timer);
+                pageCountInput.value = target;
+                if(cb) cb();
+            }
         }, stepTime);
     }
     function countWords(str) { return str.trim().split(/\s+/).filter(w => w.length > 0).length; }
@@ -523,79 +612,168 @@
     function processFile(file) {
         const ext = file.name.toLowerCase().split('.').pop();
         const fileURL = URL.createObjectURL(file);
-        if (['png','jpg','jpeg'].includes(ext)) showPreview('<img src="'+fileURL+'" class="max-h-64 rounded shadow mx-auto">');
-        else if (ext === 'pdf') showPreview('<iframe src="'+fileURL+'" class="w-full h-64 rounded shadow border border-slate-600 bg-white"></iframe>');
-        else if (ext === 'txt') { const r = new FileReader(); r.onload = ev => showPreview('<pre class="text-sm text-gray-300 whitespace-pre-wrap font-mono">'+ev.target.result.replace(/</g,"&lt;")+'</pre>'); r.readAsText(file); }
-        else if (ext === 'docx') { const r = new FileReader(); r.onload = ev => mammoth.convertToHtml({arrayBuffer:ev.target.result}).then(res => showPreview('<div class="text-sm text-gray-300">'+res.value+'</div>')); r.readAsArrayBuffer(file); }
+        
+        if (['png','jpg','jpeg'].includes(ext)) {
+            showPreview('<img src="'+fileURL+'" class="max-h-64 rounded shadow mx-auto block">');
+        } else if (ext === 'pdf') {
+            showPreview('<iframe src="'+fileURL+'" class="w-full h-64 rounded shadow border border-slate-600 bg-white"></iframe>');
+        } else if (ext === 'txt') {
+            const r = new FileReader();
+            r.onload = ev => showPreview('<pre class="text-sm text-gray-300 whitespace-pre-wrap font-mono">'+ev.target.result.replace(/</g,"&lt;")+'</pre>');
+            r.readAsText(file);
+        } else if (ext === 'docx') {
+            const r = new FileReader();
+            r.onload = ev => mammoth.convertToHtml({arrayBuffer:ev.target.result}).then(res => showPreview('<div class="text-sm text-gray-300">'+res.value+'</div>'));
+            r.readAsArrayBuffer(file);
+        }
 
         if (ext === 'pdf') {
             const r = new FileReader();
-            r.onload = function() { pdfjsLib.getDocument(new Uint8Array(this.result)).promise.then(pdf => animateCountUp(pdf.numPages, () => { statusText.innerText = 'PDF: '+pdf.numPages+' pages'; statusText.className = 'text-sm mt-2 text-green-400 text-center h-5 font-medium'; })); };
+            r.onload = function() {
+                pdfjsLib.getDocument(new Uint8Array(this.result)).promise.then(pdf => 
+                    animateCountUp(pdf.numPages, () => {
+                        statusText.innerText = 'PDF: ' + pdf.numPages + ' pages detected';
+                        statusText.className = 'text-sm mt-2 text-green-400 text-center h-5 font-medium';
+                    })
+                );
+            };
             r.readAsArrayBuffer(file);
         } else if (['png','jpg','jpeg'].includes(ext)) {
-            animateCountUp(1, () => { statusText.innerText = 'Image: 1 page'; statusText.className = 'text-sm mt-2 text-green-400 text-center h-5 font-medium'; });
+            animateCountUp(1, () => {
+                statusText.innerText = 'Image: 1 page';
+                statusText.className = 'text-sm mt-2 text-green-400 text-center h-5 font-medium';
+            });
         } else if (ext === 'pptx') {
             const reader = new FileReader();
             reader.onload = function(event) {
                 JSZip.loadAsync(event.target.result).then(zip => {
-                    let slides = 0; zip.forEach((_, entry) => { if (entry.name.match(/ppt\/slides\/slide\d+\.xml$/)) slides++; });
-                    if (slides > 0) animateCountUp(slides, () => { statusText.innerText = 'PPTX: '+slides+' slides'; statusText.className = 'text-sm mt-2 text-green-400 text-center h-5 font-medium'; });
-                    else { statusText.innerText = 'Could not read PPTX'; pageCountInput.value = 1; calculatePrice(); }
-                });
+                    let slides = 0;
+                    zip.forEach((_, entry) => { if (entry.name.match(/ppt\/slides\/slide\d+\.xml$/)) slides++; });
+                    if (slides > 0) {
+                        animateCountUp(slides, () => {
+                            statusText.innerText = 'PPTX: ' + slides + ' slides';
+                            statusText.className = 'text-sm mt-2 text-green-400 text-center h-5 font-medium';
+                        });
+                    } else {
+                        statusText.innerText = 'Could not detect slides';
+                        pageCountInput.value = 1;
+                        calculatePrice();
+                    }
+                }).catch(() => { pageCountInput.value = 1; calculatePrice(); });
             };
             reader.readAsArrayBuffer(file);
         } else if (ext === 'docx') {
             const r = new FileReader();
-            r.onload = ev => mammoth.extractRawText({arrayBuffer:ev.target.result}).then(res => { const p = Math.max(1, Math.ceil(countWords(res.value)/WORDS_PER_PAGE)); animateCountUp(p, () => { statusText.innerText = 'DOCX: ~'+p+' pages'; statusText.className = 'text-sm mt-2 text-green-400 text-center h-5 font-medium'; }); });
+            r.onload = ev => mammoth.extractRawText({arrayBuffer:ev.target.result}).then(res => {
+                const p = Math.max(1, Math.ceil(countWords(res.value)/WORDS_PER_PAGE));
+                animateCountUp(p, () => {
+                    statusText.innerText = 'DOCX: ~' + p + ' pages (estimated)';
+                    statusText.className = 'text-sm mt-2 text-green-400 text-center h-5 font-medium';
+                });
+            });
             r.readAsArrayBuffer(file);
         } else if (ext === 'txt') {
             const r = new FileReader();
-            r.onload = ev => { const p = Math.max(1, Math.ceil(countWords(ev.target.result)/WORDS_PER_PAGE)); animateCountUp(p, () => { statusText.innerText = 'TXT: ~'+p+' pages'; statusText.className = 'text-sm mt-2 text-green-400 text-center h-5 font-medium'; }); };
+            r.onload = ev => {
+                const p = Math.max(1, Math.ceil(countWords(ev.target.result)/WORDS_PER_PAGE));
+                animateCountUp(p, () => {
+                    statusText.innerText = 'TXT: ~' + p + ' pages (estimated)';
+                    statusText.className = 'text-sm mt-2 text-green-400 text-center h-5 font-medium';
+                });
+            };
             r.readAsText(file);
-        } else { statusText.innerText = 'Enter pages manually'; pageCountInput.value = 1; calculatePrice(); }
+        } else {
+            statusText.innerText = 'Enter pages manually';
+            pageCountInput.value = 1;
+            calculatePrice();
+        }
     }
 
     function calculatePrice() {
         let pages = parseInt(pageCountInput.value) || 0;
-        let isColor = document.querySelector('input[name="is_color"]:checked').value === 'True';
+        let isColor = document.querySelector('input[name="is_color"]:checked')?.value === 'True';
         let isDoubleSided = document.getElementById('double_sided').checked;
         let binding = document.getElementById('binding').value;
-        let deliveryType = document.querySelector('input[name="delivery_type"]:checked').value;
+        let deliveryType = document.querySelector('input[name="delivery_type"]:checked')?.value || 'pickup';
         let deliveryFee = 0;
+        
         if (deliveryType === 'delivery') {
             const opt = deliveryZoneSelect.options[deliveryZoneSelect.selectedIndex];
             if (opt) deliveryFee = parseInt(opt.getAttribute('data-fee')) || 0;
         }
-        let effectivePages = isDoubleSided ? Math.ceil(pages / 2) : pages;
-        let total = effectivePages * (BASE_PRICE_BW + (isColor ? COLOR_SURCHARGE : 0)) + (binding === 'spiral' ? SPIRAL_FEE : 0) + deliveryFee;
+        
+        let total = 0;
+        
+        if (currentMode === 'passport') {
+            const size = document.querySelector('input[name="passport_size"]:checked')?.value || '4x6';
+            let photoCount = pages;
+            let sheets = size === '4x6' ? Math.ceil(photoCount / 2) : photoCount;
+            total = sheets * PASSPORT_PRICE;
+            if (!isColor) total = Math.round(total * 0.8);
+        } else {
+            let effectivePages = isDoubleSided ? Math.ceil(pages / 2) : pages;
+            let pricePerPage = BASE_PRICE_BW + (isColor ? COLOR_SURCHARGE : 0);
+            total = effectivePages * pricePerPage + (binding === 'spiral' ? SPIRAL_FEE : 0);
+        }
+        
+        total += deliveryFee;
+        
         if (discountApplied && discountValue > 0) total = Math.max(0, total - discountValue);
+        
         livePrice.innerText = total.toLocaleString() + ' UGX';
         submitPrice.innerText = total.toLocaleString() + ' UGX';
-        document.getElementById('price-note').innerText = (isDoubleSided && pages > 1) ? 'Saves '+(pages-effectivePages)+' sheet(s)' : '';
+        
+        let noteText = '';
+        if (currentMode === 'passport') {
+            noteText = 'Passport photo pricing';
+        } else if (isDoubleSided && pages > 1) {
+            noteText = 'Saves ' + (pages - Math.ceil(pages/2)) + ' sheet(s)';
+        }
+        document.getElementById('price-note').innerText = noteText;
     }
 
     applyDiscountBtn.addEventListener('click', function() {
         const code = discountCodeInput.value.trim().toUpperCase();
-        if (!code) { showDiscountMsg('Enter a code.', 'error'); return; }
+        if (!code) { showDiscountMsg('Please enter a code.', 'error'); return; }
         fetch('{% url "validate_discount_code" %}', {
             method: 'POST',
-            headers: { 'Content-Type': 'application/x-www-form-urlencoded', 'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value },
-            body: 'code='+encodeURIComponent(code)+'&order_total='+calculateRawTotal()
-        }).then(r => r.json()).then(data => {
-            if (data.valid) { discountApplied = true; discountValue = data.savings; discountAmountInput.value = data.savings; showDiscountMsg('Discount applied! Save '+data.savings.toLocaleString()+' UGX', 'success'); applyDiscountBtn.innerText = 'Remove'; }
-            else showDiscountMsg(data.error, 'error');
+            headers: {
+                'Content-Type': 'application/x-www-form-urlencoded',
+                'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value
+            },
+            body: 'code=' + encodeURIComponent(code) + '&order_total=' + calculateRawTotal()
+        })
+        .then(r => r.json())
+        .then(data => {
+            if (data.valid) {
+                discountApplied = true;
+                discountValue = data.savings;
+                discountAmountInput.value = data.savings;
+                showDiscountMsg('Discount applied! You save ' + data.savings.toLocaleString() + ' UGX', 'success');
+                applyDiscountBtn.innerText = 'Remove';
+                applyDiscountBtn.classList.add('bg-red-600', 'hover:bg-red-500');
+            } else {
+                showDiscountMsg(data.error || 'Invalid code', 'error');
+            }
             calculatePrice();
-        }).catch(() => showDiscountMsg('Error.', 'error'));
+        })
+        .catch(() => showDiscountMsg('Error validating code.', 'error'));
     });
 
     function calculateRawTotal() {
         let pages = parseInt(pageCountInput.value) || 0;
-        let isColor = document.querySelector('input[name="is_color"]:checked').value === 'True';
+        let isColor = document.querySelector('input[name="is_color"]:checked')?.value === 'True';
         let isDoubleSided = document.getElementById('double_sided').checked;
         let binding = document.getElementById('binding').value;
         return Math.ceil(pages / (isDoubleSided ? 2 : 1)) * (BASE_PRICE_BW + (isColor ? COLOR_SURCHARGE : 0)) + (binding === 'spiral' ? SPIRAL_FEE : 0);
     }
-    function showDiscountMsg(m, t) { discountMessage.innerText = m; discountMessage.classList.remove('hidden'); discountMessage.className = 'text-sm mt-2 '+(t==='success'?'text-green-400':'text-red-400')+' font-medium'; }
+    
+    function showDiscountMsg(m, t) {
+        discountMessage.innerText = m;
+        discountMessage.classList.remove('hidden');
+        discountMessage.className = 'text-sm mt-2 font-medium ' + (t === 'success' ? 'text-green-400' : 'text-red-400');
+    }
+    
     pageCountInput.addEventListener('input', calculatePrice);
     priceTriggers.forEach(t => t.addEventListener('change', calculatePrice));
     calculatePrice();
