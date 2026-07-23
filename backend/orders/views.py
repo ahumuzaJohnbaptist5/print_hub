@@ -8,22 +8,20 @@ from django.contrib.auth.decorators import login_required, user_passes_test
 from django.contrib.auth import get_user_model
 from django.core.paginator import Paginator
 from django.db.models import Q, Sum, Count
-from django.http import FileResponse, HttpResponseForbidden, JsonResponse
+from django.http import FileResponse, HttpResponseForbidden, JsonResponse, HttpResponse
 from django.shortcuts import get_object_or_404, redirect, render
 from django.utils import timezone
 from django.urls import reverse
 from django.conf import settings
 from django.core.mail import send_mail
+from django.views.decorators.cache import cache_control
+from PIL import Image, ImageDraw, ImageFont
+import io
 
 from stations.models import Station
 
 from .models import Order, SystemSettings, DeliveryZone, Announcement
 from .utils import apply_order_status_change, send_delayed_order_email
-
-from django.http import HttpResponse
-from django.views.decorators.cache import cache_control
-from PIL import Image, ImageDraw, ImageFont
-import io
 
 User = get_user_model()
 
@@ -58,14 +56,14 @@ def _can_view_order(user, order):
 @login_required
 def dashboard_view(request):
     orders = Order.objects.filter(client=request.user).order_by('-created_at')
-    
+
     stats = Order.objects.filter(client=request.user).aggregate(
         total_orders=Count('id'),
         completed_orders=Count('id', filter=Q(status='collected')),
         pending_orders=Count('id', filter=Q(status='pending')),
         total_spent=Sum('total_price', filter=Q(status__in=['paid', 'printing', 'in_transit', 'ready', 'collected']))
     )
-    
+
     return render(request, 'orders/dashboard.html', {
         'orders': orders,
         'stats': stats,
@@ -87,7 +85,7 @@ def upload_view(request):
         is_color = request.POST.get('is_color', 'False') == 'True'
         is_double_sided = request.POST.get('is_double_sided') == 'on'
         station_id = request.POST.get('station')
-        
+
         binding = request.POST.get('binding', 'none')
         delivery_type = request.POST.get('delivery_type', 'pickup')
         delivery_zone_id = request.POST.get('delivery_zone')
@@ -106,7 +104,7 @@ def upload_view(request):
             })
 
         station = Station.objects.filter(id=station_id).first() if station_id else None
-        
+
         delivery_zone = None
         if delivery_type == 'delivery' and delivery_zone_id:
             delivery_zone = DeliveryZone.objects.filter(id=delivery_zone_id).first()
@@ -115,7 +113,7 @@ def upload_view(request):
             page_count_int = int(page_count)
             if page_count_int < 1:
                 raise ValueError("Page count must be at least 1")
-                
+
             order = Order.objects.create(
                 client=request.user,
                 station=station,
@@ -130,15 +128,15 @@ def upload_view(request):
                 notes=notes,
                 status='pending',
             )
-            
+
             try:
                 send_order_confirmation_email(order)
             except Exception:
                 pass
-                
+
             messages.success(request, f'Order #{order.id} submitted! Total: {order.total_price:,.0f} UGX')
             return redirect('order_receipt', order_id=order.id)
-            
+
         except ValueError as e:
             upload_error = f'Invalid page count: {str(e)}'
         except Exception as e:
@@ -159,7 +157,7 @@ def order_receipt_view(request, order_id):
         return HttpResponseForbidden('You do not have permission to view this receipt.')
 
     estimated_ready = order.estimated_ready_at()
-    
+
     payment = None
     try:
         from payments.models import Payment
@@ -211,7 +209,7 @@ def _build_order_queryset(request):
 def _order_summary_counts():
     now = timezone.now()
     today_start = now.replace(hour=0, minute=0, second=0, microsecond=0)
-    
+
     return {
         'total': Order.objects.count(),
         'pending': Order.objects.filter(status='pending').count(),
@@ -270,7 +268,7 @@ def admin_dashboard_view(request):
                 color = request.POST.get('announcement_color', 'bg-blue-600')
                 is_active = request.POST.get('announcement_active') == 'on'
                 show_home = request.POST.get('announcement_home') == 'on'
-                
+
                 if message_text:
                     Announcement.objects.update_or_create(
                         is_active=True,
@@ -289,20 +287,20 @@ def admin_dashboard_view(request):
 
     orders_qs = _build_order_queryset(request)
     summary = _order_summary_counts()
-    
+
     overdue_count = 0
     for order in orders_qs.filter(status__in=['paid', 'printing', 'in_transit', 'ready']):
         if order.is_overdue:
             overdue_count += 1
     summary['overdue'] = overdue_count
-    
+
     paginator = Paginator(orders_qs, 20)
     page_number = request.GET.get('page')
     page_obj = paginator.get_page(page_number)
 
     agents = User.objects.filter(role='agent').select_related('station')
     stations = Station.objects.all()
-    
+
     system_settings = SystemSettings.load()
 
     active_filters = []
@@ -333,12 +331,12 @@ def admin_dashboard_view(request):
 def toggle_system_pause_view(request):
     if _user_role(request.user) != 'admin':
         return HttpResponseForbidden("Admin access only.")
-        
+
     sys_settings = SystemSettings.load()
-    
+
     if request.method == 'POST':
         action = request.POST.get('action')
-        
+
         if action == 'pause':
             if not sys_settings.is_paused:
                 sys_settings.is_paused = True
@@ -346,7 +344,7 @@ def toggle_system_pause_view(request):
                 sys_settings.pause_started_at = timezone.now()
                 sys_settings.save()
                 messages.success(request, "System timers PAUSED successfully.")
-                
+
         elif action == 'resume':
             if sys_settings.is_paused:
                 if sys_settings.pause_started_at:
@@ -355,7 +353,7 @@ def toggle_system_pause_view(request):
                 sys_settings.pause_started_at = None
                 sys_settings.save()
                 messages.success(request, "System timers RESUMED successfully.")
-                
+
     return redirect('admin_dashboard')
 
 
@@ -397,24 +395,24 @@ def agent_dashboard_view(request):
     if request.method == 'POST':
         action = request.POST.get('action')
         order_id = request.POST.get('order_id')
-        
+
         if action == 'update_status':
             new_status = request.POST.get('status')
             order = get_object_or_404(Order, id=order_id)
-            
+
             if request.user.role == 'agent' and order.station != request.user.station:
                 messages.error(request, 'You can only update orders for your station.')
                 return redirect('agent_dashboard')
-            
+
             if apply_order_status_change(order, new_status, request.user):
                 messages.success(request, f'Order #{order.id} updated to {order.get_status_display()}.')
             else:
                 messages.info(request, f'Order #{order.id} status unchanged.')
-        
+
         elif action == 'notify_delay':
             order = get_object_or_404(Order, id=order_id)
             reason = request.POST.get('delay_reason', '').strip()
-            
+
             from notifications.models import Notification
             Notification.create_notification(
                 user=order.client,
@@ -423,11 +421,11 @@ def agent_dashboard_view(request):
                 message=f'Your Order #{order.id} ({order.file_name}) has been delayed. Reason: {reason}',
                 link=f'/orders/{order.id}/receipt/'
             )
-            
+
             send_delayed_order_email(order, reason)
-            
+
             messages.success(request, f'Delay notification sent for Order #{order.id}.')
-            
+
         elif action == 'cancel_order':
             order = get_object_or_404(Order, id=order_id)
             if order.status not in ['collected', 'cancelled']:
@@ -439,7 +437,7 @@ def agent_dashboard_view(request):
                 messages.success(request, f'Order #{order.id} has been CANCELLED.')
             else:
                 messages.error(request, 'Cannot cancel this order.')
-                
+
         elif action == 'postpone_order':
             order = get_object_or_404(Order, id=order_id)
             if order.status not in ['collected', 'cancelled']:
@@ -455,7 +453,7 @@ def agent_dashboard_view(request):
                     messages.error(request, 'Invalid number of minutes.')
             else:
                 messages.error(request, 'Cannot postpone this order.')
-        
+
         elif action == 'add_note':
             order = get_object_or_404(Order, id=order_id)
             note = request.POST.get('note', '').strip()
@@ -464,7 +462,7 @@ def agent_dashboard_view(request):
                 order.notes = f"{existing_notes}\n[{timezone.now().strftime('%Y-%m-%d %H:%M')}] {request.user.username}: {note}".strip()
                 order.save(update_fields=['notes'])
                 messages.success(request, f'Note added to Order #{order.id}.')
-        
+
         return redirect('agent_dashboard')
 
     return render(request, 'orders/agent_dashboard.html', {
@@ -596,7 +594,7 @@ def live_board_api_view(request):
     cancelled_orders = Order.objects.filter(status='cancelled', cancelled_at__gte=timezone.now() - timedelta(minutes=30)).select_related('station', 'client')
     all_orders = list(orders) + list(cancelled_orders)
     sys_settings = SystemSettings.load()
-    
+
     board_data = []
     for order in all_orders:
         priority = order.priority_info
@@ -610,9 +608,9 @@ def live_board_api_view(request):
             'is_overdue': priority['is_overdue'], 'page_count': order.page_count,
             'is_color': order.is_color, 'binding': order.get_binding_display(),
         })
-        
+
     board_data.sort(key=lambda x: (x['status_raw'] == 'cancelled', x['remaining_seconds']))
-    
+
     response = JsonResponse({
         'orders': board_data, 'system_paused': sys_settings.is_paused,
         'pause_reason': sys_settings.pause_reason, 'total_active': len(orders),
@@ -641,13 +639,96 @@ def all_links_view(request):
     return render(request, 'all_links.html', {'links': links})
 
 
+# ============================================================
+# Live Board Preview Image (for social sharing)
+# ============================================================
+
+@cache_control(max_age=60)
+def live_board_preview_image(request):
+    active_statuses = ['paid', 'printing', 'in_transit', 'ready']
+    orders = Order.objects.filter(
+        status__in=active_statuses
+    ).select_related('station', 'client').order_by('id')
+
+    total_active = orders.count()
+    ready_count = orders.filter(status='ready').count()
+    printing_count = orders.filter(status='printing').count()
+    cancelled_count = Order.objects.filter(
+        status='cancelled',
+        cancelled_at__gte=timezone.now() - timedelta(minutes=30)
+    ).count()
+
+    img = Image.new('RGB', (1200, 630), color='#0f172a')
+    draw = ImageDraw.Draw(img)
+
+    try:
+        font_title = ImageFont.truetype('/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf', 46)
+        font_subtitle = ImageFont.truetype('/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf', 28)
+        font_body = ImageFont.truetype('/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf', 24)
+        font_small = ImageFont.truetype('/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf', 20)
+    except Exception:
+        font_title = ImageFont.load_default()
+        font_subtitle = ImageFont.load_default()
+        font_body = ImageFont.load_default()
+        font_small = ImageFont.load_default()
+
+    draw.text((50, 50), "PrintHub Live Board", fill='#e2e8f0', font=font_title)
+    draw.text((50, 110), "Kabale University Printing Service", fill='#94a3b8', font=font_subtitle)
+
+    stats = [
+        ("Active", total_active, '#22c55e'),
+        ("Ready", ready_count, '#3b82f6'),
+        ("Printing", printing_count, '#a855f7'),
+        ("Total Today", total_active + cancelled_count, '#f59e0b'),
+    ]
+    x = 50
+    for label, value, color in stats:
+        draw.text((x, 180), label, fill='#94a3b8', font=font_small)
+        draw.text((x, 210), str(value), fill=color, font=font_body)
+        x += 250
+
+    draw.rectangle([50, 280, 1150, 320], fill='#1e293b')
+    headers = [
+        ("Order", 70), ("Client", 200), ("Station", 400),
+        ("Status", 600), ("Time Left", 800), ("Priority", 1000)
+    ]
+    for text, x_pos in headers:
+        draw.text((x_pos, 285), text, fill='#94a3b8', font=font_small)
+
+    y = 330
+    for order in orders[:4]:
+        priority = order.priority_info
+        items = [
+            (70, f"#{order.id}"),
+            (200, order.client.username[:12]),
+            (400, order.station.name[:15] if order.station else '—'),
+            (600, order.get_status_display()),
+            (800, priority['time_display']),
+            (1000, priority['display']),
+        ]
+        for x_pos, text in items:
+            draw.text((x_pos, y), text, fill='#e2e8f0', font=font_small)
+        y += 55
+
+    draw.text((50, 570), "Scan to track your order  |  printlink.pythonanywhere.com", fill='#64748b', font=font_small)
+
+    buffer = io.BytesIO()
+    img.save(buffer, format='PNG')
+    buffer.seek(0)
+    return HttpResponse(buffer, content_type='image/png')
+
+
+# ============================================================
+# Email helpers
+# ============================================================
+
 def send_order_confirmation_email(order):
     subject = f'Order #{order.id} Confirmed - PrintHub'
     message = f"""
     Dear {order.client.username},
-    
+
     Your print order has been received!
-    
+
     Order Details:
     - Order ID: #{order.id}
     - File: {order.file_name}
@@ -656,75 +737,9 @@ def send_order_confirmation_email(order):
     - Double-sided: {'Yes' if order.is_double_sided else 'No'}
     - Binding: {order.get_binding_display()}
     - Total: {order.total_price:,.0f} UGX
-    
+
     Track your order at: {settings.SITE_URL}/track/?order_id={order.id}
 
-
-
-
-@cache_control(max_age=60)  # cache for 60 seconds
-def live_board_preview_image(request):
-    # Fetch live stats (same as your live board API)
-    active_statuses = ['paid', 'printing', 'in_transit', 'ready']
-    orders = Order.objects.filter(status__in=active_statuses).select_related('station', 'client')
-    total_active = orders.count()
-    ready_count = orders.filter(status='ready').count()
-    printing_count = orders.filter(status='printing').count()
-
-    # Create image
-    img = Image.new('RGB', (1200, 630), color='#0f172a')
-    draw = ImageDraw.Draw(img)
-
-    # Fonts (use default if custom not found)
-    try:
-        font_title = ImageFont.truetype('/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf', 48)
-        font_body = ImageFont.truetype('/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf', 32)
-        font_small = ImageFont.truetype('/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf', 24)
-    except:
-        font_title = ImageFont.load_default()
-        font_body = ImageFont.load_default()
-        font_small = ImageFont.load_default()
-
-    # Draw header
-    draw.text((50, 50), "PrintHub Live Board", fill='#e2e8f0', font=font_title)
-    draw.text((50, 120), "Kabale University Printing Service", fill='#94a3b8', font=font_body)
-
-    # Stats
-    draw.text((50, 220), f"Active Orders: {total_active}", fill='#22c55e', font=font_body)
-    draw.text((50, 280), f"Ready for Pickup: {ready_count}", fill='#3b82f6', font=font_body)
-    draw.text((50, 340), f"Printing Now: {printing_count}", fill='#a855f7', font=font_body)
-    draw.text((50, 400), f"Total Today: {total_active}", fill='#f59e0b', font=font_body)
-
-    # Draw a simple table header
-    draw.rectangle([50, 480, 1150, 520], fill='#1e293b')
-    draw.text((70, 485), "Order ID", fill='#94a3b8', font=font_small)
-    draw.text((200, 485), "Client", fill='#94a3b8', font=font_small)
-    draw.text((400, 485), "Station", fill='#94a3b8', font=font_small)
-    draw.text((600, 485), "Status", fill='#94a3b8', font=font_small)
-    draw.text((800, 485), "Time Left", fill='#94a3b8', font=font_small)
-    draw.text((1000, 485), "Priority", fill='#94a3b8', font=font_small)
-
-    # Draw recent orders (max 5)
-    y = 530
-    for order in orders[:5]:
-        priority = order.priority_info
-        draw.text((70, y), f"#{order.id}", fill='#e2e8f0', font=font_small)
-        draw.text((200, y), order.client.username[:12], fill='#e2e8f0', font=font_small)
-        draw.text((400, y), order.station.name[:15] if order.station else '-', fill='#e2e8f0', font=font_small)
-        draw.text((600, y), order.get_status_display(), fill='#e2e8f0', font=font_small)
-        draw.text((800, y), priority['time_display'], fill='#e2e8f0', font=font_small)
-        draw.text((1000, y), priority['display'], fill='#e2e8f0', font=font_small)
-        y += 40
-
-    # Footer
-    draw.text((50, 580), "Scan to track your order →", fill='#64748b', font=font_small)
-
-    # Save to bytes
-    buffer = io.BytesIO()
-    img.save(buffer, format='PNG')
-    buffer.seek(0)
-    return HttpResponse(buffer, content_type='image/png')
-    
     Thank you for choosing PrintHub!
     """
     send_mail(subject, message, settings.DEFAULT_FROM_EMAIL, [order.client.email], fail_silently=True)
