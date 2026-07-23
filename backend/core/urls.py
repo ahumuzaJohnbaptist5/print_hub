@@ -1,4 +1,4 @@
-cat > ~/print_hub/backend/orders/passport_api.py << 'ENDOFFILE'
+
 import base64
 import io
 import json
