@@ -4,6 +4,7 @@ from django.contrib.auth.decorators import login_required
 from django.http import HttpResponse
 from django.views.decorators.cache import never_cache
 from django.conf import settings
+from orders.views import live_board_preview_image   # <-- add this import at the top
 from orders.views import (
     home_view,
     dashboard_view,
@@ -42,6 +43,9 @@ urlpatterns = [
     path('orders/live-board/api/', live_board_api_view, name='live_board_api'),
     path('all-links/', all_links_view, name='all_links'),
     path('payments/', include('payments.urls')),
+    # core/urls.py (or orders/urls.py if you have one)
+    path('orders/live-board-preview.png', live_board_preview_image, name='live_board_preview'),
+
     path('finances/', include('finances.urls')),
     path('notifications/', include('notifications.urls')),
     path('sw.js', service_worker),
