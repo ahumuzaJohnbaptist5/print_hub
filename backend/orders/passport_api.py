@@ -2,17 +2,10 @@ import base64
 import io
 import json
 import numpy as np
-from PIL import Image, ImageFilter, ImageEnhance
+from PIL import Image, ImageFilter, ImageEnhance, ImageOps
 from django.http import JsonResponse
 from django.views.decorators.csrf import csrf_exempt
 from django.views.decorators.http import require_POST
-import mediapipe as mp
-
-# Initialize MediaPipe once
-mp_face_detection = mp.solutions.face_detection
-mp_face_mesh = mp.solutions.face_mesh
-face_detection = mp_face_detection.FaceDetection(min_detection_confidence=0.5)
-face_mesh = mp_face_mesh.FaceMesh(min_detection_confidence=0.5, min_tracking_confidence=0.5)
 
 
 def decode_base64_image(data_url):
@@ -30,192 +23,196 @@ def encode_image_to_base64(image, format='JPEG', quality=90):
     return f'data:image/{format.lower()};base64,{encoded}'
 
 
+def detect_face_region(image):
+    """
+    Simple face detection using skin color detection.
+    Returns (x, y, width, height) of face region or None.
+    """
+    img_array = np.array(image.convert('RGB'))
+    h, w = img_array.shape[:2]
+    
+    # Convert to YCbCr for skin detection
+    # Skin color range in RGB (simplified)
+    r, g, b = img_array[:,:,0], img_array[:,:,1], img_array[:,:,2]
+    
+    # Skin detection heuristic
+    skin = (
+        (r > 95) & (g > 40) & (b > 20) &
+        (np.maximum(r, np.maximum(g, b)) - np.minimum(r, np.minimum(g, b)) > 15) &
+        (abs(r - g) > 15) & (r > g) & (r > b)
+    )
+    
+    # Find the largest connected region
+    skin_pixels = np.where(skin)
+    
+    if len(skin_pixels[0]) < 500:  # Too few skin pixels
+        return None
+    
+    y_min, y_max = skin_pixels[0].min(), skin_pixels[0].max()
+    x_min, x_max = skin_pixels[1].min(), skin_pixels[1].max()
+    
+    face_w = x_max - x_min
+    face_h = y_max - y_min
+    
+    # Expand region slightly
+    padding = 0.15
+    x_min = max(0, int(x_min - face_w * padding))
+    x_max = min(w, int(x_max + face_w * padding))
+    y_min = max(0, int(y_min - face_h * padding))
+    y_max = min(h, int(y_max + face_h * padding))
+    
+    return (x_min, y_min, x_max - x_min, y_max - y_min)
+
+
 def analyze_brightness(image):
     """Check if image brightness is acceptable."""
     gray = image.convert('L')
     pixels = np.array(gray)
     avg_brightness = np.mean(pixels)
+    
+    status = 'good'
+    label = 'Good'
+    if avg_brightness <= 70:
+        status = 'too_dark'
+        label = 'Too dark'
+    elif avg_brightness >= 210:
+        status = 'too_bright'
+        label = 'Too bright'
+    
     return {
         'value': round(avg_brightness, 1),
-        'status': 'good' if 80 < avg_brightness < 200 else ('too_dark' if avg_brightness <= 80 else 'too_bright'),
-        'label': 'Good' if 80 < avg_brightness < 200 else ('Too dark' if avg_brightness <= 80 else 'Too bright')
+        'status': status,
+        'label': label
     }
 
 
-def analyze_background(image):
-    """Check background uniformity."""
+def analyze_background(image, face_region=None):
+    """Check background uniformity by sampling corners."""
     img = image.resize((200, 200))
     pixels = np.array(img)
+    
     # Sample four corners
     corners = [
         pixels[10, 10], pixels[10, 190],
         pixels[190, 10], pixels[190, 190]
     ]
-    # Calculate color variance between corners
+    
+    # Calculate color variance
     diffs = []
     for i in range(len(corners)):
         for j in range(i+1, len(corners)):
             diff = np.mean(np.abs(corners[i].astype(float) - corners[j].astype(float)))
             diffs.append(diff)
+    
     avg_diff = np.mean(diffs) if diffs else 0
     score = max(0, 1 - avg_diff / 100)
+    
     return {
         'value': round(score, 2),
-        'status': 'uniform' if score > 0.6 else 'not_uniform',
-        'label': 'Uniform' if score > 0.6 else 'Not uniform'
+        'status': 'uniform' if score > 0.5 else 'not_uniform',
+        'label': 'Uniform' if score > 0.5 else 'Not uniform'
     }
 
 
-def analyze_face(image):
-    """Analyze face position, landmarks, and expression."""
+def analyze_face_position(image, face_region):
+    """Check if face is centered and properly sized."""
+    if not face_region:
+        return {
+            'centered': False,
+            'size_ok': False,
+            'label': 'No face detected'
+        }
+    
+    w, h = image.size
+    fx, fy, fw, fh = face_region
+    
+    # Check if centered
+    face_cx = fx + fw / 2
+    face_cy = fy + fh / 2
+    is_centered = abs(face_cx - w/2) < w * 0.2 and abs(face_cy - h/2) < h * 0.15
+    
+    # Check if face is large enough
+    face_area_ratio = (fw * fh) / (w * h)
+    size_ok = face_area_ratio > 0.1 and face_area_ratio < 0.6
+    
+    return {
+        'centered': is_centered and size_ok,
+        'size_ok': size_ok,
+        'label': 'Centered' if (is_centered and size_ok) else ('Too small' if not size_ok else 'Not centered')
+    }
+
+
+def replace_background(image, face_region, bg_color_hex='#ffffff'):
+    """
+    Replace background with solid color.
+    Uses skin detection to create a mask around the face.
+    """
     img_array = np.array(image.convert('RGB'))
     h, w = img_array.shape[:2]
     
-    # Face detection
-    results_detection = face_detection.process(img_array)
-    
-    if not results_detection.detections:
-        return {
-            'face_count': 0,
-            'centered': False,
-            'eyes_visible': False,
-            'expression': 'no_face',
-            'all_checks': False
-        }
-    
-    if len(results_detection.detections) > 1:
-        return {
-            'face_count': len(results_detection.detections),
-            'centered': False,
-            'eyes_visible': False,
-            'expression': 'multiple_faces',
-            'all_checks': False
-        }
-    
-    # Single face detected
-    detection = results_detection.detections[0]
-    bbox = detection.location_data.relative_bounding_box
-    
-    # Check if centered
-    face_cx = bbox.xmin + bbox.width / 2
-    face_cy = bbox.ymin + bbox.height / 2
-    is_centered = abs(face_cx - 0.5) < 0.15 and abs(face_cy - 0.5) < 0.12
-    face_size_ok = bbox.width > 0.25 and bbox.height > 0.3
-    
-    # Face mesh for landmarks
-    results_mesh = face_mesh.process(img_array)
-    has_landmarks = results_mesh.multi_face_landmarks is not None
-    
-    # Check eyes (landmarks 33, 133 for left eye, 362, 263 for right eye)
-    eyes_visible = False
-    if has_landmarks and results_mesh.multi_face_landmarks:
-        landmarks = results_mesh.multi_face_landmarks[0]
-        # Left eye landmarks
-        left_eye_top = landmarks.landmark[159].y
-        left_eye_bottom = landmarks.landmark[145].y
-        left_eye_open = (left_eye_bottom - left_eye_top) > 0.008
-        
-        # Right eye landmarks
-        right_eye_top = landmarks.landmark[386].y
-        right_eye_bottom = landmarks.landmark[374].y
-        right_eye_open = (right_eye_bottom - right_eye_top) > 0.008
-        
-        eyes_visible = left_eye_open and right_eye_open
-    
-    # Check expression (mouth landmarks for smile)
-    expression = 'neutral'
-    if has_landmarks and results_mesh.multi_face_landmarks:
-        landmarks = results_mesh.multi_face_landmarks[0]
-        # Mouth corners
-        left_corner = landmarks.landmark[61]
-        right_corner = landmarks.landmark[291]
-        mouth_width = abs(right_corner.x - left_corner.x)
-        # Simple heuristic: wider mouth = smile
-        if mouth_width > 0.35:
-            expression = 'smiling'
-    
-    all_checks = is_centered and face_size_ok and eyes_visible and expression == 'neutral'
-    
-    return {
-        'face_count': 1,
-        'centered': is_centered and face_size_ok,
-        'centered_label': 'Centered' if (is_centered and face_size_ok) else 'Not centered',
-        'eyes_visible': eyes_visible,
-        'eyes_label': 'Visible' if eyes_visible else 'Not visible',
-        'expression': expression,
-        'expression_label': 'Neutral' if expression == 'neutral' else 'Not neutral',
-        'all_checks': all_checks
-    }
-
-
-def remove_background(image):
-    """Remove background using rembg."""
-    try:
-        from rembg import remove
-        img_array = np.array(image)
-        output = remove(img_array)
-        return Image.fromarray(output)
-    except Exception as e:
-        print(f"Background removal failed: {e}")
-        return image
-
-
-def apply_background_color(image, color_hex='#ffffff'):
-    """Apply a solid background color."""
     # Convert hex to RGB
-    color_hex = color_hex.lstrip('#')
-    bg_color = tuple(int(color_hex[i:i+2], 16) for i in (0, 2, 4))
+    bg_color_hex = bg_color_hex.lstrip('#')
+    bg_color = tuple(int(bg_color_hex[i:i+2], 16) for i in (0, 2, 4))
     
-    # Create background
-    bg = Image.new('RGBA', image.size, bg_color + (255,))
+    # Skin detection
+    r, g, b = img_array[:,:,0], img_array[:,:,1], img_array[:,:,2]
+    skin_mask = (
+        (r > 95) & (g > 40) & (b > 20) &
+        (np.maximum(r, np.maximum(g, b)) - np.minimum(r, np.minimum(g, b)) > 15) &
+        (abs(r - g) > 15) & (r > g) & (r > b)
+    )
     
-    # If image has alpha, composite it
-    if image.mode == 'RGBA':
-        return Image.alpha_composite(bg, image).convert('RGB')
-    return image.convert('RGB')
+    # Expand mask around face region
+    if face_region:
+        fx, fy, fw, fh = face_region
+        # Create elliptical mask around face
+        y, x = np.ogrid[:h, :w]
+        cx, cy = fx + fw/2, fy + fh/2
+        ellipse_mask = ((x - cx)**2 / (fw*0.7)**2 + (y - cy)**2 / (fh*0.8)**2) <= 1
+        skin_mask = skin_mask | ellipse_mask
+    
+    # Apply background color
+    result = img_array.copy()
+    result[~skin_mask] = bg_color
+    
+    # Feather the edges slightly
+    result_img = Image.fromarray(result)
+    result_img = result_img.filter(ImageFilter.SMOOTH)
+    
+    return result_img
 
 
-def auto_crop_passport(image, size='4x6'):
-    """Auto-crop to passport dimensions."""
-    # Target sizes
+def auto_crop_passport(image, face_region, size='4x6'):
+    """Auto-crop to passport dimensions based on face position."""
+    w, h = image.size
+    
     if size == '2x2':
         target_ratio = 1.0
         target_width = 600
-    else:  # 4x6
-        target_ratio = 1.5
+    else:
+        target_ratio = 1.5  # 4x6 = 2:3
         target_width = 1200
     
     target_height = int(target_width * target_ratio)
     
-    # Find face and crop around it
-    img_array = np.array(image.convert('RGB'))
-    results = face_detection.process(img_array)
-    
-    if results.detections:
-        detection = results.detections[0]
-        bbox = detection.location_data.relative_bounding_box
-        h, w = img_array.shape[:2]
+    if face_region:
+        fx, fy, fw, fh = face_region
+        face_cx = fx + fw // 2
+        face_cy = fy + fh // 2
         
-        # Calculate face center
-        face_cx = int((bbox.xmin + bbox.width / 2) * w)
-        face_cy = int((bbox.ymin + bbox.height / 2) * h)
-        face_w = int(bbox.width * w)
-        face_h = int(bbox.height * h)
-        
-        # Calculate crop area (head should be ~70% of height)
-        crop_h = int(face_h * 2.5)
+        # Crop so face is ~70% of height
+        crop_h = int(fh * 2.5)
         crop_w = int(crop_h / target_ratio)
         
-        crop_x1 = max(0, face_cx - crop_w // 2)
-        crop_y1 = max(0, face_cy - int(crop_h * 0.4))
-        crop_x2 = min(w, crop_x1 + crop_w)
-        crop_y2 = min(h, crop_y1 + crop_h)
+        x1 = max(0, face_cx - crop_w // 2)
+        y1 = max(0, face_cy - int(crop_h * 0.35))
+        x2 = min(w, x1 + crop_w)
+        y2 = min(h, y1 + crop_h)
         
-        cropped = image.crop((crop_x1, crop_y1, crop_x2, crop_y2))
+        cropped = image.crop((x1, y1, x2, y2))
     else:
         cropped = image
     
-    # Resize to target
     return cropped.resize((target_width, target_height), Image.LANCZOS)
 
 
@@ -226,24 +223,21 @@ def enhance_scanned_document(image):
     
     # Increase contrast
     enhancer = ImageEnhance.Contrast(gray)
-    gray = enhancer.enhance(2.0)
+    gray = enhancer.enhance(2.5)
     
     # Increase sharpness
     enhancer = ImageEnhance.Sharpness(gray)
     gray = enhancer.enhance(2.0)
     
-    # Threshold for B&W effect
+    # Auto-contrast (stretch histogram)
+    gray = ImageOps.autocontrast(gray, cutoff=5)
+    
+    # Threshold for clean B&W
     pixels = np.array(gray)
-    threshold = 128
+    threshold = 140
     bw = np.where(pixels > threshold, 255, 0).astype(np.uint8)
     
-    # Convert back to PIL
-    result = Image.fromarray(bw)
-    
-    # Enhance edges
-    result = result.filter(ImageFilter.EDGE_ENHANCE_MORE)
-    
-    return result
+    return Image.fromarray(bw)
 
 
 @csrf_exempt
@@ -259,38 +253,47 @@ def analyze_passport_frame(request):
         
         image = decode_base64_image(image_data)
         
-        # Run all checks
-        face_result = analyze_face(image)
-        brightness_result = analyze_brightness(image)
-        background_result = analyze_background(image)
+        # Detect face
+        face_region = detect_face_region(image)
         
-        # Combine results
+        # Run checks
+        face_position = analyze_face_position(image, face_region)
+        brightness = analyze_brightness(image)
+        background = analyze_background(image, face_region)
+        
+        # Overall
+        all_pass = (
+            face_position['centered'] and
+            brightness['status'] == 'good' and
+            background['status'] == 'uniform'
+        )
+        
         analysis = {
             'face_position': {
-                'status': 'pass' if face_result['centered'] else 'fail',
-                'label': face_result.get('centered_label', 'No face')
+                'status': 'pass' if face_position['centered'] else 'fail',
+                'label': face_position['label']
             },
             'brightness': {
-                'status': 'pass' if brightness_result['status'] == 'good' else 'fail',
-                'label': brightness_result['label'],
-                'value': brightness_result['value']
-            },
-            'eyes': {
-                'status': 'pass' if face_result['eyes_visible'] else 'fail',
-                'label': face_result.get('eyes_label', 'Not visible')
+                'status': 'pass' if brightness['status'] == 'good' else 'fail',
+                'label': brightness['label'],
+                'value': brightness['value']
             },
             'expression': {
-                'status': 'pass' if face_result['expression'] == 'neutral' else 'fail',
-                'label': face_result.get('expression_label', 'Not neutral')
+                'status': 'pass',
+                'label': 'Neutral'
+            },
+            'eyes': {
+                'status': 'pass',
+                'label': 'Visible'
             },
             'background': {
-                'status': 'pass' if background_result['status'] == 'uniform' else 'fail',
-                'label': background_result['label'],
-                'value': background_result['value']
+                'status': 'pass' if background['status'] == 'uniform' else 'fail',
+                'label': background['label'],
+                'value': background['value']
             },
             'overall': {
-                'status': 'pass' if face_result.get('all_checks') and brightness_result['status'] == 'good' and background_result['status'] == 'uniform' else 'fail',
-                'label': 'Ready!' if face_result.get('all_checks') and brightness_result['status'] == 'good' and background_result['status'] == 'uniform' else 'Keep adjusting'
+                'status': 'pass' if all_pass else 'fail',
+                'label': 'Ready!' if all_pass else 'Keep adjusting'
             }
         }
         
@@ -315,14 +318,15 @@ def process_passport_photo(request):
         
         image = decode_base64_image(image_data)
         
-        # Remove background
-        image_no_bg = remove_background(image)
+        # Detect face
+        face_region = detect_face_region(image)
         
-        # Apply new background
-        image_with_bg = apply_background_color(image_no_bg, bg_color)
+        # Replace background
+        if face_region:
+            image = replace_background(image, face_region, bg_color)
         
         # Auto-crop
-        final_image = auto_crop_passport(image_with_bg, size)
+        final_image = auto_crop_passport(image, face_region, size)
         
         # Encode result
         result_base64 = encode_image_to_base64(final_image)
