@@ -49,4 +49,6 @@ urlpatterns = [
     path('finances/', include('finances.urls')),
     path('notifications/', include('notifications.urls')),
     path('sw.js', service_worker),
+
+    path('whatsapp/', include('whatsapp_bot.urls')),
 ]
