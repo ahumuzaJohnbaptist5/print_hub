@@ -245,50 +245,15 @@
 
 <script>
 // ============================================================
-// LAZY LOADING FOR PASSPORT LIBRARIES
+// LAZY LOADING FOR PASSPORT LIBRARIES (FIXED)
 // ============================================================
-let tfLoaded = false, faceApiLoaded = false, passportLoadPromise = null;
+let faceApiLoaded = false;
+let loadingInProgress = false;
 
-function loadScript(src) {
-    return new Promise((resolve, reject) => {
-        if (document.querySelector(`script[src="${src}"]`)) { resolve(); return; }
-        const s = document.createElement('script');
-        s.src = src;
-        s.onload = () => resolve();
-        s.onerror = () => reject(new Error('Failed: ' + src));
-        document.head.appendChild(s);
-    });
-}
-
-async function loadPassportLibraries() {
-    if (passportLoadPromise) return passportLoadPromise;
-    if (faceApiLoaded) { showPassportContent(); return; }
-
+function showPassportLoading() {
     document.getElementById('passport-loading').style.display = 'block';
     document.getElementById('passport-error').classList.add('hidden');
     document.getElementById('passport-content').style.display = 'none';
-
-    passportLoadPromise = (async () => {
-        try {
-            if (!tfLoaded) { await loadScript('https://cdn.jsdelivr.net/npm/@tensorflow/tfjs@4.10.0/dist/tf.min.js'); tfLoaded = true; await new Promise(r => setTimeout(r, 300)); }
-            if (!faceApiLoaded) {
-                await loadScript('https://cdn.jsdelivr.net/npm/face-api.js@0.22.2/dist/face-api.min.js');
-                await new Promise(r => setTimeout(r, 500));
-                const mu = 'https://cdn.jsdelivr.net/npm/face-api.js@0.22.2/weights/';
-                await faceapi.nets.tinyFaceDetector.loadFromUri(mu);
-                await faceapi.nets.faceLandmark68TinyNet.loadFromUri(mu);
-                await faceapi.nets.faceExpressionNet.loadFromUri(mu);
-                faceApiLoaded = true;
-            }
-            showPassportContent();
-        } catch(e) {
-            console.error(e);
-            document.getElementById('passport-loading').style.display = 'none';
-            document.getElementById('passport-error').classList.remove('hidden');
-            passportLoadPromise = null;
-        }
-    })();
-    return passportLoadPromise;
 }
 
 function showPassportContent() {
@@ -297,11 +262,64 @@ function showPassportContent() {
     document.getElementById('passport-content').style.display = 'block';
 }
 
-async function retryPassport() {
-    passportLoadPromise = null; faceApiLoaded = false; tfLoaded = false;
-    document.getElementById('passport-loading').style.display = 'block';
-    document.getElementById('passport-error').classList.add('hidden');
+function showPassportError() {
+    document.getElementById('passport-loading').style.display = 'none';
+    document.getElementById('passport-error').classList.remove('hidden');
     document.getElementById('passport-content').style.display = 'none';
+}
+
+function loadScript(src, id) {
+    return new Promise((resolve, reject) => {
+        if (document.getElementById(id)) { resolve(); return; }
+        const script = document.createElement('script');
+        script.src = src;
+        script.id = id;
+        script.onload = () => { console.log('Loaded: ' + id); resolve(); };
+        script.onerror = () => { console.error('Failed: ' + src); reject(new Error('Failed: ' + src)); };
+        document.head.appendChild(script);
+    });
+}
+
+async function loadPassportLibraries() {
+    if (loadingInProgress) return;
+    if (faceApiLoaded && typeof faceapi !== 'undefined') { showPassportContent(); return; }
+    
+    loadingInProgress = true;
+    showPassportLoading();
+    
+    try {
+        console.log('Loading TensorFlow...');
+        await loadScript('https://cdn.jsdelivr.net/npm/@tensorflow/tfjs@4.10.0/dist/tf.min.js', 'script-tfjs');
+        await new Promise(r => setTimeout(r, 500));
+        
+        console.log('Loading face-api...');
+        await loadScript('https://cdn.jsdelivr.net/npm/face-api.js@0.22.2/dist/face-api.min.js', 'script-faceapi');
+        await new Promise(r => setTimeout(r, 500));
+        
+        if (typeof faceapi === 'undefined') throw new Error('faceapi not defined');
+        
+        console.log('Loading face models...');
+        // CORRECT URL FOR MODEL WEIGHTS
+        const modelUrl = 'https://justadudewhohacks.github.io/face-api.js/models/';
+        await faceapi.nets.tinyFaceDetector.loadFromUri(modelUrl);
+        await faceapi.nets.faceLandmark68TinyNet.loadFromUri(modelUrl);
+        await faceapi.nets.faceExpressionNet.loadFromUri(modelUrl);
+        console.log('Models loaded successfully!');
+        
+        faceApiLoaded = true;
+        showPassportContent();
+    } catch (error) {
+        console.error('Load error:', error);
+        showPassportError();
+    } finally {
+        loadingInProgress = false;
+    }
+}
+
+async function retryPassport() {
+    document.querySelectorAll('#script-tfjs, #script-faceapi').forEach(s => s.remove());
+    faceApiLoaded = false;
+    loadingInProgress = false;
     await loadPassportLibraries();
 }
 </script>
@@ -363,7 +381,6 @@ function switchMode(mode) {
     calculatePrice();
 }
 
-// ===================== PASSPORT =====================
 async function startPassportCamera() {
     if (!faceApiLoaded) { try { await loadPassportLibraries(); } catch(e) { alert('Failed to load camera tools.'); return; } }
     try {
@@ -463,7 +480,6 @@ function stopPassportCamera() {
     if(analysisInterval){clearInterval(analysisInterval); analysisInterval=null;}
 }
 
-// ===================== SCANNER =====================
 async function startScannerCamera() {
     try {
         scannerStream = await navigator.mediaDevices.getUserMedia({video:{facingMode:'environment',width:{ideal:1920},height:{ideal:1080}}});
@@ -509,7 +525,6 @@ async function finishScanning() {
 }
 function stopScannerCamera() { if(scannerStream){scannerStream.getTracks().forEach(t=>t.stop()); scannerStream=null;} }
 
-// ===================== PRICE =====================
 const dropzone=document.getElementById('dropzone'), dropzoneText=document.getElementById('dropzone-text');
 const fileInput=document.getElementById('file'), pageCountInput=document.getElementById('page_count');
 const statusText=document.getElementById('page-count-status'), livePrice=document.getElementById('live-price');
