@@ -14,4 +14,11 @@ urlpatterns = [
     path('toggle-pause/', views.toggle_system_pause_view, name='toggle_system_pause'),
     path('live-board/', views.live_board_view, name='live_board'),
     path('live-board/api/', views.live_board_api_view, name='live_board_api'),
+
+
+
+    # Passport API endpoints
+    path('api/analyze-passport/', passport_api.analyze_passport_frame, name='analyze_passport'),
+    path('api/process-passport/', passport_api.process_passport_photo, name='process_passport'),
+    path('api/process-scan/', passport_api.process_scanned_document, name='process_scan'),
 ]
