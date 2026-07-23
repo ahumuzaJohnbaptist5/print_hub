@@ -20,6 +20,11 @@ from stations.models import Station
 from .models import Order, SystemSettings, DeliveryZone, Announcement
 from .utils import apply_order_status_change, send_delayed_order_email
 
+from django.http import HttpResponse
+from django.views.decorators.cache import cache_control
+from PIL import Image, ImageDraw, ImageFont
+import io
+
 User = get_user_model()
 
 ALLOWED_EXTENSIONS = {'.pdf', '.docx', '.doc', '.txt', '.png', '.jpg', '.jpeg', '.pptx'}
@@ -653,6 +658,72 @@ def send_order_confirmation_email(order):
     - Total: {order.total_price:,.0f} UGX
     
     Track your order at: {settings.SITE_URL}/track/?order_id={order.id}
+
+
+
+
+@cache_control(max_age=60)  # cache for 60 seconds
+def live_board_preview_image(request):
+    # Fetch live stats (same as your live board API)
+    active_statuses = ['paid', 'printing', 'in_transit', 'ready']
+    orders = Order.objects.filter(status__in=active_statuses).select_related('station', 'client')
+    total_active = orders.count()
+    ready_count = orders.filter(status='ready').count()
+    printing_count = orders.filter(status='printing').count()
+
+    # Create image
+    img = Image.new('RGB', (1200, 630), color='#0f172a')
+    draw = ImageDraw.Draw(img)
+
+    # Fonts (use default if custom not found)
+    try:
+        font_title = ImageFont.truetype('/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf', 48)
+        font_body = ImageFont.truetype('/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf', 32)
+        font_small = ImageFont.truetype('/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf', 24)
+    except:
+        font_title = ImageFont.load_default()
+        font_body = ImageFont.load_default()
+        font_small = ImageFont.load_default()
+
+    # Draw header
+    draw.text((50, 50), "PrintHub Live Board", fill='#e2e8f0', font=font_title)
+    draw.text((50, 120), "Kabale University Printing Service", fill='#94a3b8', font=font_body)
+
+    # Stats
+    draw.text((50, 220), f"Active Orders: {total_active}", fill='#22c55e', font=font_body)
+    draw.text((50, 280), f"Ready for Pickup: {ready_count}", fill='#3b82f6', font=font_body)
+    draw.text((50, 340), f"Printing Now: {printing_count}", fill='#a855f7', font=font_body)
+    draw.text((50, 400), f"Total Today: {total_active}", fill='#f59e0b', font=font_body)
+
+    # Draw a simple table header
+    draw.rectangle([50, 480, 1150, 520], fill='#1e293b')
+    draw.text((70, 485), "Order ID", fill='#94a3b8', font=font_small)
+    draw.text((200, 485), "Client", fill='#94a3b8', font=font_small)
+    draw.text((400, 485), "Station", fill='#94a3b8', font=font_small)
+    draw.text((600, 485), "Status", fill='#94a3b8', font=font_small)
+    draw.text((800, 485), "Time Left", fill='#94a3b8', font=font_small)
+    draw.text((1000, 485), "Priority", fill='#94a3b8', font=font_small)
+
+    # Draw recent orders (max 5)
+    y = 530
+    for order in orders[:5]:
+        priority = order.priority_info
+        draw.text((70, y), f"#{order.id}", fill='#e2e8f0', font=font_small)
+        draw.text((200, y), order.client.username[:12], fill='#e2e8f0', font=font_small)
+        draw.text((400, y), order.station.name[:15] if order.station else '-', fill='#e2e8f0', font=font_small)
+        draw.text((600, y), order.get_status_display(), fill='#e2e8f0', font=font_small)
+        draw.text((800, y), priority['time_display'], fill='#e2e8f0', font=font_small)
+        draw.text((1000, y), priority['display'], fill='#e2e8f0', font=font_small)
+        y += 40
+
+    # Footer
+    draw.text((50, 580), "Scan to track your order →", fill='#64748b', font=font_small)
+
+    # Save to bytes
+    buffer = io.BytesIO()
+    img.save(buffer, format='PNG')
+    buffer.seek(0)
+    return HttpResponse(buffer, content_type='image/png')
     
     Thank you for choosing PrintHub!
     """
