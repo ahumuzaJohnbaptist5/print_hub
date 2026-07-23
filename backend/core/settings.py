@@ -56,6 +56,7 @@ INSTALLED_APPS = [
     'payments',
     'finances',
     'notifications',
+    'whatsapp_bot',
 ]
 
 MIDDLEWARE = [
@@ -192,3 +193,15 @@ LOGGING = {
         'level': 'INFO',
     },
 }
+
+
+
+
+# WhatsApp Cloud API
+WHATSAPP_API_TOKEN = "YOUR_TOKEN_HERE"
+WHATSAPP_PHONE_NUMBER_ID = "YOUR_PHONE_ID_HERE"
+WHATSAPP_VERIFY_TOKEN = "printhub_webhook_2024"
+WHATSAPP_BUSINESS_PHONE = "+2567XXXXXXXX"
+WHATSAPP_ADMIN_NUMBERS = ["+2567XXXXXXXX"]
+
+
