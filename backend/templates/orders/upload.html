@@ -38,7 +38,6 @@
         <form method="post" enctype="multipart/form-data" id="upload-form">
             {% csrf_token %}
 
-            <!-- DOCUMENT MODE -->
             <div id="document-mode">
                 <div class="mb-6">
                     <label id="dropzone" class="flex flex-col items-center justify-center w-full h-40 border-2 border-dashed border-slate-600 rounded cursor-pointer bg-slate-700/30 hover:bg-slate-700/50 transition-all duration-200 group">
@@ -55,7 +54,6 @@
                 </div>
             </div>
 
-            <!-- PASSPORT MODE -->
             <div id="passport-mode" style="display:none;">
                 <div id="passport-loading" class="text-center py-12">
                     <div class="animate-spin w-10 h-10 border-4 border-indigo-500 border-t-transparent rounded-full mx-auto mb-4"></div>
@@ -83,10 +81,10 @@
                     <div class="mb-4">
                         <label class="block text-sm font-bold text-gray-300 mb-2">Background Color</label>
                         <div class="grid grid-cols-4 gap-2">
-                            <button type="button" onclick="setBgColor('#ffffff')" class="h-10 rounded border-2 border-white bg-white" title="White"></button>
-                            <button type="button" onclick="setBgColor('#3b82f6')" class="h-10 rounded border-2 border-slate-600 bg-blue-500" title="Blue"></button>
-                            <button type="button" onclick="setBgColor('#ef4444')" class="h-10 rounded border-2 border-slate-600 bg-red-500" title="Red"></button>
-                            <button type="button" onclick="setBgColor('#cccccc')" class="h-10 rounded border-2 border-slate-600 bg-gray-400" title="Gray"></button>
+                            <button type="button" onclick="setBgColor('#ffffff', this)" class="bg-white h-10 rounded border-2 border-indigo-400 ring-2 ring-indigo-300 transition-all" title="White"></button>
+                            <button type="button" onclick="setBgColor('#3b82f6', this)" class="bg-blue-500 h-10 rounded border-2 border-slate-600 transition-all" title="Blue"></button>
+                            <button type="button" onclick="setBgColor('#ef4444', this)" class="bg-red-500 h-10 rounded border-2 border-slate-600 transition-all" title="Red"></button>
+                            <button type="button" onclick="setBgColor('#cccccc', this)" class="bg-gray-400 h-10 rounded border-2 border-slate-600 transition-all" title="Gray"></button>
                         </div>
                         <input type="hidden" id="bg-color" value="#ffffff">
                     </div>
@@ -122,7 +120,6 @@
                 </div>
             </div>
 
-            <!-- SCANNER MODE -->
             <div id="scanner-mode" style="display:none;">
                 <div class="mb-4">
                     <label class="block text-sm font-bold text-gray-300 mb-2">Paper Size</label>
@@ -153,7 +150,6 @@
                 <input type="hidden" id="scanner-data" name="scanner_data">
             </div>
 
-            <!-- COMMON FIELDS -->
             <div id="common-fields">
                 <div class="mb-6">
                     <label for="page_count" class="block text-sm font-bold text-gray-300 mb-2">Number of Pages / Copies</label>
@@ -245,7 +241,7 @@
 
 <script>
 // ============================================================
-// LAZY LOADING FOR PASSPORT LIBRARIES (FIXED)
+// LAZY LOADING FOR PASSPORT LIBRARIES (COMPATIBLE TF VERSION)
 // ============================================================
 let faceApiLoaded = false;
 let loadingInProgress = false;
@@ -255,13 +251,11 @@ function showPassportLoading() {
     document.getElementById('passport-error').classList.add('hidden');
     document.getElementById('passport-content').style.display = 'none';
 }
-
 function showPassportContent() {
     document.getElementById('passport-loading').style.display = 'none';
     document.getElementById('passport-error').classList.add('hidden');
     document.getElementById('passport-content').style.display = 'block';
 }
-
 function showPassportError() {
     document.getElementById('passport-loading').style.display = 'none';
     document.getElementById('passport-error').classList.remove('hidden');
@@ -283,29 +277,22 @@ function loadScript(src, id) {
 async function loadPassportLibraries() {
     if (loadingInProgress) return;
     if (faceApiLoaded && typeof faceapi !== 'undefined') { showPassportContent(); return; }
-    
     loadingInProgress = true;
     showPassportLoading();
-    
     try {
-        console.log('Loading TensorFlow...');
-        await loadScript('https://cdn.jsdelivr.net/npm/@tensorflow/tfjs@4.10.0/dist/tf.min.js', 'script-tfjs');
-        await new Promise(r => setTimeout(r, 500));
-        
+        console.log('Loading TF.js v2.8.6...');
+        await loadScript('https://cdn.jsdelivr.net/npm/@tensorflow/tfjs@2.8.6/dist/tf.min.js', 'script-tfjs');
+        await new Promise(r => setTimeout(r, 300));
         console.log('Loading face-api...');
         await loadScript('https://cdn.jsdelivr.net/npm/face-api.js@0.22.2/dist/face-api.min.js', 'script-faceapi');
         await new Promise(r => setTimeout(r, 500));
-        
         if (typeof faceapi === 'undefined') throw new Error('faceapi not defined');
-        
-        console.log('Loading face models...');
-        // CORRECT URL FOR MODEL WEIGHTS
+        console.log('Loading models...');
         const modelUrl = 'https://justadudewhohacks.github.io/face-api.js/models/';
         await faceapi.nets.tinyFaceDetector.loadFromUri(modelUrl);
         await faceapi.nets.faceLandmark68TinyNet.loadFromUri(modelUrl);
         await faceapi.nets.faceExpressionNet.loadFromUri(modelUrl);
-        console.log('Models loaded successfully!');
-        
+        console.log('All models loaded!');
         faceApiLoaded = true;
         showPassportContent();
     } catch (error) {
@@ -342,7 +329,17 @@ const infoTexts = {
     'scanner': '<strong>Scan physical documents</strong> - Point camera at your document'
 };
 
-function setBgColor(c) { bgColor = c; document.getElementById('bg-color').value = c; }
+function setBgColor(color, btn) {
+    bgColor = color;
+    document.getElementById('bg-color').value = color;
+    // Update active button style
+    document.querySelectorAll('#passport-content .grid-cols-4 button').forEach(b => {
+        b.classList.remove('border-indigo-400', 'ring-2', 'ring-indigo-300');
+        b.classList.add('border-slate-600');
+    });
+    btn.classList.remove('border-slate-600');
+    btn.classList.add('border-indigo-400', 'ring-2', 'ring-indigo-300');
+}
 
 function switchMode(mode) {
     currentMode = mode;
@@ -406,7 +403,7 @@ function startRealTimeAnalysis(video) {
             const ctx = overlay.getContext('2d'); ctx.clearRect(0, 0, overlay.width, overlay.height);
             if (detections.length === 1) {
                 const d = detections[0], face = d.detection.box, lm = d.landmarks, ex = d.expressions;
-                const bright = analyzeBrightness(video), bg = analyzeBackground(video, face);
+                const bright = analyzeBrightness(video), bg = analyzeBackground(video);
                 if (lm) { drawPts(ctx, lm.getLeftEye(),'#3b82f6'); drawPts(ctx, lm.getRightEye(),'#3b82f6'); drawPts(ctx, lm.getNose(),'#f59e0b'); drawPts(ctx, lm.getMouth(),'#ef4444'); drawPts(ctx, lm.getJawOutline(),'#22c55e'); }
                 const cx = face.x+face.width/2, cy = face.y+face.height/2;
                 const ctr = Math.sqrt((cx-overlay.width/2)**2+(cy-overlay.height/2)**2) < 80 && face.width > 100;
@@ -416,19 +413,19 @@ function startRealTimeAnalysis(video) {
                 updateCheck('check-brightness', bright>100 && bright<200, 'Good', bright<80?'Too dark':'Too bright');
                 updateCheck('check-expression', neutral, 'Neutral', 'Not neutral');
                 updateCheck('check-eyes', eyes, 'Visible', 'Not visible');
-                updateCheck('check-background', bg>0.6, 'Uniform', 'Not uniform');
-                const all = ctr && bright>100 && bright<200 && neutral && eyes && bg>0.6;
+                updateCheck('check-background', bg>0.5, 'Uniform', 'Not uniform');
+                const all = ctr && bright>100 && bright<200 && neutral && eyes && bg>0.5;
                 updateCheck('check-overall', all, 'Ready!', 'Keep adjusting');
                 document.getElementById('face-guide').style.borderColor = all ? '#22c55e' : '#eab308';
-            } else if (detections.length === 0) { resetChecks(); } 
-            else { resetChecks(); document.getElementById('check-position').textContent = 'Multiple faces'; document.getElementById('check-position').className = 'text-red-400'; }
+            } else if (detections.length === 0) { resetChecks(); }
+            else { resetChecks(); document.getElementById('check-position').textContent='Multiple faces'; document.getElementById('check-position').className='text-red-400'; }
         } catch(e) {}
     }, 300);
 }
 
 function drawPts(ctx, pts, color) { if(!pts) return; ctx.fillStyle = color; pts.forEach(p => { ctx.beginPath(); ctx.arc(p.x,p.y,2,0,2*Math.PI); ctx.fill(); }); }
 function analyzeBrightness(v) { const c=document.createElement('canvas'); c.width=100; c.height=100; const x=c.getContext('2d'); x.drawImage(v,0,0,100,100); const d=x.getImageData(0,0,100,100).data; let s=0; for(let i=0;i<d.length;i+=4)s+=(d[i]+d[i+1]+d[i+2])/3; return s/(d.length/4); }
-function analyzeBackground(v, fb) { const c=document.createElement('canvas'); c.width=200; c.height=200; const x=c.getContext('2d'); x.drawImage(v,0,0,200,200); const crs=[{x:10,y:10},{x:190,y:10},{x:10,y:190},{x:190,y:190}]; let cls=[]; crs.forEach(cr=>{ const p=x.getImageData(cr.x,cr.y,1,1).data; cls.push({r:p[0],g:p[1],b:p[2]}); }); let td=0; for(let i=0;i<cls.length;i++) for(let j=i+1;j<cls.length;j++) td+=Math.abs(cls[i].r-cls[j].r)+Math.abs(cls[i].g-cls[j].g)+Math.abs(cls[i].b-cls[j].b); return Math.max(0,1-(td/(cls.length*(cls.length-1)/2))/200); }
+function analyzeBackground(v) { const c=document.createElement('canvas'); c.width=200; c.height=200; const x=c.getContext('2d'); x.drawImage(v,0,0,200,200); const crs=[{x:10,y:10},{x:190,y:10},{x:10,y:190},{x:190,y:190}]; let cls=[]; crs.forEach(cr=>{ const p=x.getImageData(cr.x,cr.y,1,1).data; cls.push({r:p[0],g:p[1],b:p[2]}); }); let td=0; for(let i=0;i<cls.length;i++) for(let j=i+1;j<cls.length;j++) td+=Math.abs(cls[i].r-cls[j].r)+Math.abs(cls[i].g-cls[j].g)+Math.abs(cls[i].b-cls[j].b); return Math.max(0,1-(td/(cls.length*(cls.length-1)/2))/200); }
 function updateCheck(id, pass, g, b) { const e=document.getElementById(id); e.textContent = pass ? g : b; e.className = pass ? 'text-green-400' : 'text-red-400'; }
 function resetChecks() { ['check-position','check-brightness','check-expression','check-eyes','check-background','check-overall'].forEach(id => { document.getElementById(id).textContent='-'; document.getElementById(id).className='text-yellow-400'; }); }
 
@@ -438,7 +435,9 @@ function capturePassport() {
     document.getElementById('paper_size').value = sz;
     c.width=sz==='2x2'?600:1200; c.height=sz==='2x2'?600:1800;
     const ctx=c.getContext('2d');
-    ctx.fillStyle=bgColor; ctx.fillRect(0,0,c.width,c.height);
+    // Fill with selected background color
+    ctx.fillStyle = bgColor;
+    ctx.fillRect(0, 0, c.width, c.height);
     const sw=v.videoWidth||640, sh=v.videoHeight||480;
     ctx.drawImage(v, sw*0.12, sh*0.02, sw*0.76, sh*0.9, 0, 0, c.width, c.height);
     c.style.display='block'; v.style.display='none';
