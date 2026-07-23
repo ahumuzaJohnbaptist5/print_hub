@@ -36,8 +36,10 @@ class SystemSettings(models.Model):
 
 class Announcement(models.Model):
     """Custom announcement banner shown at top of all pages."""
+    title = models.CharField(max_length=200, default='Announcement')
     message = models.TextField(help_text="Message to display in the announcement bar")
     is_active = models.BooleanField(default=True)
+    show_on_home = models.BooleanField(default=True, help_text="Show on homepage")
     background_color = models.CharField(max_length=30, default='bg-blue-600',
         help_text="Tailwind class: bg-blue-600, bg-red-600, bg-green-600, bg-purple-600, bg-orange-600, etc.")
     created_at = models.DateTimeField(auto_now_add=True)
@@ -93,6 +95,24 @@ class Order(models.Model):
         ('spiral', 'Spiral Binding'),
     )
 
+    # ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+    # NEW: Order type, paper size, and copies
+    # ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+    ORDER_TYPE_CHOICES = (
+        ('document', 'Document Print'),
+        ('passport', 'Passport Photo'),
+        ('scanned', 'Scanned Document'),
+    )
+
+    PAPER_SIZE_CHOICES = (
+        ('A4', 'A4'),
+        ('4x6', '4x6 (Passport)'),
+        ('2x2', '2x2 (Passport)'),
+    )
+
+    # ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+    # Core fields
+    # ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
     client = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE)
     station = models.ForeignKey('stations.Station', on_delete=models.SET_NULL, null=True)
     file = models.FileField(upload_to='print_files/')
@@ -105,6 +125,29 @@ class Order(models.Model):
     delivery_type = models.CharField(max_length=20, choices=DELIVERY_TYPE_CHOICES, default='pickup')
     delivery_zone = models.ForeignKey(DeliveryZone, on_delete=models.SET_NULL, null=True, blank=True)
 
+    # ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+    # NEW FIELDS: Order type, paper size, copies
+    # ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+    order_type = models.CharField(
+        max_length=20, 
+        choices=ORDER_TYPE_CHOICES, 
+        default='document',
+        help_text="Type of print order (document, passport photo, or scanned document)"
+    )
+    paper_size = models.CharField(
+        max_length=10, 
+        choices=PAPER_SIZE_CHOICES, 
+        default='A4',
+        help_text="Paper size for printing"
+    )
+    copies = models.IntegerField(
+        default=1,
+        help_text="Number of copies to print"
+    )
+
+    # ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+    # Pricing & status
+    # ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
     total_price = models.DecimalField(max_digits=10, decimal_places=2, default=0)
     status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='pending')
     transaction_id = models.CharField(max_length=100, blank=True, null=True)
@@ -133,6 +176,8 @@ class Order(models.Model):
     BASE_PRICE_BW = 200
     COLOR_SURCHARGE = 100
     SPIRAL_BINDING_FEE = 1000
+    PASSPORT_PHOTO_PRICE = 2000  # NEW: Base price for passport photos
+    SCANNED_DOC_PRICE = 200      # NEW: Same as B&W for scanned docs
 
     class Meta:
         indexes = [
@@ -141,38 +186,99 @@ class Order(models.Model):
             models.Index(fields=['client', 'created_at']),
             models.Index(fields=['created_at']),
             models.Index(fields=['status']),
+            models.Index(fields=['order_type']),      # NEW
         ]
         ordering = ['-created_at']
 
     @classmethod
-    def compute_price(cls, page_count, is_color=False, is_double_sided=False, binding='none', delivery_fee=0):
-        price_per_page = cls.BASE_PRICE_BW + (cls.COLOR_SURCHARGE if is_color else 0)
-        effective_pages = page_count
-        if is_double_sided:
-            effective_pages = math.ceil(page_count / 2)
-        printing_cost = price_per_page * effective_pages
-        binding_cost = cls.SPIRAL_BINDING_FEE if binding == 'spiral' else 0
-        total_price = printing_cost + binding_cost + delivery_fee
-        return total_price, effective_pages, price_per_page
+    def compute_price(cls, page_count, is_color=False, is_double_sided=False, binding='none', delivery_fee=0, order_type='document', paper_size='A4', copies=1):
+        """
+        Calculate total price based on order type and options.
+        
+        Parameters:
+        - page_count: Number of pages
+        - is_color: Color or B&W
+        - is_double_sided: Double-sided printing
+        - binding: Binding type (none, staple, spiral)
+        - delivery_fee: Delivery fee in UGX
+        - order_type: 'document', 'passport', or 'scanned'
+        - paper_size: 'A4', '4x6', or '2x2'
+        - copies: Number of copies
+        """
+        
+        if order_type == 'passport':
+            # Passport photos have fixed pricing per sheet
+            base_price = cls.PASSPORT_PHOTO_PRICE
+            if paper_size == '4x6':
+                # 4x6 can fit 2 passport photos
+                effective_pages = math.ceil(page_count / 2)
+            else:
+                effective_pages = page_count
+            
+            price_per_page = base_price
+            printing_cost = base_price * effective_pages
+            
+            # Color is default for passport photos
+            if not is_color:
+                printing_cost = printing_cost * Decimal('0.8')  # 20% discount for B&W passport
+            
+            total_price = printing_cost + (cls.SPIRAL_BINDING_FEE if binding == 'spiral' else 0) + delivery_fee
+            return total_price * copies, effective_pages, price_per_page
+        
+        elif order_type == 'scanned':
+            # Scanned documents use standard pricing
+            price_per_page = cls.SCANNED_DOC_PRICE + (cls.COLOR_SURCHARGE if is_color else 0)
+            effective_pages = page_count
+            if is_double_sided:
+                effective_pages = math.ceil(page_count / 2)
+            printing_cost = price_per_page * effective_pages
+            binding_cost = cls.SPIRAL_BINDING_FEE if binding == 'spiral' else 0
+            total_price = printing_cost + binding_cost + delivery_fee
+            return total_price * copies, effective_pages, price_per_page
+        
+        else:
+            # Standard document printing (your original logic)
+            price_per_page = cls.BASE_PRICE_BW + (cls.COLOR_SURCHARGE if is_color else 0)
+            effective_pages = page_count
+            if is_double_sided:
+                effective_pages = math.ceil(page_count / 2)
+            printing_cost = price_per_page * effective_pages
+            binding_cost = cls.SPIRAL_BINDING_FEE if binding == 'spiral' else 0
+            total_price = printing_cost + binding_cost + delivery_fee
+            return total_price * copies, effective_pages, price_per_page
 
     def calculate_price(self):
         delivery_fee = self.delivery_zone.delivery_fee if self.delivery_zone and self.delivery_type == 'delivery' else 0
         total, effective_pages, price_per_page = self.compute_price(
-            self.page_count, self.is_color, self.is_double_sided, self.binding, delivery_fee
+            self.page_count, 
+            self.is_color, 
+            self.is_double_sided, 
+            self.binding, 
+            delivery_fee,
+            self.order_type,
+            self.paper_size,
+            self.copies
         )
         self.total_price = Decimal(str(total))
         return self.total_price, effective_pages, price_per_page
 
     def calculate_financials(self):
         _, effective_pages, _ = self.compute_price(
-            self.page_count, self.is_color, self.is_double_sided, self.binding
+            self.page_count, 
+            self.is_color, 
+            self.is_double_sided, 
+            self.binding,
+            0,  # delivery_fee not included in financials
+            self.order_type,
+            self.paper_size,
+            self.copies
         )
-        self.paper_used = effective_pages
+        self.paper_used = effective_pages * self.copies
 
         try:
             from finances.models import PaperInventory
             paper = PaperInventory.objects.first()
-            self.cost_of_goods = Decimal(str(effective_pages * paper.cost_per_sheet)) if paper else Decimal('0.00')
+            self.cost_of_goods = Decimal(str(effective_pages * self.copies * paper.cost_per_sheet)) if paper else Decimal('0.00')
         except Exception:
             self.cost_of_goods = Decimal('0.00')
 
@@ -262,6 +368,25 @@ class Order(models.Model):
             'time_display': time_display, 'is_overdue': is_overdue
         }
 
+    @property
+    def is_passport_photo(self):
+        """Check if this is a passport photo order."""
+        return self.order_type == 'passport'
+
+    @property
+    def is_scanned_document(self):
+        """Check if this is a scanned document order."""
+        return self.order_type == 'scanned'
+
+    @property
+    def total_sheets(self):
+        """Calculate total physical sheets needed."""
+        _, effective_pages, _ = self.compute_price(
+            self.page_count, self.is_color, self.is_double_sided, 
+            self.binding, 0, self.order_type, self.paper_size, self.copies
+        )
+        return effective_pages * self.copies
+
     def save(self, *args, **kwargs):
         is_new = self._state.adding
         
@@ -283,4 +408,5 @@ class Order(models.Model):
         super().save(*args, **kwargs)
 
     def __str__(self):
-        return f"Order #{self.id} by {self.client.username}"
+        order_type_display = dict(self.ORDER_TYPE_CHOICES).get(self.order_type, 'Document')
+        return f"{order_type_display} Order #{self.id} by {self.client.username}"
