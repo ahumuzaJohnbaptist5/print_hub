@@ -4,7 +4,7 @@ from django.contrib.auth.decorators import login_required
 from django.http import HttpResponse
 from django.views.decorators.cache import never_cache
 from django.conf import settings
-from orders.views import live_board_preview_image   # <-- add this import at the top
+from orders.views import live_board_preview_image
 from orders.views import (
     home_view,
     dashboard_view,
@@ -20,6 +20,9 @@ from orders.views import (
     all_links_view,
     toggle_system_pause_view,
 )
+
+# ADD THIS LINE
+from orders.passport_api import analyze_passport_frame, process_passport_photo, process_scanned_document
 
 @never_cache
 def service_worker(request):
@@ -43,12 +46,14 @@ urlpatterns = [
     path('orders/live-board/api/', live_board_api_view, name='live_board_api'),
     path('all-links/', all_links_view, name='all_links'),
     path('payments/', include('payments.urls')),
-    # core/urls.py (or orders/urls.py if you have one)
     path('orders/live-board-preview.png', live_board_preview_image, name='live_board_preview'),
-
     path('finances/', include('finances.urls')),
     path('notifications/', include('notifications.urls')),
     path('sw.js', service_worker),
-
     path('whatsapp/', include('whatsapp_bot.urls')),
+
+    # ADD THESE 3 LINES
+    path('orders/api/analyze-passport/', analyze_passport_frame, name='analyze_passport'),
+    path('orders/api/process-passport/', process_passport_photo, name='process_passport'),
+    path('orders/api/process-scan/', process_scanned_document, name='process_scan'),
 ]
