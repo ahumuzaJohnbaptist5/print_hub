@@ -17,6 +17,8 @@ from django.core.mail import send_mail
 from django.views.decorators.cache import cache_control
 from PIL import Image, ImageDraw, ImageFont
 import io
+import base64
+from django.core.files.base import ContentFile
 
 from stations.models import Station
 
@@ -91,6 +93,15 @@ def upload_view(request):
         delivery_zone_id = request.POST.get('delivery_zone')
         notes = request.POST.get('notes', '').strip()
 
+        # ━━━ NEW FIELDS ━━━
+        order_type = request.POST.get('order_type', 'document')
+        paper_size = request.POST.get('paper_size', 'A4')
+        copies = request.POST.get('copies', 1)
+        
+        # Handle passport photo data (base64 image)
+        passport_data = request.POST.get('passport_data', '')
+        scanner_data = request.POST.get('scanner_data', '')
+
         if not file:
             upload_error = 'Please select a file.'
         else:
@@ -111,9 +122,27 @@ def upload_view(request):
 
         try:
             page_count_int = int(page_count)
+            copies_int = int(copies)
+            
             if page_count_int < 1:
                 raise ValueError("Page count must be at least 1")
+            if copies_int < 1:
+                copies_int = 1
 
+            # ━━━ Build notes with order type info ━━━
+            order_type_display = dict(Order.ORDER_TYPE_CHOICES).get(order_type, 'Document Print')
+            paper_size_display = dict(Order.PAPER_SIZE_CHOICES).get(paper_size, 'A4')
+            
+            extra_notes = f"Order Type: {order_type_display}\n"
+            extra_notes += f"Paper Size: {paper_size_display}\n"
+            extra_notes += f"Copies: {copies_int}"
+            
+            if notes:
+                notes = f"{notes}\n\n{extra_notes}"
+            else:
+                notes = extra_notes
+
+            # ━━━ Create the order ━━━
             order = Order.objects.create(
                 client=request.user,
                 station=station,
@@ -127,6 +156,9 @@ def upload_view(request):
                 delivery_zone=delivery_zone,
                 notes=notes,
                 status='pending',
+                order_type=order_type,
+                paper_size=paper_size,
+                copies=copies_int,
             )
 
             try:
@@ -183,6 +215,11 @@ def _build_order_queryset(request):
     if station_id:
         qs = qs.filter(station_id=station_id)
 
+    # ━━━ NEW: Filter by order type ━━━
+    order_type = request.GET.get('order_type', '').strip()
+    if order_type:
+        qs = qs.filter(order_type=order_type)
+
     date_filter = request.GET.get('date', '').strip()
     now = timezone.now()
     if date_filter == 'today':
@@ -220,6 +257,9 @@ def _order_summary_counts():
         'collected_today': Order.objects.filter(status='collected', collected_at__gte=today_start).count(),
         'cancelled': Order.objects.filter(status='cancelled').count(),
         'overdue': Order.objects.filter(status__in=['paid', 'printing', 'in_transit', 'ready']).count(),
+        # ━━━ NEW ━━━
+        'passport_orders': Order.objects.filter(order_type='passport').count(),
+        'scanned_orders': Order.objects.filter(order_type='scanned').count(),
     }
 
 
@@ -304,7 +344,7 @@ def admin_dashboard_view(request):
     system_settings = SystemSettings.load()
 
     active_filters = []
-    for key, label in [('status', 'Status'), ('station', 'Station'), ('date', 'Date'), ('search', 'Search')]:
+    for key, label in [('status', 'Status'), ('station', 'Station'), ('date', 'Date'), ('search', 'Search'), ('order_type', 'Type')]:
         val = request.GET.get(key, '').strip()
         if val:
             active_filters.append({'key': key, 'value': val, 'label': label})
@@ -316,11 +356,13 @@ def admin_dashboard_view(request):
         'agents': agents,
         'stations': stations,
         'status_choices': Order.STATUS_CHOICES,
+        'order_type_choices': Order.ORDER_TYPE_CHOICES,  # ━━━ NEW ━━━
         'active_filters': active_filters,
         'filter_status': request.GET.get('status', ''),
         'filter_station': request.GET.get('station', ''),
         'filter_date': request.GET.get('date', ''),
         'filter_search': request.GET.get('search', ''),
+        'filter_order_type': request.GET.get('order_type', ''),  # ━━━ NEW ━━━
         'total_filtered': orders_qs.count(),
         'system_settings': system_settings,
         'active_announcement': Announcement.get_active(),
@@ -607,6 +649,10 @@ def live_board_api_view(request):
             'priority': priority['display'], 'priority_level': priority['level'],
             'is_overdue': priority['is_overdue'], 'page_count': order.page_count,
             'is_color': order.is_color, 'binding': order.get_binding_display(),
+            # ━━━ NEW ━━━
+            'order_type': order.get_order_type_display(),
+            'paper_size': order.paper_size,
+            'copies': order.copies,
         })
 
     board_data.sort(key=lambda x: (x['status_raw'] == 'cancelled', x['remaining_seconds']))
@@ -724,6 +770,27 @@ def live_board_preview_image(request):
 
 def send_order_confirmation_email(order):
     subject = f'Order #{order.id} Confirmed - PrintHub'
+    
+    # ━━━ Enhanced email with order type info ━━━
+    order_type_info = ""
+    if order.order_type == 'passport':
+        order_type_info = f"""
+    Order Type: Passport Photo
+    Photo Size: {order.get_paper_size_display()}
+    Copies: {order.copies}
+    """
+    elif order.order_type == 'scanned':
+        order_type_info = f"""
+    Order Type: Scanned Document
+    Paper Size: {order.get_paper_size_display()}
+    Copies: {order.copies}
+    """
+    else:
+        order_type_info = f"""
+    Paper Size: {order.get_paper_size_display()}
+    Copies: {order.copies}
+    """
+    
     message = f"""
     Dear {order.client.username},
 
@@ -735,7 +802,7 @@ def send_order_confirmation_email(order):
     - Pages: {order.page_count}
     - Color: {'Yes' if order.is_color else 'No'}
     - Double-sided: {'Yes' if order.is_double_sided else 'No'}
-    - Binding: {order.get_binding_display()}
+    - Binding: {order.get_binding_display()}{order_type_info}
     - Total: {order.total_price:,.0f} UGX
 
     Track your order at: {settings.SITE_URL}/track/?order_id={order.id}
