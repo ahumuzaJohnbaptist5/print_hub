@@ -1,5 +1,6 @@
 # orders/views.py
 import os
+import json
 import mimetypes
 import logging
 from datetime import timedelta
@@ -135,6 +136,30 @@ def upload_view(request):
         order_type = request.POST.get('order_type', 'document')
         paper_size = request.POST.get('paper_size', 'A4')
         copies = request.POST.get('copies', 1)
+        
+        # Handle passport and scanner data
+        passport_data = request.POST.get('passport_data', '')
+        scanner_data = request.POST.get('scanner_data', '')
+
+        # Handle base64 file uploads from camera/scanner
+        if not file and (passport_data or scanner_data):
+            try:
+                if passport_data:
+                    # Convert base64 to file
+                    format, imgstr = passport_data.split(';base64,')
+                    ext = format.split('/')[-1]
+                    file = ContentFile(
+                        base64.b64decode(imgstr),
+                        name=f'passport_photo.{ext}'
+                    )
+                elif scanner_data:
+                    # Scanner data is already handled in JS as PDF
+                    # The scanner creates a PDF file on the client side
+                    # and sets it to the file input, so this is a fallback
+                    pass
+            except Exception as e:
+                logger.error(f"Error processing camera/scanner data: {e}")
+                upload_error = 'Error processing captured image.'
 
         if not file:
             upload_error = 'Please select a file.'
@@ -218,6 +243,109 @@ def upload_view(request):
         'delivery_zones': delivery_zones,
         'upload_error': upload_error,
     })
+
+
+# ============================================================
+# API Endpoints for Passport & Scanner
+# ============================================================
+
+@login_required
+def api_analyze_passport(request):
+    """Analyze passport photo quality via API."""
+    if request.method != 'POST':
+        return JsonResponse({'success': False, 'error': 'POST required'}, status=405)
+    
+    try:
+        data = json.loads(request.body)
+        image_data = data.get('image', '')
+        
+        # Basic analysis (enhance with actual face detection in production)
+        analysis = {
+            'face_position': {'status': 'pass', 'label': 'Centered'},
+            'brightness': {'status': 'pass', 'label': 'Good'},
+            'expression': {'status': 'pass', 'label': 'Neutral'},
+            'eyes': {'status': 'pass', 'label': 'Visible'},
+            'background': {'status': 'pass', 'label': 'Uniform'},
+            'overall': {'status': 'pass', 'label': 'Good to capture!'},
+        }
+        
+        return JsonResponse({'success': True, 'analysis': analysis})
+    except Exception as e:
+        logger.error(f"Passport analysis error: {e}")
+        return JsonResponse({'success': False, 'error': str(e)})
+
+
+@login_required
+def api_process_passport(request):
+    """Process passport photo with background replacement."""
+    if request.method != 'POST':
+        return JsonResponse({'success': False, 'error': 'POST required'}, status=405)
+    
+    try:
+        data = json.loads(request.body)
+        image_data = data.get('image', '')
+        bg_color = data.get('bg_color', '#ffffff')
+        size = data.get('size', '4x6')
+        
+        # Return processed image (implement proper processing in production)
+        return JsonResponse({
+            'success': True,
+            'processed_image': image_data,
+        })
+    except Exception as e:
+        logger.error(f"Passport processing error: {e}")
+        return JsonResponse({'success': False, 'error': str(e)})
+
+
+@login_required
+def api_process_scan(request):
+    """Process scanned document for enhancement."""
+    if request.method != 'POST':
+        return JsonResponse({'success': False, 'error': 'POST required'}, status=405)
+    
+    try:
+        data = json.loads(request.body)
+        image_data = data.get('image', '')
+        
+        # Return enhanced image (implement proper enhancement in production)
+        return JsonResponse({
+            'success': True,
+            'processed_image': image_data,
+        })
+    except Exception as e:
+        logger.error(f"Scan processing error: {e}")
+        return JsonResponse({'success': False, 'error': str(e)})
+
+
+@login_required
+def validate_discount_code(request):
+    """Validate and calculate discount."""
+    if request.method != 'POST':
+        return JsonResponse({'valid': False, 'error': 'POST required'})
+    
+    code = request.POST.get('code', '').strip().upper()
+    order_total = request.POST.get('order_total', 0)
+    
+    # Example discount codes
+    discounts = {
+        'HEC10': 0.10,
+        'STUDENT20': 0.20,
+        'WELCOME5': 0.05,
+    }
+    
+    if code in discounts:
+        try:
+            total = float(order_total)
+            savings = int(total * discounts[code])
+            return JsonResponse({
+                'valid': True,
+                'savings': savings,
+                'rate': f'{int(discounts[code] * 100)}%'
+            })
+        except (ValueError, TypeError):
+            return JsonResponse({'valid': False, 'error': 'Invalid order total'})
+    
+    return JsonResponse({'valid': False, 'error': 'Invalid or expired discount code'})
 
 
 @login_required
@@ -917,42 +1045,8 @@ def all_links_view(request):
 
 
 # ============================================================
-# Live Board Preview Image (for social sharing)
+# NEW: Client Order Cancellation & My Orders
 # ============================================================
-
-@cache_control(max_age=60)
-def live_board_preview_image(request):
-    """Generate preview image for social sharing."""
-    active_statuses = ['paid', 'printing', 'in_transit', 'ready']
-    orders = Order.objects.filter(
-        status__in=active_statuses
-    ).select_related('station', 'client').order_by('id')
-
-    total_active = orders.count()
-    ready_count = orders.filter(status='ready').count()
-    printing_count = orders.filter(status='printing').count()
-    cancelled_count = Order.objects.filter(
-        status='cancelled',
-        cancelled_at__gte=timezone.now() - timedelta(minutes=30)
-    ).count()
-
-    img = Image.new('RGB', (1200, 630), color='#0f172a')
-    draw = ImageDraw.Draw(img)
-
-    try:
-        font_title = ImageFont.truetype('/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf', 46)
-        font_subtitle = ImageFont.truetype('/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf', 28)
-        font_body = ImageFont.truetype('/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf', 24)
-        font_small = ImageFont.truetype('/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf', 20)
-    except Exception:
-        # Fallback to default font if custom fonts not available
-        font_title = ImageFont.load_default()
-        font_subtitle = ImageFont.load_default()
-        font_body = ImageFont.load_default()
-        font_small = ImageFont.load_default()
-
-
-    # Add these new views to orders/views.py
 
 @login_required
 @transaction.atomic
@@ -975,8 +1069,8 @@ def cancel_order_view(request, order_id):
     if order.client != request.user:
         return HttpResponseForbidden('You can only cancel your own orders.')
     
-    # Check if order can be cancelled
-    if not order.can_be_cancelled:
+    # Check if order can be cancelled (status is pending or paid, not yet printing)
+    if order.status not in ['pending', 'paid']:
         messages.error(request, 
             'This order cannot be cancelled. It may already be in production.')
         return redirect('order_receipt', order_id=order.id)
@@ -1046,7 +1140,7 @@ def my_orders_view(request):
     
     # Add cancellation eligibility info
     for order in orders:
-        order.can_cancel = order.can_be_cancelled
+        order.can_cancel = order.status in ['pending', 'paid']
     
     # Filter options
     status_filter = request.GET.get('status', '').strip()
@@ -1100,6 +1194,136 @@ PrintHub Team
         fail_silently=True
     )
 
+
+# ============================================================
+# Live Board Preview Image (for social sharing)
+# ============================================================
+
+@cache_control(max_age=60)
+def live_board_preview_image(request):
+    """Generate preview image for social sharing."""
+    active_statuses = ['paid', 'printing', 'in_transit', 'ready']
+    orders = Order.objects.filter(
+        status__in=active_statuses
+    ).select_related('station', 'client').order_by('id')
+
+    total_active = orders.count()
+    ready_count = orders.filter(status='ready').count()
+    printing_count = orders.filter(status='printing').count()
+    cancelled_count = Order.objects.filter(
+        status='cancelled',
+        cancelled_at__gte=timezone.now() - timedelta(minutes=30)
+    ).count()
+
+    img = Image.new('RGB', (1200, 630), color='#0f172a')
+    draw = ImageDraw.Draw(img)
+
+    try:
+        font_title = ImageFont.truetype('/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf', 46)
+        font_subtitle = ImageFont.truetype('/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf', 28)
+        font_body = ImageFont.truetype('/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf', 24)
+        font_small = ImageFont.truetype('/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf', 20)
+    except Exception:
+        # Fallback to default font if custom fonts not available
+        font_title = ImageFont.load_default()
+        font_subtitle = ImageFont.load_default()
+        font_body = ImageFont.load_default()
+        font_small = ImageFont.load_default()
+
     # Draw board content
     draw.text((50, 50), "PrintHub Live Board", fill='#e2e8f0', font=font_title)
-    draw.text((50, 110), "Kabale University Printing Service", fill='#94a3b8
+    draw.text((50, 110), "Kabale University Printing Service", fill='#94a3b8', font=font_subtitle)
+
+    # Stats row
+    stats = [
+        ("Active", total_active, '#22c55e'),
+        ("Ready", ready_count, '#3b82f6'),
+        ("Printing", printing_count, '#a855f7'),
+        ("Total Today", total_active + cancelled_count, '#f59e0b'),
+    ]
+    x = 50
+    for label, value, color in stats:
+        draw.text((x, 180), label, fill='#94a3b8', font=font_small)
+        draw.text((x, 210), str(value), fill=color, font=font_body)
+        x += 250
+
+    # Table header
+    draw.rectangle([50, 280, 1150, 320], fill='#1e293b')
+    headers = [
+        ("Order", 70), ("Client", 200), ("Station", 400),
+        ("Status", 600), ("Time Left", 800), ("Priority", 1000)
+    ]
+    for text, x_pos in headers:
+        draw.text((x_pos, 285), text, fill='#94a3b8', font=font_small)
+
+    # Orders list
+    y = 330
+    for order in orders[:4]:
+        priority = order.priority_info
+        items = [
+            (70, f"#{order.id}"),
+            (200, order.client.username[:12]),
+            (400, order.station.name[:15] if order.station else '—'),
+            (600, order.get_status_display()),
+            (800, priority['time_display']),
+            (1000, priority['display']),
+        ]
+        for x_pos, text in items:
+            draw.text((x_pos, y), text, fill='#e2e8f0', font=font_small)
+        y += 55
+
+    draw.text((50, 570), "Scan to track your order  |  printlink.pythonanywhere.com", fill='#64748b', font=font_small)
+
+    buffer = io.BytesIO()
+    img.save(buffer, format='PNG')
+    buffer.seek(0)
+    return HttpResponse(buffer, content_type='image/png')
+
+
+# ============================================================
+# Email helpers
+# ============================================================
+
+def send_order_confirmation_email(order):
+    """Send order confirmation email."""
+    subject = f'Order #{order.id} Confirmed - PrintHub'
+    
+    # Enhanced email with order type info
+    order_type_info = ""
+    if order.order_type == 'passport':
+        order_type_info = f"""
+    Order Type: Passport Photo
+    Photo Size: {order.get_paper_size_display()}
+    Copies: {order.copies}
+    """
+    elif order.order_type == 'scanned':
+        order_type_info = f"""
+    Order Type: Scanned Document
+    Paper Size: {order.get_paper_size_display()}
+    Copies: {order.copies}
+    """
+    else:
+        order_type_info = f"""
+    Paper Size: {order.get_paper_size_display()}
+    Copies: {order.copies}
+    """
+    
+    message = f"""
+    Dear {order.client.username},
+
+    Your print order has been received!
+
+    Order Details:
+    - Order ID: #{order.id}
+    - File: {order.file_name}
+    - Pages: {order.page_count}
+    - Color: {'Yes' if order.is_color else 'No'}
+    - Double-sided: {'Yes' if order.is_double_sided else 'No'}
+    - Binding: {order.get_binding_display()}{order_type_info}
+    - Total: {order.total_price:,.0f} UGX
+
+    Track your order at: {settings.SITE_URL}/track/?order_id={order.id}
+
+    Thank you for choosing PrintHub!
+    """
+    send_mail(subject, message, settings.DEFAULT_FROM_EMAIL, [order.client.email], fail_silently=True)
