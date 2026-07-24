@@ -15,6 +15,7 @@ urlpatterns = [
     path('<int:order_id>/receipt/', views.order_receipt_view, name='order_receipt'),
     path('<int:order_id>/cancel/', views.cancel_order_view, name='cancel_order'),
     path('<int:order_id>/download/', views.download_order_file_view, name='download_order_file'),
+    path('<int:order_id>/payment/', views.payment_page_view, name='payment_page'),  # NEW
     
     # Admin URLs
     path('admin-dashboard/', views.admin_dashboard_view, name='admin_dashboard'),
