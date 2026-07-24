@@ -175,6 +175,88 @@ function setBgColor(c,btn){bgColor=c;document.getElementById('bg-color').value=c
 
 function switchMode(mode){currentMode=mode;document.getElementById('order_type').value=mode==='passport'?'passport':mode==='scanner'?'scanned':'document';document.getElementById('document-mode').style.display=mode==='document'?'block':'none';document.getElementById('passport-mode').style.display=mode==='passport'?'block':'none';document.getElementById('scanner-mode').style.display=mode==='scanner'?'block':'none';document.getElementById('mode-info-text').innerHTML=infoTexts[mode];['btn-document','btn-passport','btn-scanner'].forEach(id=>{const b=document.getElementById(id);b.classList.remove('bg-indigo-600','text-white');b.classList.add('bg-slate-700','text-gray-400')});const ab=document.getElementById('btn-'+mode);ab.classList.remove('bg-slate-700','text-gray-400');ab.classList.add('bg-indigo-600','text-white');stopPassportCamera();stopScannerCamera();if(mode==='passport'){document.querySelector('input[name="passport_size"][value="4x6"]').checked=true;document.getElementById('paper_size').value='4x6';document.querySelector('input[name="is_color"][value="True"]').checked=true;document.getElementById('binding-option').style.opacity='0.4';document.getElementById('binding-option').style.pointerEvents='none';document.getElementById('double-sided-option').style.opacity='0.4';document.getElementById('double-sided-option').style.pointerEvents='none';document.getElementById('page_count').value=1}else{document.getElementById('paper_size').value='A4';document.getElementById('binding-option').style.opacity='1';document.getElementById('binding-option').style.pointerEvents='auto';document.getElementById('double-sided-option').style.opacity='1';document.getElementById('double-sided-option').style.pointerEvents='auto'}calculatePrice();}
 
+// ============================================================
+// FILE UPLOAD HANDLER - Count pages automatically
+// ============================================================
+document.getElementById('file').addEventListener('change', function(e) {
+    const file = e.target.files[0];
+    if (!file) return;
+    
+    document.getElementById('dropzone-text').innerText = file.name;
+    document.getElementById('dropzone-text').classList.add('font-bold');
+    
+    const ext = file.name.split('.').pop().toLowerCase();
+    
+    if (ext === 'pdf') {
+        document.getElementById('page-count-status').innerText = 'Reading PDF...';
+        const reader = new FileReader();
+        reader.onload = function(e) {
+            const typedarray = new Uint8Array(e.target.result);
+            pdfjsLib.getDocument(typedarray).promise.then(function(pdf) {
+                document.getElementById('page_count').value = pdf.numPages;
+                document.getElementById('page-count-status').innerText = pdf.numPages + ' page(s) detected';
+                document.getElementById('preview-container').classList.remove('hidden');
+                document.getElementById('preview-content').innerHTML = '<p class="text-green-400">PDF loaded: ' + pdf.numPages + ' pages</p>';
+                calculatePrice();
+            }).catch(function(err) {
+                document.getElementById('page-count-status').innerText = 'Error reading PDF. Enter pages manually.';
+            });
+        };
+        reader.readAsArrayBuffer(file);
+        
+    } else if (ext === 'docx') {
+        document.getElementById('page-count-status').innerText = 'Reading DOCX...';
+        const reader = new FileReader();
+        reader.onload = function(e) {
+            mammoth.extractRawText({arrayBuffer: e.target.result}).then(function(result) {
+                const words = result.value.split(/\s+/).length;
+                const estimatedPages = Math.max(1, Math.ceil(words / 500));
+                document.getElementById('page_count').value = estimatedPages;
+                document.getElementById('page-count-status').innerText = '~' + estimatedPages + ' page(s) estimated (' + words + ' words)';
+                document.getElementById('preview-container').classList.remove('hidden');
+                document.getElementById('preview-content').innerHTML = '<p class="text-yellow-400">DOCX loaded: ~' + estimatedPages + ' pages (estimated from ' + words + ' words)</p>';
+                calculatePrice();
+            }).catch(function(err) {
+                document.getElementById('page-count-status').innerText = 'Error reading DOCX. Enter pages manually.';
+            });
+        };
+        reader.readAsArrayBuffer(file);
+        
+    } else if (ext === 'pptx' || ext === 'ppt') {
+        document.getElementById('page-count-status').innerText = 'Reading PPTX...';
+        const reader = new FileReader();
+        reader.onload = function(e) {
+            JSZip.loadAsync(e.target.result).then(function(zip) {
+                const slides = Object.keys(zip.files).filter(name => 
+                    name.startsWith('ppt/slides/slide') && name.endsWith('.xml')
+                );
+                const estimatedPages = Math.max(1, Math.ceil(slides.length / 2));
+                document.getElementById('page_count').value = estimatedPages;
+                document.getElementById('page-count-status').innerText = '~' + estimatedPages + ' page(s) estimated (' + slides.length + ' slides)';
+                document.getElementById('preview-container').classList.remove('hidden');
+                document.getElementById('preview-content').innerHTML = '<p class="text-yellow-400">PPTX loaded: ' + slides.length + ' slides, ~' + estimatedPages + ' pages</p>';
+                calculatePrice();
+            }).catch(function(err) {
+                document.getElementById('page-count-status').innerText = 'Error reading PPTX. Enter pages manually.';
+            });
+        };
+        reader.readAsArrayBuffer(file);
+        
+    } else if (['png', 'jpg', 'jpeg'].includes(ext)) {
+        document.getElementById('page_count').value = 1;
+        document.getElementById('page-count-status').innerText = '1 page (image)';
+        document.getElementById('preview-container').classList.remove('hidden');
+        document.getElementById('preview-content').innerHTML = '<img src="' + URL.createObjectURL(file) + '" class="max-h-60 mx-auto rounded">';
+        calculatePrice();
+        
+    } else {
+        const estimatedPages = Math.max(1, Math.ceil(file.size / 3000));
+        document.getElementById('page_count').value = estimatedPages;
+        document.getElementById('page-count-status').innerText = '~' + estimatedPages + ' page(s) estimated from file size';
+        calculatePrice();
+    }
+});
+
 async function startPassportCamera(){try{passportStream=await navigator.mediaDevices.getUserMedia({video:{facingMode:'user',width:640,height:480}});const v=document.getElementById('passport-video');v.srcObject=passportStream;v.style.display='block';document.getElementById('passport-placeholder').style.display='none';document.getElementById('face-guide').style.display='block';document.getElementById('passport-analysis').style.display='block';document.getElementById('start-passport-camera').style.display='none';document.getElementById('capture-passport').style.display='block';startAnalysis(v)}catch(e){alert('Camera access denied.')}}
 
 function startAnalysis(video){analysisTimer=setInterval(async()=>{const c=document.createElement('canvas');c.width=video.videoWidth||640;c.height=video.videoHeight||480;const ctx=c.getContext('2d');ctx.drawImage(video,0,0);const dataUrl=c.toDataURL('image/jpeg',0.7);try{const res=await fetch('/orders/api/analyze-passport/',{method:'POST',headers:{'Content-Type':'application/json','X-CSRFToken':getCSRF()},body:JSON.stringify({image:dataUrl})});const data=await res.json();if(data.success){const a=data.analysis;updateCheck('check-position',a.face_position.status==='pass',a.face_position.label,'Not centered');updateCheck('check-brightness',a.brightness.status==='pass',a.brightness.label,'Adjust lighting');updateCheck('check-expression',a.expression.status==='pass',a.expression.label,'Not neutral');updateCheck('check-eyes',a.eyes.status==='pass',a.eyes.label,'Not visible');updateCheck('check-background',a.background.status==='pass',a.background.label,'Not uniform');updateCheck('check-overall',a.overall.status==='pass',a.overall.label,'Keep adjusting');document.getElementById('face-guide').style.borderColor=a.overall.status==='pass'?'#22c55e':'#eab308'}}catch(e){}},800)}
