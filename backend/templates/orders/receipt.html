@@ -5,137 +5,172 @@
 {% block title %}Receipt #{{ order.id }} - PrintHub{% endblock %}
 
 {% block content %}
-<div style="min-height: 100vh; background: linear-gradient(135deg, #1e293b 0%, #0f172a 100%); display: flex; align-items: center; justify-content: center; padding: 20px; font-family: 'Courier New', monospace;">
+<div style="min-height: 100vh; background: #f1f5f9; display: flex; align-items: center; justify-content: center; padding: 20px; font-family: system-ui, -apple-system, sans-serif;">
     
-    <div style="background: #ffffff; border-radius: 16px; max-width: 400px; width: 100%; overflow: hidden; box-shadow: 0 25px 50px rgba(0,0,0,0.3);">
+    <div style="background: #ffffff; border-radius: 20px; max-width: 440px; width: 100%; overflow: hidden; box-shadow: 0 4px 24px rgba(0,0,0,0.08);">
         
         <!-- HEADER -->
-        <div style="background: #000000; padding: 24px 20px; text-align: center;">
-            <div style="font-size: 22px; font-weight: 900; color: #ffffff; letter-spacing: 3px;">PRINTHUB</div>
-            <div style="font-size: 10px; color: #999999; margin-top: 4px;">Kabale University Printing Service</div>
-            <div style="font-size: 10px; color: #666666; margin-top: 8px;">
-                Receipt #{{ order.id }} | {{ order.created_at|date:"d M Y" }} {{ order.created_at|date:"g:iA"|lower }}
+        <div style="background: #1e293b; padding: 28px 24px; text-align: center;">
+            <div style="font-size: 26px; font-weight: 800; color: #ffffff; letter-spacing: 3px; margin-bottom: 4px;">PRINTHUB</div>
+            <div style="font-size: 12px; color: #94a3b8;">Kabale University Printing Service</div>
+            <div style="margin-top: 12px; padding-top: 12px; border-top: 1px solid #334155;">
+                <div style="font-size: 13px; color: #cbd5e1;">Receipt #{{ order.id }}</div>
+                <div style="font-size: 12px; color: #64748b; margin-top: 2px;">{{ order.created_at|date:"d M Y" }} at {{ order.created_at|date:"g:iA"|lower }}</div>
             </div>
         </div>
         
         <!-- BODY -->
-        <div style="padding: 20px;">
+        <div style="padding: 24px;">
             
-            <!-- Order Type Badge -->
-            <div style="text-align: center; margin-bottom: 16px;">
-                <span style="display: inline-block; padding: 4px 16px; border-radius: 20px; font-size: 10px; font-weight: 700; letter-spacing: 1px;
-                    {% if order.order_type == 'document' %}background: #dbeafe; color: #1e40af;
-                    {% elif order.order_type == 'passport' %}background: #fce7f3; color: #9d174d;
-                    {% else %}background: #d1fae5; color: #065f46;{% endif %}">
+            <!-- Order Type -->
+            <div style="text-align: center; margin-bottom: 20px;">
+                <span style="display: inline-block; padding: 6px 20px; border-radius: 25px; font-size: 12px; font-weight: 700; letter-spacing: 1px;
+                    {% if order.order_type == 'document' %}background: #eff6ff; color: #2563eb; border: 1px solid #bfdbfe;
+                    {% elif order.order_type == 'passport' %}background: #fdf2f8; color: #db2777; border: 1px solid #fbcfe8;
+                    {% else %}background: #ecfdf5; color: #059669; border: 1px solid #a7f3d0;{% endif %}">
                     {{ order.get_order_type_display|upper }}
                 </span>
             </div>
             
-            <!-- File Name -->
-            <div style="font-size: 14px; font-weight: 700; color: #1e293b; text-align: center; margin-bottom: 16px; padding-bottom: 12px; border-bottom: 2px dashed #e5e7eb; word-break: break-all;">
-                📄 {{ order.file_name|truncatechars:30 }}
+            <!-- Station & Status -->
+            <div style="display: flex; justify-content: space-between; margin-bottom: 20px; gap: 12px;">
+                <div style="flex: 1; background: #f8fafc; border-radius: 10px; padding: 12px; text-align: center;">
+                    <div style="font-size: 10px; color: #94a3b8; text-transform: uppercase; letter-spacing: 1px; margin-bottom: 4px;">Station</div>
+                    <div style="font-size: 14px; font-weight: 600; color: #1e293b;">{{ order.station.name|default:"N/A" }}</div>
+                </div>
+                <div style="flex: 1; background: #f8fafc; border-radius: 10px; padding: 12px; text-align: center;">
+                    <div style="font-size: 10px; color: #94a3b8; text-transform: uppercase; letter-spacing: 1px; margin-bottom: 4px;">Status</div>
+                    <div style="font-size: 14px; font-weight: 600; color: #1e293b;">{{ order.get_status_display }}</div>
+                </div>
             </div>
+            
+            <!-- File Name -->
+            <div style="background: #f8fafc; border-radius: 10px; padding: 14px; margin-bottom: 20px; text-align: center;">
+                <div style="font-size: 11px; color: #94a3b8; margin-bottom: 4px;">FILE</div>
+                <div style="font-size: 15px; font-weight: 600; color: #1e293b; word-break: break-all;">{{ order.file_name|truncatechars:32 }}</div>
+            </div>
+            
+            <!-- Divider -->
+            <div style="border-top: 1px solid #e2e8f0; margin-bottom: 16px;"></div>
             
             <!-- PRICE BREAKDOWN -->
-            {% if order.order_type == 'document' %}
-                <div style="display: flex; justify-content: space-between; padding: 6px 0; font-size: 13px; border-bottom: 1px solid #f3f4f6;">
-                    <span style="color: #6b7280;">{{ order.page_count }} page{{ order.page_count|pluralize }} ({{ order.get_paper_size_display }})</span>
-                </div>
-                <div style="display: flex; justify-content: space-between; padding: 6px 0; font-size: 13px; border-bottom: 1px solid #f3f4f6;">
-                    <span style="color: #6b7280;">{% if order.is_color %}Color{% else %}B&W{% endif %} @ UGX {{ order.price_per_unit|intcomma }}</span>
-                    <span style="font-weight: 600; color: #1e293b;">UGX {% widthratio order.page_count 1 order.price_per_unit %}</span>
-                </div>
-                {% if order.copies > 1 %}
-                <div style="display: flex; justify-content: space-between; padding: 6px 0; font-size: 13px; border-bottom: 1px solid #f3f4f6;">
-                    <span style="color: #6b7280;">× {{ order.copies }} copies</span>
+            <div style="margin-bottom: 16px;">
+                <div style="font-size: 11px; color: #94a3b8; text-transform: uppercase; letter-spacing: 1px; margin-bottom: 12px;">Price Details</div>
+                
+                {% if order.order_type == 'document' %}
+                    <div style="display: flex; justify-content: space-between; align-items: center; padding: 10px 0; border-bottom: 1px solid #f1f5f9;">
+                        <span style="font-size: 15px; color: #475569;">{{ order.page_count }} page{{ order.page_count|pluralize }}</span>
+                        <span style="font-size: 13px; color: #94a3b8;">{{ order.get_paper_size_display }}</span>
+                    </div>
+                    <div style="display: flex; justify-content: space-between; align-items: center; padding: 10px 0; border-bottom: 1px solid #f1f5f9;">
+                        <span style="font-size: 15px; color: #475569;">{% if order.is_color %}🟢 Color{% else %}⚫ B&W{% endif %}</span>
+                        <span style="font-size: 13px; color: #64748b;">UGX {{ order.price_per_unit|intcomma }}/page</span>
+                    </div>
+                    {% if order.copies > 1 %}
+                    <div style="display: flex; justify-content: space-between; align-items: center; padding: 10px 0; border-bottom: 1px solid #f1f5f9;">
+                        <span style="font-size: 15px; color: #475569;">Copies</span>
+                        <span style="font-size: 15px; font-weight: 600; color: #1e293b;">× {{ order.copies }}</span>
+                    </div>
+                    {% endif %}
+                    {% if order.is_double_sided %}
+                    <div style="display: flex; justify-content: space-between; align-items: center; padding: 10px 0; border-bottom: 1px solid #f1f5f9;">
+                        <span style="font-size: 15px; color: #475569;">Duplex Printing</span>
+                        <span style="font-size: 14px; font-weight: 600; color: #059669;">FREE</span>
+                    </div>
+                    {% endif %}
+                
+                {% elif order.order_type == 'passport' %}
+                    <div style="display: flex; justify-content: space-between; align-items: center; padding: 10px 0; border-bottom: 1px solid #f1f5f9;">
+                        <span style="font-size: 15px; color: #475569;">📸 {{ order.get_paper_size_display }} Photo</span>
+                    </div>
+                    <div style="display: flex; justify-content: space-between; align-items: center; padding: 10px 0; border-bottom: 1px solid #f1f5f9;">
+                        <span style="font-size: 15px; color: #475569;">Quantity</span>
+                        <span style="font-size: 15px; font-weight: 600; color: #1e293b;">{{ order.copies }} cop{{ order.copies|pluralize:"y,ies" }}</span>
+                    </div>
+                    <div style="display: flex; justify-content: space-between; align-items: center; padding: 10px 0; border-bottom: 1px solid #f1f5f9;">
+                        <span style="font-size: 15px; color: #475569;">Rate</span>
+                        <span style="font-size: 13px; color: #64748b;">UGX {{ order.price_per_unit|intcomma }}/copy</span>
+                    </div>
+                
+                {% elif order.order_type == 'scanned' %}
+                    <div style="display: flex; justify-content: space-between; align-items: center; padding: 10px 0; border-bottom: 1px solid #f1f5f9;">
+                        <span style="font-size: 15px; color: #475569;">📑 Scanned Pages</span>
+                        <span style="font-size: 15px; font-weight: 600; color: #1e293b;">{{ order.page_count }}</span>
+                    </div>
+                    <div style="display: flex; justify-content: space-between; align-items: center; padding: 10px 0; border-bottom: 1px solid #f1f5f9;">
+                        <span style="font-size: 15px; color: #475569;">Print Rate</span>
+                        <span style="font-size: 13px; color: #64748b;">UGX {{ order.price_per_unit|intcomma }}/page</span>
+                    </div>
+                    {% if order.copies > 1 %}
+                    <div style="display: flex; justify-content: space-between; align-items: center; padding: 10px 0; border-bottom: 1px solid #f1f5f9;">
+                        <span style="font-size: 15px; color: #475569;">Copies</span>
+                        <span style="font-size: 15px; font-weight: 600; color: #1e293b;">× {{ order.copies }}</span>
+                    </div>
+                    {% endif %}
+                {% endif %}
+                
+                {% if order.binding != 'none' %}
+                <div style="display: flex; justify-content: space-between; align-items: center; padding: 10px 0; border-bottom: 1px solid #f1f5f9;">
+                    <span style="font-size: 15px; color: #475569;">📎 {{ order.get_binding_display }}</span>
+                    <span style="font-size: 15px; font-weight: 600; color: #1e293b;">{% if order.binding == 'spiral' %}UGX 1,000{% else %}FREE{% endif %}</span>
                 </div>
                 {% endif %}
-                {% if order.is_double_sided %}
-                <div style="display: flex; justify-content: space-between; padding: 6px 0; font-size: 13px; border-bottom: 1px solid #f3f4f6;">
-                    <span style="color: #6b7280;">Duplex</span>
-                    <span style="color: #059669;">Included</span>
+                
+                <div style="display: flex; justify-content: space-between; align-items: center; padding: 10px 0;">
+                    <span style="font-size: 15px; color: #475569;">{% if order.delivery_type == 'delivery' %}🚚 Delivery{% else %}📍 Pickup{% endif %}</span>
+                    <span style="font-size: 15px; font-weight: 600; color: #1e293b;">
+                        {% if order.delivery_type == 'delivery' and order.delivery_zone %}
+                            UGX {{ order.delivery_zone.delivery_fee|intcomma }}
+                        {% else %}
+                            FREE
+                        {% endif %}
+                    </span>
                 </div>
-                {% endif %}
-            
-            {% elif order.order_type == 'passport' %}
-                <div style="display: flex; justify-content: space-between; padding: 6px 0; font-size: 13px; border-bottom: 1px solid #f3f4f6;">
-                    <span style="color: #6b7280;">📸 {{ order.get_paper_size_display }} Passport</span>
-                </div>
-                <div style="display: flex; justify-content: space-between; padding: 6px 0; font-size: 13px; border-bottom: 1px solid #f3f4f6;">
-                    <span style="color: #6b7280;">{{ order.copies }} cop{{ order.copies|pluralize:"y,ies" }} @ UGX {{ order.price_per_unit|intcomma }}</span>
-                    <span style="font-weight: 600; color: #1e293b;">UGX {% widthratio order.copies 1 order.price_per_unit %}</span>
-                </div>
-            
-            {% elif order.order_type == 'scanned' %}
-                <div style="display: flex; justify-content: space-between; padding: 6px 0; font-size: 13px; border-bottom: 1px solid #f3f4f6;">
-                    <span style="color: #6b7280;">📑 {{ order.page_count }} scanned page{{ order.page_count|pluralize }}</span>
-                </div>
-                <div style="display: flex; justify-content: space-between; padding: 6px 0; font-size: 13px; border-bottom: 1px solid #f3f4f6;">
-                    <span style="color: #6b7280;">Print @ UGX {{ order.price_per_unit|intcomma }}/page</span>
-                    <span style="font-weight: 600; color: #1e293b;">UGX {% widthratio order.page_count 1 order.price_per_unit %}</span>
-                </div>
-                {% if order.copies > 1 %}
-                <div style="display: flex; justify-content: space-between; padding: 6px 0; font-size: 13px; border-bottom: 1px solid #f3f4f6;">
-                    <span style="color: #6b7280;">× {{ order.copies }} copies</span>
-                </div>
-                {% endif %}
-            {% endif %}
-            
-            {% if order.binding != 'none' %}
-            <div style="display: flex; justify-content: space-between; padding: 6px 0; font-size: 13px; border-bottom: 1px solid #f3f4f6;">
-                <span style="color: #6b7280;">📎 {{ order.get_binding_display }}</span>
-                <span style="font-weight: 600; color: #1e293b;">{% if order.binding == 'spiral' %}UGX 1,000{% else %}Free{% endif %}</span>
-            </div>
-            {% endif %}
-            
-            <div style="display: flex; justify-content: space-between; padding: 6px 0; font-size: 13px;">
-                <span style="color: #6b7280;">{% if order.delivery_type == 'delivery' %}🚚 Delivery{% else %}📍 Pickup{% endif %}</span>
-                <span style="font-weight: 600; color: #1e293b;">{% if order.delivery_type == 'delivery' and order.delivery_zone %}UGX {{ order.delivery_zone.delivery_fee|intcomma }}{% else %}Free{% endif %}</span>
             </div>
             
             <!-- TOTAL -->
-            <div style="background: #000000; border-radius: 12px; padding: 16px; margin-top: 16px; text-align: center;">
-                <div style="font-size: 10px; color: #999999; letter-spacing: 2px; text-transform: uppercase;">Total Amount</div>
-                <div style="font-size: 28px; font-weight: 900; color: #ffffff; margin-top: 4px;">UGX {{ order.total_price|floatformat:0|intcomma }}</div>
-                <div style="display: inline-block; margin-top: 8px; padding: 4px 12px; border-radius: 8px; font-size: 11px; font-weight: 600;
-                    {% if payment %}background: rgba(52,211,153,0.2); color: #34d399;
-                    {% else %}background: rgba(251,191,36,0.2); color: #fbbf24;{% endif %}">
-                    {% if payment %}✅ Paid{% else %}⚠️ Payment Pending{% endif %}
+            <div style="background: #1e293b; border-radius: 14px; padding: 20px; text-align: center; margin-bottom: 16px;">
+                <div style="font-size: 11px; color: #94a3b8; text-transform: uppercase; letter-spacing: 2px; margin-bottom: 6px;">Total Amount</div>
+                <div style="font-size: 36px; font-weight: 800; color: #ffffff; line-height: 1;">UGX {{ order.total_price|floatformat:0|intcomma }}</div>
+                <div style="display: inline-block; margin-top: 10px; padding: 6px 16px; border-radius: 20px; font-size: 13px; font-weight: 600;
+                    {% if payment %}background: #059669; color: #ffffff;
+                    {% else %}background: #d97706; color: #ffffff;{% endif %}">
+                    {% if payment %}✅ PAID{% else %}⚠️ PAYMENT PENDING{% endif %}
                 </div>
             </div>
             
             <!-- QR CODE -->
-            <div style="display: flex; align-items: center; gap: 12px; background: #f9fafb; border-radius: 12px; padding: 12px; margin-top: 16px;">
-                <img src="https://api.qrserver.com/v1/create-qr-code/?size=80x80&color=000000&bgcolor=ffffff&data=https://printlink.pythonanywhere.com/track/?order_id={{ order.id }}" 
-                     style="width: 70px; height: 70px; border-radius: 8px;" alt="QR">
+            <div style="display: flex; align-items: center; gap: 14px; background: #f8fafc; border-radius: 12px; padding: 14px; border: 1px solid #e2e8f0;">
+                <img src="https://api.qrserver.com/v1/create-qr-code/?size=100x100&color=000000&bgcolor=ffffff&data=https://printlink.pythonanywhere.com/track/?order_id={{ order.id }}" 
+                     style="width: 80px; height: 80px; border-radius: 8px;" alt="QR">
                 <div>
-                    <div style="font-size: 12px; font-weight: 700; color: #1e293b;">📱 Track Your Order</div>
-                    <div style="font-size: 10px; color: #6b7280;">Scan QR to check real-time status</div>
+                    <div style="font-size: 14px; font-weight: 700; color: #1e293b; margin-bottom: 2px;">📱 Track Order</div>
+                    <div style="font-size: 12px; color: #64748b;">Scan QR code to check your order status in real-time</div>
                 </div>
             </div>
         </div>
         
         <!-- FOOTER -->
-        <div style="text-align: center; padding: 16px 20px; border-top: 2px dashed #e5e7eb;">
-            <div style="font-size: 13px; font-weight: 700; color: #1e293b; text-transform: uppercase;">{{ order.client.get_full_name|default:order.client.username }}</div>
-            <div style="font-size: 10px; color: #9ca3af; margin-top: 4px; line-height: 1.5;">
+        <div style="text-align: center; padding: 20px 24px; background: #f8fafc; border-top: 1px solid #e2e8f0;">
+            <div style="font-size: 15px; font-weight: 700; color: #1e293b; text-transform: uppercase; margin-bottom: 6px;">{{ order.client.get_full_name|default:order.client.username }}</div>
+            <div style="font-size: 12px; color: #94a3b8; line-height: 1.6;">
                 PrintHub • Kabale University<br>
                 printhub2027@gmail.com • +256791046296<br>
-                Thank you for your business! 🙏
+                Thank you for choosing PrintHub! 🙏
             </div>
         </div>
         
         <!-- BUTTONS -->
-        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px; padding: 0 20px 20px;">
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px; padding: 20px 24px;">
             {% if order.status == 'pending' %}
-                <a href="{% url 'payment_page' order.id %}" style="padding: 12px; border-radius: 10px; font-weight: 700; font-size: 12px; text-align: center; text-decoration: none; background: #10b981; color: #fff;">💳 Pay Now</a>
+                <a href="{% url 'payment_page' order.id %}" style="padding: 14px; border-radius: 12px; font-weight: 700; font-size: 14px; text-align: center; text-decoration: none; background: #10b981; color: #fff; grid-column: span 2;">💳 Pay Now — UGX {{ order.total_price|floatformat:0|intcomma }}</a>
                 {% if order.client == request.user %}
-                    <a href="{% url 'cancel_order' order.id %}" style="padding: 12px; border-radius: 10px; font-weight: 700; font-size: 12px; text-align: center; text-decoration: none; background: #fee2e2; color: #dc2626;">✕ Cancel</a>
+                    <a href="{% url 'cancel_order' order.id %}" style="padding: 12px; border-radius: 12px; font-weight: 600; font-size: 13px; text-align: center; text-decoration: none; background: #fef2f2; color: #dc2626; border: 1px solid #fecaca;">✕ Cancel Order</a>
                 {% endif %}
             {% endif %}
-            <button onclick="window.print()" style="padding: 12px; border-radius: 10px; font-weight: 700; font-size: 12px; border: none; cursor: pointer; background: #6366f1; color: #fff; font-family: inherit;">🖨 Print</button>
-            <button onclick="shareReceipt()" style="padding: 12px; border-radius: 10px; font-weight: 700; font-size: 12px; border: none; cursor: pointer; background: #0891b2; color: #fff; font-family: inherit;">📤 Share</button>
-            <a href="{% url 'dashboard' %}" style="padding: 12px; border-radius: 10px; font-weight: 700; font-size: 12px; text-align: center; text-decoration: none; background: #f3f4f6; color: #6b7280;">← Back</a>
+            <button onclick="window.print()" style="padding: 12px; border-radius: 12px; font-weight: 600; font-size: 13px; border: none; cursor: pointer; background: #6366f1; color: #fff;">🖨 Print</button>
+            <button onclick="shareReceipt()" style="padding: 12px; border-radius: 12px; font-weight: 600; font-size: 13px; border: none; cursor: pointer; background: #0ea5e9; color: #fff;">📤 Share</button>
+            <a href="{% url 'dashboard' %}" style="padding: 12px; border-radius: 12px; font-weight: 600; font-size: 13px; text-align: center; text-decoration: none; background: #f1f5f9; color: #64748b; grid-column: span 2;">← Back to Dashboard</a>
         </div>
     </div>
 </div>
@@ -143,7 +178,7 @@
 <style>
     @media print {
         @page { margin: 0; size: 80mm auto; }
-        body { background: white !important; }
+        body { background: white !important; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
         .no-print, nav, footer { display: none !important; }
     }
 </style>
