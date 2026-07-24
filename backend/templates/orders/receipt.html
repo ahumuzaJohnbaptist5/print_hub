@@ -6,289 +6,688 @@
 
 {% block extra_head %}
 <style>
-    /* ========== SCREEN STYLES (visible on website) ========== */
-    .receipt-screen {
-        background: #ffffff;
-        color: #000000;
-        font-family: 'Courier New', 'Liberation Mono', monospace;
-        font-size: 14px;
-        line-height: 1.4;
-        padding: 20px 18px;
-        max-width: 320px;
-        margin: 0 auto;
-        box-shadow: 0 2px 8px rgba(0,0,0,0.1);
-        border-radius: 4px;
+    @import url('https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800&display=swap');
+    
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+
+    /* ========== SCREEN STYLES ========== */
+    .receipt-wrapper {
+        min-height: 100vh;
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        padding: 20px;
     }
-    .receipt-screen .center { text-align: center; }
-    .receipt-screen .right { text-align: right; }
-    .receipt-screen .bold { font-weight: 700; }
-    .receipt-screen .divider { border-top: 1px solid #000; margin: 8px 0; }
-    .receipt-screen .divider-dash { border-top: 1px dashed #000; margin: 8px 0; }
-    .receipt-screen .divider-double { border-top: 2px solid #000; margin: 10px 0; }
-    .receipt-screen .store-name { font-size: 16px; font-weight: 700; letter-spacing: 1px; }
-    .receipt-screen .meta { font-size: 11px; color: #333; }
-    .receipt-screen .item-row { display: flex; justify-content: space-between; margin: 4px 0; font-size: 13px; }
-    .receipt-screen .total-row { font-weight: 700; font-size: 15px; }
-    .receipt-screen .qr-code { text-align: center; margin: 12px 0; }
-    .receipt-screen .qr-code img { width: 90px; height: 90px; }
-    .receipt-screen .barcode { text-align: center; margin: 12px 0; }
-    .receipt-screen .barcode img { height: 35px; width: 100%; max-width: 250px; }
-    .receipt-screen .footer-text { font-size: 11px; text-align: center; color: #333; }
-    .receipt-screen .customer-info { margin: 8px 0; }
-    .receipt-screen .order-type-badge { 
-        display: inline-block; 
-        background: #000; 
-        color: #fff; 
-        padding: 2px 8px; 
-        font-size: 10px; 
+    
+    .receipt-card {
+        background: #ffffff;
+        border-radius: 24px;
+        box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25);
+        max-width: 420px;
+        width: 100%;
+        overflow: hidden;
+        font-family: 'Outfit', sans-serif;
+        position: relative;
+    }
+    
+    /* Top gradient bar */
+    .receipt-header {
+        background: linear-gradient(135deg, #1e293b 0%, #334155 100%);
+        padding: 28px 24px 24px;
+        color: white;
+        text-align: center;
+        position: relative;
+        overflow: hidden;
+    }
+    
+    .receipt-header::before {
+        content: '';
+        position: absolute;
+        top: -50%;
+        right: -50%;
+        width: 200%;
+        height: 200%;
+        background: radial-gradient(circle, rgba(255,255,255,0.05) 0%, transparent 70%);
+        animation: pulse 4s ease-in-out infinite;
+    }
+    
+    @keyframes pulse {
+        0%, 100% { transform: scale(1); opacity: 0.5; }
+        50% { transform: scale(1.1); opacity: 0.8; }
+    }
+    
+    .store-logo {
+        width: 60px;
+        height: 60px;
+        background: linear-gradient(135deg, #3b82f6 0%, #8b5cf6 100%);
+        border-radius: 16px;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        margin-bottom: 12px;
+        position: relative;
+        z-index: 1;
+        box-shadow: 0 8px 16px rgba(59, 130, 246, 0.3);
+    }
+    
+    .store-logo svg {
+        width: 32px;
+        height: 32px;
+        fill: white;
+    }
+    
+    .store-name {
+        font-size: 24px;
+        font-weight: 800;
+        letter-spacing: 2px;
+        text-transform: uppercase;
+        position: relative;
+        z-index: 1;
+    }
+    
+    .store-subtitle {
+        font-size: 11px;
+        color: #94a3b8;
+        margin-top: 4px;
+        font-weight: 400;
+        position: relative;
+        z-index: 1;
+    }
+    
+    .receipt-body {
+        padding: 24px;
+    }
+    
+    .order-info {
+        background: #f8fafc;
+        border-radius: 16px;
+        padding: 16px;
+        margin-bottom: 20px;
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 12px;
+    }
+    
+    .info-item {
+        text-align: center;
+    }
+    
+    .info-label {
+        font-size: 10px;
+        text-transform: uppercase;
+        color: #64748b;
+        font-weight: 600;
+        letter-spacing: 0.5px;
+        margin-bottom: 4px;
+    }
+    
+    .info-value {
+        font-size: 14px;
         font-weight: 700;
-        margin: 4px 0;
+        color: #1e293b;
+    }
+    
+    .order-type-badge {
+        display: inline-block;
+        padding: 4px 12px;
+        border-radius: 20px;
+        font-size: 11px;
+        font-weight: 700;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+        margin-bottom: 16px;
+    }
+    
+    .badge-document {
+        background: #dbeafe;
+        color: #1e40af;
+    }
+    
+    .badge-passport {
+        background: #fce7f3;
+        color: #9d174d;
+    }
+    
+    .badge-scanned {
+        background: #d1fae5;
+        color: #065f46;
+    }
+    
+    .file-name {
+        font-size: 16px;
+        font-weight: 600;
+        color: #1e293b;
+        margin-bottom: 20px;
+        padding-bottom: 16px;
+        border-bottom: 2px dashed #e2e8f0;
+        word-break: break-all;
+    }
+    
+    .price-breakdown {
+        margin-bottom: 20px;
+    }
+    
+    .price-row {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        padding: 10px 0;
+        border-bottom: 1px solid #f1f5f9;
+        font-size: 14px;
+    }
+    
+    .price-row:last-child {
+        border-bottom: none;
+    }
+    
+    .price-label {
+        color: #475569;
+        font-weight: 500;
+        display: flex;
+        align-items: center;
+        gap: 8px;
+    }
+    
+    .price-label .icon {
+        width: 20px;
+        height: 20px;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        border-radius: 6px;
+        font-size: 11px;
+    }
+    
+    .icon-print { background: #dbeafe; color: #3b82f6; }
+    .icon-copy { background: #fce7f3; color: #ec4899; }
+    .icon-bind { background: #fef3c7; color: #f59e0b; }
+    .icon-ship { background: #d1fae5; color: #10b981; }
+    .icon-page { background: #e0e7ff; color: #6366f1; }
+    
+    .price-amount {
+        color: #1e293b;
+        font-weight: 600;
+    }
+    
+    .total-section {
+        background: linear-gradient(135deg, #1e293b 0%, #334155 100%);
+        border-radius: 16px;
+        padding: 20px;
+        margin: 20px 0;
+        color: white;
+        position: relative;
+        overflow: hidden;
+    }
+    
+    .total-section::after {
+        content: '';
+        position: absolute;
+        top: -30px;
+        right: -30px;
+        width: 100px;
+        height: 100px;
+        background: rgba(255,255,255,0.05);
+        border-radius: 50%;
+    }
+    
+    .total-label {
+        font-size: 12px;
+        text-transform: uppercase;
+        letter-spacing: 1px;
+        color: #94a3b8;
+        margin-bottom: 4px;
+    }
+    
+    .total-amount {
+        font-size: 32px;
+        font-weight: 800;
+        position: relative;
+        z-index: 1;
+    }
+    
+    .total-currency {
+        font-size: 18px;
+        font-weight: 500;
+        opacity: 0.8;
+    }
+    
+    .payment-status {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        padding: 8px 16px;
+        border-radius: 12px;
+        font-size: 13px;
+        font-weight: 600;
+        margin-top: 12px;
+        position: relative;
+        z-index: 1;
+    }
+    
+    .status-unpaid {
+        background: rgba(251, 191, 36, 0.2);
+        color: #fbbf24;
+    }
+    
+    .status-paid {
+        background: rgba(52, 211, 153, 0.2);
+        color: #34d399;
+    }
+    
+    .qr-section {
+        display: flex;
+        align-items: center;
+        gap: 16px;
+        background: #f8fafc;
+        border-radius: 16px;
+        padding: 16px;
+        margin-top: 20px;
+    }
+    
+    .qr-code {
+        flex-shrink: 0;
+    }
+    
+    .qr-code img {
+        width: 80px;
+        height: 80px;
+        border-radius: 12px;
+        box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+    }
+    
+    .qr-text {
+        flex: 1;
+    }
+    
+    .qr-title {
+        font-size: 13px;
+        font-weight: 700;
+        color: #1e293b;
+        margin-bottom: 4px;
+    }
+    
+    .qr-subtitle {
+        font-size: 11px;
+        color: #64748b;
+        line-height: 1.4;
+    }
+    
+    .receipt-footer {
+        text-align: center;
+        padding: 16px 24px 24px;
+        border-top: 2px dashed #e2e8f0;
+    }
+    
+    .customer-name {
+        font-size: 15px;
+        font-weight: 700;
+        color: #1e293b;
+        text-transform: uppercase;
+        margin-bottom: 8px;
+    }
+    
+    .footer-info {
+        font-size: 11px;
+        color: #94a3b8;
+        line-height: 1.6;
+    }
+    
+    .action-buttons {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 10px;
+        padding: 0 24px 24px;
+    }
+    
+    .action-buttons.full-width {
+        grid-template-columns: 1fr;
+    }
+    
+    .btn {
+        padding: 12px;
+        border-radius: 12px;
+        font-weight: 700;
+        font-size: 13px;
+        text-align: center;
+        cursor: pointer;
+        transition: all 0.2s;
+        text-decoration: none;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        gap: 6px;
+        border: none;
+        font-family: 'Outfit', sans-serif;
+    }
+    
+    .btn-pay {
+        background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+        color: white;
+    }
+    
+    .btn-pay:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 8px 20px rgba(16, 185, 129, 0.3);
+    }
+    
+    .btn-cancel {
+        background: #fee2e2;
+        color: #dc2626;
+    }
+    
+    .btn-cancel:hover {
+        background: #fecaca;
+    }
+    
+    .btn-print {
+        background: linear-gradient(135deg, #6366f1 0%, #4f46e5 100%);
+        color: white;
+    }
+    
+    .btn-print:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 8px 20px rgba(99, 102, 241, 0.3);
+    }
+    
+    .btn-share {
+        background: linear-gradient(135deg, #06b6d4 0%, #0891b2 100%);
+        color: white;
+    }
+    
+    .btn-share:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 8px 20px rgba(6, 182, 212, 0.3);
+    }
+    
+    .btn-back {
+        background: #f1f5f9;
+        color: #475569;
     }
 
-    /* ========== PRINT STYLES (when printed) ========== */
+    /* ========== PRINT STYLES ========== */
     @media print {
-        * { margin: 0; padding: 0; box-sizing: border-box; }
-        nav, footer, .no-print { display: none !important; }
-        @page { margin: 6mm; size: 80mm auto; }
-        body {
-            background: white !important;
-            font-family: 'Courier New', monospace !important;
-            font-size: 8px !important;
-            line-height: 1.3 !important;
-            color: black !important;
+        @page { margin: 0; size: 80mm 200mm; }
+        
+        body { 
+            background: white !important; 
+            -webkit-print-color-adjust: exact;
+            print-color-adjust: exact;
         }
-        .receipt-screen {
+        
+        .receipt-wrapper {
+            background: white !important;
+            padding: 0 !important;
+            min-height: auto !important;
+        }
+        
+        .receipt-card {
             box-shadow: none !important;
             border-radius: 0 !important;
-            padding: 0 !important;
-            max-width: 72mm !important;
-            font-size: 8px !important;
-            line-height: 1.3 !important;
+            max-width: 80mm !important;
         }
-        .receipt-screen * { font-size: 8px !important; }
-        .receipt-screen .store-name { font-size: 9px !important; }
-        .receipt-screen .meta { font-size: 7px !important; }
-        .receipt-screen .item-row { font-size: 8px !important; margin: 2px 0 !important; }
-        .receipt-screen .total-row { font-size: 9px !important; }
-        .receipt-screen .qr-code img { width: 70px !important; height: 70px !important; }
-        .receipt-screen .barcode img { height: 25px !important; max-width: 60mm !important; }
-        .receipt-screen .footer-text { font-size: 7px !important; }
-        .receipt-screen .divider { margin: 4px 0 !important; }
-        .receipt-screen .divider-dash { margin: 4px 0 !important; }
-        .receipt-screen .divider-double { margin: 6px 0 !important; }
-        .receipt-screen .order-type-badge { font-size: 7px !important; }
-        .max-w-2xl { max-width: 100% !important; }
-        .py-6, .px-4 { padding: 0 !important; }
-        .mt-4 { margin-top: 0 !important; }
+        
+        .receipt-header {
+            padding: 20px 16px 16px !important;
+        }
+        
+        .store-name { font-size: 18px !important; }
+        .store-logo { width: 45px !important; height: 45px !important; }
+        .store-logo svg { width: 24px !important; height: 24px !important; }
+        
+        .receipt-body { padding: 16px !important; }
+        .file-name { font-size: 13px !important; }
+        .price-row { font-size: 12px !important; padding: 6px 0 !important; }
+        .total-amount { font-size: 26px !important; }
+        .qr-code img { width: 65px !important; height: 65px !important; }
+        
+        .action-buttons, .no-print { display: none !important; }
     }
 </style>
 {% endblock %}
 
 {% block content %}
-<div class="max-w-2xl mx-auto px-4 py-6">
-
-    <!-- Receipt Card -->
-    <div id="receipt-card" class="receipt-screen">
+<div class="receipt-wrapper">
+    <div class="receipt-card">
         
         <!-- Header -->
-        <div class="center">
-            <div class="store-name">PRINTHUB</div>
-            <div class="meta">Kabale University Printing Service</div>
-            <div class="meta">Served by: {{ order.station.name|default:"Agent" }}</div>
-            <div class="meta">Receipt #{{ order.id }} / {{ order.created_at|date:"j M Y" }} {{ order.created_at|date:"g:iA"|lower }}</div>
+        <div class="receipt-header">
+            <div class="store-logo">
+                <svg viewBox="0 0 24 24"><path d="M19 3H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm-7 14l-5-5 1.41-1.41L12 14.17l4.59-4.58L18 11l-6 6z"/></svg>
+            </div>
+            <div class="store-name">PrintHub</div>
+            <div class="store-subtitle">Kabale University • Digital Print Service</div>
         </div>
         
-        <div class="divider-double"></div>
-        
-        <!-- Order Type Badge -->
-        <div class="center">
-            <span class="order-type-badge">{{ order.get_order_type_display|upper }}</span>
-        </div>
-        
-        <!-- File/Item Name -->
-        <div class="item-row bold">
-            <span>{{ order.file_name|truncatechars:28 }}</span>
-        </div>
-        
-        <!-- ===== DOCUMENT PRINTING ===== -->
-        {% if order.order_type == 'document' %}
-            <div class="item-row">
-                <span>{{ order.page_count }} page{{ order.page_count|pluralize }} ({{ order.get_paper_size_display }})</span>
-            </div>
-            <div class="item-row">
-                <span>Print Type: {% if order.is_color %}Color{% else %}B&W{% endif %}</span>
-            </div>
-            {% if order.is_double_sided %}
-            <div class="item-row">
-                <span>Duplex printing</span>
-                <span class="right">Included</span>
-            </div>
-            {% endif %}
-            {% if order.copies > 1 %}
-            <div class="item-row">
-                <span>Copies: {{ order.copies }}</span>
-            </div>
-            {% endif %}
-            <div class="item-row">
-                <span>Rate: UGX {{ order.price_per_unit|intcomma }} per {% if order.is_double_sided %}sheet{% else %}page{% endif %}</span>
-                {% with effective_pages=order.page_count %}
-                    {% if order.is_double_sided %}
-                        {% widthratio effective_pages 2 1 as sheets %}
-                        <span class="right">UGX {% widthratio sheets 1 order.price_per_unit %}</span>
-                    {% else %}
-                        <span class="right">UGX {% widthratio effective_pages 1 order.price_per_unit %}</span>
-                    {% endif %}
-                {% endwith %}
-            </div>
-        
-        <!-- ===== PASSPORT PHOTO ===== -->
-        {% elif order.order_type == 'passport' %}
-            <div class="item-row">
-                <span>Size: {{ order.get_paper_size_display }}</span>
-            </div>
-            <div class="item-row">
-                <span>Copies: {{ order.copies }}</span>
-            </div>
-            <div class="item-row">
-                <span>Rate: UGX {{ order.price_per_unit|intcomma }} per copy</span>
-                <span class="right">UGX {% widthratio order.copies 1 order.price_per_unit %}</span>
-            </div>
-        
-        <!-- ===== SCANNED DOCUMENT ===== -->
-        {% elif order.order_type == 'scanned' %}
-            <div class="item-row">
-                <span>Scanned Pages: {{ order.page_count }}</span>
-            </div>
-            <div class="item-row">
-                <span>Paper Size: {{ order.get_paper_size_display }}</span>
-            </div>
-            {% if order.copies > 1 %}
-            <div class="item-row">
-                <span>Copies: {{ order.copies }}</span>
-            </div>
-            {% endif %}
-            <div class="item-row">
-                <span>Rate: UGX {{ order.price_per_unit|intcomma }} per page</span>
-                <span class="right">UGX {% widthratio order.page_count 1 order.price_per_unit %}</span>
-            </div>
-        {% endif %}
-        
-        <!-- ===== BINDING ===== -->
-        {% if order.binding != 'none' %}
-        <div class="item-row">
-            <span>{{ order.get_binding_display }}</span>
-            <span class="right">
-                {% if order.binding == 'spiral' %}UGX 1,000{% else %}Included{% endif %}
+        <!-- Body -->
+        <div class="receipt-body">
+            
+            <!-- Order Type Badge -->
+            <span class="order-type-badge 
+                {% if order.order_type == 'document' %}badge-document
+                {% elif order.order_type == 'passport' %}badge-passport
+                {% else %}badge-scanned{% endif %}">
+                {{ order.get_order_type_display }}
             </span>
+            
+            <!-- Order Info Grid -->
+            <div class="order-info">
+                <div class="info-item">
+                    <div class="info-label">Order #</div>
+                    <div class="info-value">{{ order.id }}</div>
+                </div>
+                <div class="info-item">
+                    <div class="info-label">Date</div>
+                    <div class="info-value">{{ order.created_at|date:"d M Y" }}</div>
+                </div>
+                <div class="info-item">
+                    <div class="info-label">Station</div>
+                    <div class="info-value">{{ order.station.name|default:"N/A"|truncatechars:12 }}</div>
+                </div>
+                <div class="info-item">
+                    <div class="info-label">Status</div>
+                    <div class="info-value">{{ order.get_status_display }}</div>
+                </div>
+            </div>
+            
+            <!-- File Name -->
+            <div class="file-name">
+                📄 {{ order.file_name|truncatechars:35 }}
+            </div>
+            
+            <!-- Price Breakdown -->
+            <div class="price-breakdown">
+                
+                {% if order.order_type == 'document' %}
+                    <div class="price-row">
+                        <span class="price-label">
+                            <span class="icon icon-print">🖨</span>
+                            {{ order.page_count }} page{{ order.page_count|pluralize }} ({{ order.get_paper_size_display }})
+                        </span>
+                    </div>
+                    <div class="price-row">
+                        <span class="price-label">
+                            <span class="icon icon-page">📝</span>
+                            {% if order.is_color %}Color{% else %}B&W{% endif %} @ UGX {{ order.price_per_unit|intcomma }}/page
+                        </span>
+                        <span class="price-amount">UGX {% widthratio order.page_count 1 order.price_per_unit %}</span>
+                    </div>
+                    {% if order.copies > 1 %}
+                    <div class="price-row">
+                        <span class="price-label">
+                            <span class="icon icon-copy">📋</span>
+                            {{ order.copies }} cop{{ order.copies|pluralize:"y,ies" }}
+                        </span>
+                    </div>
+                    {% endif %}
+                    {% if order.is_double_sided %}
+                    <div class="price-row">
+                        <span class="price-label">↔️ Duplex</span>
+                        <span class="price-amount">Included</span>
+                    </div>
+                    {% endif %}
+                
+                {% elif order.order_type == 'passport' %}
+                    <div class="price-row">
+                        <span class="price-label">
+                            <span class="icon icon-copy">📸</span>
+                            {{ order.get_paper_size_display }} Passport Photo
+                        </span>
+                    </div>
+                    <div class="price-row">
+                        <span class="price-label">
+                            <span class="icon icon-page">🖼</span>
+                            {{ order.copies }} cop{{ order.copies|pluralize:"y,ies" }} @ UGX {{ order.price_per_unit|intcomma }}
+                        </span>
+                        <span class="price-amount">UGX {% widthratio order.copies 1 order.price_per_unit %}</span>
+                    </div>
+                
+                {% elif order.order_type == 'scanned' %}
+                    <div class="price-row">
+                        <span class="price-label">
+                            <span class="icon icon-print">📑</span>
+                            {{ order.page_count }} scanned page{{ order.page_count|pluralize }}
+                        </span>
+                    </div>
+                    <div class="price-row">
+                        <span class="price-label">
+                            <span class="icon icon-page">🖨</span>
+                            Print @ UGX {{ order.price_per_unit|intcomma }}/page
+                        </span>
+                        <span class="price-amount">UGX {% widthratio order.page_count 1 order.price_per_unit %}</span>
+                    </div>
+                    {% if order.copies > 1 %}
+                    <div class="price-row">
+                        <span class="price-label">📋 {{ order.copies }} copies</span>
+                    </div>
+                    {% endif %}
+                {% endif %}
+                
+                {% if order.binding != 'none' %}
+                <div class="price-row">
+                    <span class="price-label">
+                        <span class="icon icon-bind">📎</span>
+                        {{ order.get_binding_display }}
+                    </span>
+                    <span class="price-amount">
+                        {% if order.binding == 'spiral' %}UGX 1,000{% else %}Free{% endif %}
+                    </span>
+                </div>
+                {% endif %}
+                
+                {% if order.delivery_type == 'delivery' and order.delivery_zone %}
+                <div class="price-row">
+                    <span class="price-label">
+                        <span class="icon icon-ship">🚚</span>
+                        Delivery - {{ order.delivery_zone.name }}
+                    </span>
+                    <span class="price-amount">UGX {{ order.delivery_zone.delivery_fee|intcomma }}</span>
+                </div>
+                {% else %}
+                <div class="price-row">
+                    <span class="price-label">📍 Pickup</span>
+                    <span class="price-amount">Free</span>
+                </div>
+                {% endif %}
+            </div>
+            
+            <!-- Total Section -->
+            <div class="total-section">
+                <div class="total-label">Total Amount</div>
+                <div class="total-amount">
+                    <span class="total-currency">UGX</span> {{ order.total_price|floatformat:0|intcomma }}
+                </div>
+                <div class="payment-status {% if payment %}status-paid{% else %}status-unpaid{% endif %}">
+                    {% if payment %}
+                        ✅ Paid via {{ payment.get_payment_method_display }}
+                    {% else %}
+                        ⚠️ Payment Pending
+                    {% endif %}
+                </div>
+            </div>
+            
+            <!-- QR Code Section -->
+            <div class="qr-section">
+                <div class="qr-code">
+                    <img src="https://api.qrserver.com/v1/create-qr-code/?size=100x100&color=000000&bgcolor=ffffff&data=https://printlink.pythonanywhere.com/track/?order_id={{ order.id }}" 
+                         alt="Track Order QR" 
+                         crossorigin="anonymous">
+                </div>
+                <div class="qr-text">
+                    <div class="qr-title">📱 Track Your Order</div>
+                    <div class="qr-subtitle">Scan QR code to check real-time order status and updates</div>
+                </div>
+            </div>
         </div>
-        {% endif %}
         
-        <!-- ===== DELIVERY ===== -->
-        {% if order.delivery_type == 'delivery' and order.delivery_zone %}
-        <div class="item-row">
-            <span>Delivery ({{ order.delivery_zone.name }})</span>
-            <span class="right">UGX {{ order.delivery_zone.delivery_fee|intcomma }}</span>
-        </div>
-        {% else %}
-        <div class="item-row">
-            <span>Pickup</span>
-            <span class="right">Free</span>
-        </div>
-        {% endif %}
-        
-        <div class="divider"></div>
-        
-        <!-- ===== TOTALS ===== -->
-        <div class="item-row total-row">
-            <span>TOTAL</span>
-            <span class="right">UGX {{ order.total_price|floatformat:0|intcomma }}</span>
+        <!-- Footer -->
+        <div class="receipt-footer">
+            <div class="customer-name">{{ order.client.get_full_name|default:order.client.username }}</div>
+            <div class="footer-info">
+                PrintHub • Kabale University<br>
+                printhub2027@gmail.com • +256791046296<br>
+                Thank you for choosing PrintHub! 🙏
+            </div>
         </div>
         
-        <!-- Payment Status -->
-        <div class="item-row">
-            <span>Status: {{ order.get_status_display }}</span>
-        </div>
-        
-        {% if payment %}
-        <div class="item-row">
-            <span>Paid via {{ payment.get_payment_method_display }}</span>
-            <span class="right">UGX {{ payment.amount|floatformat:0|intcomma }}</span>
-        </div>
-        <div class="item-row">
-            <span>TO PAY</span>
-            <span class="right">UGX 0</span>
-        </div>
-        {% else %}
-        <div class="item-row bold">
-            <span>TO PAY</span>
-            <span class="right">UGX {{ order.total_price|floatformat:0|intcomma }}</span>
-        </div>
-        {% endif %}
-        
-        <div class="divider-dash"></div>
-        
-        <!-- ===== QR CODE ===== -->
-        <div class="qr-code">
-            <img src="https://api.qrserver.com/v1/create-qr-code/?size=90x90&data=https://printlink.pythonanywhere.com/track/?order_id={{ order.id }}" 
-                 alt="QR" crossorigin="anonymous">
-            <div class="meta" style="margin-top:4px;">E-RECEIPT</div>
-        </div>
-        
-        <!-- ===== BARCODE ===== -->
-        <div class="barcode">
-            <img src="https://barcodeapi.org/api/auto/{{ order.id }}" 
-                 alt="Barcode" crossorigin="anonymous"
-                 onerror="this.style.display='none'">
-        </div>
-        
-        <div class="divider"></div>
-        
-        <!-- ===== CUSTOMER INFO ===== -->
-        <div class="customer-info">
-            <div class="center bold">{{ order.client.get_full_name|default:order.client.username|upper }}</div>
-            {% if order.notes %}
-            <div class="meta center" style="margin-top:4px;">Note: {{ order.notes|truncatechars:40 }}</div>
+        <!-- Action Buttons -->
+        <div class="action-buttons {% if order.status != 'pending' %}full-width{% endif %}">
+            {% if order.status == 'pending' %}
+                <a href="{% url 'payment_page' order.id %}" class="btn btn-pay">
+                    💳 Pay Now
+                </a>
+                {% if order.client == request.user %}
+                    <a href="{% url 'cancel_order' order.id %}" class="btn btn-cancel">
+                        ✕ Cancel
+                    </a>
+                {% endif %}
             {% endif %}
+            <button onclick="window.print()" class="btn btn-print">
+                🖨 Print
+            </button>
+            <button onclick="shareReceipt()" class="btn btn-share">
+                📤 Share
+            </button>
+            <a href="{% url 'dashboard' %}" class="btn btn-back">
+                ← Back
+            </a>
         </div>
-        
-        <div class="footer-text">
-            PrintHub &bull; Kabale University<br>
-            printhub@kab.ac.ug &bull; 0700000000 &bull; UG<br>
-            Thank you for your business.
-        </div>
-        
-        <div class="divider-double"></div>
-    </div>
-
-    <!-- Action Buttons (not printed) -->
-    <div class="flex flex-wrap gap-2 mt-4 no-print">
-        {% if order.status == 'pending' %}
-        <a href="{% url 'payment_page' order.id %}" class="flex-1 bg-green-600 hover:bg-green-700 text-white font-bold py-2.5 rounded text-sm text-center min-w-[120px]">Pay Now</a>
-        {% endif %}
-        {% if order.status in 'pending,paid' and order.client == request.user %}
-        <a href="{% url 'cancel_order' order.id %}" class="flex-1 bg-red-600 hover:bg-red-700 text-white font-bold py-2.5 rounded text-sm text-center min-w-[100px]">Cancel</a>
-        {% endif %}
-        <button onclick="window.print()" class="flex-1 bg-indigo-600 hover:bg-indigo-500 text-white font-bold py-2.5 rounded text-sm min-w-[100px]">Print</button>
-        <button onclick="shareAsImage()" class="flex-1 bg-emerald-600 hover:bg-emerald-500 text-white font-bold py-2.5 rounded text-sm min-w-[100px]">Share</button>
-        <a href="{% url 'dashboard' %}" class="flex-1 bg-slate-600 hover:bg-slate-500 text-white font-bold py-2.5 rounded text-sm text-center min-w-[80px]">Back</a>
     </div>
 </div>
 
 <script src="https://html2canvas.hertzen.com/dist/html2canvas.min.js"></script>
 <script>
-function shareAsImage() {
-    const r = document.getElementById('receipt-card');
-    html2canvas(r, { scale: 2, backgroundColor: '#ffffff', useCORS: true, allowTaint: true }).then(c => {
-        c.toBlob(b => {
-            const f = new File([b], 'Receipt-{{ order.id }}.png', { type: 'image/png' });
-            if (navigator.share && navigator.canShare({ files: [f] })) {
-                navigator.share({ files: [f], title: 'Receipt #{{ order.id }}', text: 'UGX {{ order.total_price|floatformat:0|intcomma }}' }).catch(() => download(c));
-            } else { download(c); }
+function shareReceipt() {
+    const card = document.querySelector('.receipt-card');
+    html2canvas(card, { 
+        scale: 2, 
+        backgroundColor: '#ffffff', 
+        useCORS: true, 
+        allowTaint: true 
+    }).then(canvas => {
+        canvas.toBlob(blob => {
+            const file = new File([blob], 'PrintHub-Receipt-{{ order.id }}.png', { type: 'image/png' });
+            if (navigator.share && navigator.canShare({ files: [file] })) {
+                navigator.share({ 
+                    files: [file], 
+                    title: 'PrintHub Receipt #{{ order.id }}', 
+                    text: 'Total: UGX {{ order.total_price|floatformat:0|intcomma }}' 
+                }).catch(() => downloadImage(canvas));
+            } else { 
+                downloadImage(canvas); 
+            }
         }, 'image/png');
     }).catch(() => {
-        window.open('https://wa.me/?text=PrintHub%20Receipt%20%23{{ order.id }}%20-%20UGX%20{{ order.total_price|floatformat:0|intcomma }}', '_blank');
+        // Fallback: Share via WhatsApp
+        window.open('https://wa.me/?text=🖨%20PrintHub%20Receipt%20%23{{ order.id }}%0A%0A📄%20{{ order.file_name|urlencode }}%0A💰%20Total:%20UGX%20{{ order.total_price|floatformat:0|intcomma }}%0A🔗%20Track:%20https://printlink.pythonanywhere.com/track/?order_id={{ order.id }}', '_blank');
     });
 }
-function download(c) { const a = document.createElement('a'); a.download = 'Receipt-{{ order.id }}.png'; a.href = c.toDataURL('image/png'); a.click(); }
+
+function downloadImage(canvas) {
+    const link = document.createElement('a');
+    link.download = 'PrintHub-Receipt-{{ order.id }}.png';
+    link.href = canvas.toDataURL('image/png');
+    link.click();
+}
 </script>
 {% endblock %}
