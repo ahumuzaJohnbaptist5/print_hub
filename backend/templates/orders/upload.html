@@ -59,6 +59,18 @@
             <!-- PASSPORT MODE -->
             <div id="passport-mode" style="display:none;">
                 <div class="mb-4">
+                    <label class="block text-sm font-bold text-gray-300 mb-2">Number of Photos (min 4, even numbers only)</label>
+                    <select id="passport-copies" class="w-full bg-slate-700 border border-slate-600 rounded px-4 py-3 text-white" onchange="document.getElementById('page_count').value=this.value; calculatePrice();">
+                        <option value="4" selected>4 photos - 4,000 UGX</option>
+                        <option value="6">6 photos - 6,000 UGX</option>
+                        <option value="8">8 photos - 8,000 UGX</option>
+                        <option value="10">10 photos - 10,000 UGX</option>
+                        <option value="12">12 photos - 12,000 UGX</option>
+                        <option value="14">14 photos - 14,000 UGX</option>
+                        <option value="16">16 photos - 16,000 UGX</option>
+                    </select>
+                </div>
+                <div class="mb-4">
                     <label class="block text-sm font-bold text-gray-300 mb-2">Photo Size</label>
                     <div class="grid grid-cols-2 gap-3">
                         <label class="flex items-center justify-center p-3 border-2 border-slate-600 rounded cursor-pointer hover:border-indigo-500 has-[:checked]:bg-indigo-500/10 has-[:checked]:border-indigo-500">
@@ -151,7 +163,7 @@
 
             <!-- COMMON FIELDS -->
             <div id="common-fields">
-                <div class="mb-6"><label for="page_count" class="block text-sm font-bold text-gray-300 mb-2">Number of Pages / Copies</label><input type="number" class="w-full bg-slate-700 border border-slate-600 rounded px-4 py-3 text-white" id="page_count" name="page_count" min="1" value="1" required></div>
+                <div class="mb-6" id="page-count-container"><label for="page_count" class="block text-sm font-bold text-gray-300 mb-2"><span id="page-count-label">Number of Pages</span></label><input type="number" class="w-full bg-slate-700 border border-slate-600 rounded px-4 py-3 text-white" id="page_count" name="page_count" min="1" value="1" required></div>
                 <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6"><div><label class="block text-sm font-bold text-gray-300 mb-2">Print Type</label><div class="space-y-2"><label class="flex items-center p-3 border border-slate-600 rounded cursor-pointer hover:bg-slate-700/50 has-[:checked]:bg-indigo-500/10 has-[:checked]:border-indigo-500"><input type="radio" class="price-trigger h-4 w-4 text-indigo-500" name="is_color" value="False" checked><span class="ml-3 text-sm font-medium text-gray-300">Black and White</span></label><label class="flex items-center p-3 border border-slate-600 rounded cursor-pointer hover:bg-slate-700/50 has-[:checked]:bg-indigo-500/10 has-[:checked]:border-indigo-500"><input type="radio" class="price-trigger h-4 w-4 text-indigo-500" name="is_color" value="True"><span class="ml-3 text-sm font-medium text-gray-300">Color</span></label></div></div><div id="double-sided-option"><label class="block text-sm font-bold text-gray-300 mb-2">Paper Options</label><label class="flex items-center p-3 border border-slate-600 rounded cursor-pointer hover:bg-slate-700/50 has-[:checked]:bg-indigo-500/10 has-[:checked]:border-indigo-500 h-full"><input type="checkbox" class="price-trigger h-4 w-4 text-indigo-500 rounded" id="double_sided" name="is_double_sided"><span class="ml-3 text-sm font-medium text-gray-300">Double Sided</span></label></div></div>
                 <div class="mb-6" id="binding-option"><label for="binding" class="block text-sm font-bold text-gray-300 mb-2">Binding / Finishing</label><select class="price-trigger w-full bg-slate-700 border border-slate-600 rounded px-4 py-3 text-white" id="binding" name="binding"><option value="none" selected>No Binding</option><option value="staple">Staple (Corner)</option><option value="spiral">Spiral Binding (+1,000 UGX)</option></select></div>
                 <div class="mb-6"><label for="station" class="block text-sm font-bold text-gray-300 mb-2">Printing Station</label><select class="w-full bg-slate-700 border border-slate-600 rounded px-4 py-3 text-white" id="station" name="station" required><option value="" disabled selected>Where should we print it?</option>{% for station in stations %}<option value="{{ station.id }}">{{ station.name }}</option>{% endfor %}</select></div>
@@ -167,13 +179,69 @@
 
 <script>
 pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
-const BASE_PRICE_BW = {{ base_price_bw|default:200 }}, COLOR_SURCHARGE = {{ color_surcharge|default:100 }}, SPIRAL_FEE = {{ spiral_binding_fee|default:1000 }}, PASSPORT_PRICE = {{ passport_photo_price|default:2000 }};
+const BASE_PRICE_BW = {{ base_price_bw|default:200 }}, COLOR_SURCHARGE = {{ color_surcharge|default:100 }}, SPIRAL_FEE = {{ spiral_binding_fee|default:1000 }}, PASSPORT_PRICE_PER_COPY = 1000;
 let currentMode='document', bgColor='#ffffff', passportStream=null, analysisTimer=null, scannerStream=null, scannedPages=[];
-const infoTexts={document:'<strong>Upload your file</strong>', passport:'<strong>Take a passport photo</strong> - Server-powered analysis', scanner:'<strong>Scan documents</strong> - Server-powered enhancement'};
+const infoTexts={document:'<strong>Upload your file</strong>', passport:'<strong>Take a passport photo</strong> - 1,000 UGX per photo (min 4)', scanner:'<strong>Scan documents</strong> - Server-powered enhancement'};
 
 function setBgColor(c,btn){bgColor=c;document.getElementById('bg-color').value=c;document.querySelectorAll('#passport-mode .grid-cols-4 button').forEach(b=>{b.classList.remove('border-indigo-400','ring-2','ring-indigo-300');b.classList.add('border-slate-600')});btn.classList.remove('border-slate-600');btn.classList.add('border-indigo-400','ring-2','ring-indigo-300');}
 
-function switchMode(mode){currentMode=mode;document.getElementById('order_type').value=mode==='passport'?'passport':mode==='scanner'?'scanned':'document';document.getElementById('document-mode').style.display=mode==='document'?'block':'none';document.getElementById('passport-mode').style.display=mode==='passport'?'block':'none';document.getElementById('scanner-mode').style.display=mode==='scanner'?'block':'none';document.getElementById('mode-info-text').innerHTML=infoTexts[mode];['btn-document','btn-passport','btn-scanner'].forEach(id=>{const b=document.getElementById(id);b.classList.remove('bg-indigo-600','text-white');b.classList.add('bg-slate-700','text-gray-400')});const ab=document.getElementById('btn-'+mode);ab.classList.remove('bg-slate-700','text-gray-400');ab.classList.add('bg-indigo-600','text-white');stopPassportCamera();stopScannerCamera();if(mode==='passport'){document.querySelector('input[name="passport_size"][value="4x6"]').checked=true;document.getElementById('paper_size').value='4x6';document.querySelector('input[name="is_color"][value="True"]').checked=true;document.getElementById('binding-option').style.opacity='0.4';document.getElementById('binding-option').style.pointerEvents='none';document.getElementById('double-sided-option').style.opacity='0.4';document.getElementById('double-sided-option').style.pointerEvents='none';document.getElementById('page_count').value=1}else{document.getElementById('paper_size').value='A4';document.getElementById('binding-option').style.opacity='1';document.getElementById('binding-option').style.pointerEvents='auto';document.getElementById('double-sided-option').style.opacity='1';document.getElementById('double-sided-option').style.pointerEvents='auto'}calculatePrice();}
+function switchMode(mode){
+    currentMode=mode;
+    document.getElementById('order_type').value=mode==='passport'?'passport':mode==='scanner'?'scanned':'document';
+    document.getElementById('document-mode').style.display=mode==='document'?'block':'none';
+    document.getElementById('passport-mode').style.display=mode==='passport'?'block':'none';
+    document.getElementById('scanner-mode').style.display=mode==='scanner'?'block':'none';
+    document.getElementById('mode-info-text').innerHTML=infoTexts[mode];
+    ['btn-document','btn-passport','btn-scanner'].forEach(id=>{
+        const b=document.getElementById(id);
+        b.classList.remove('bg-indigo-600','text-white');
+        b.classList.add('bg-slate-700','text-gray-400')
+    });
+    const ab=document.getElementById('btn-'+mode);
+    ab.classList.remove('bg-slate-700','text-gray-400');
+    ab.classList.add('bg-indigo-600','text-white');
+    stopPassportCamera();
+    stopScannerCamera();
+    
+    if(mode==='passport'){
+        document.querySelector('input[name="passport_size"][value="4x6"]').checked=true;
+        document.getElementById('paper_size').value='4x6';
+        document.querySelector('input[name="is_color"][value="True"]').checked=true;
+        document.getElementById('binding-option').style.opacity='0.4';
+        document.getElementById('binding-option').style.pointerEvents='none';
+        document.getElementById('double-sided-option').style.opacity='0.4';
+        document.getElementById('double-sided-option').style.pointerEvents='none';
+        document.getElementById('page_count').value=4;
+        document.getElementById('page_count').min=4;
+        document.getElementById('page_count').step=2;
+        document.getElementById('page-count-label').innerText='Number of Photos';
+        document.getElementById('passport-copies').style.display='block';
+        document.getElementById('page-count-container').style.display='none';
+    } else if(mode==='scanner'){
+        document.getElementById('paper_size').value='A4';
+        document.getElementById('binding-option').style.opacity='1';
+        document.getElementById('binding-option').style.pointerEvents='auto';
+        document.getElementById('double-sided-option').style.opacity='1';
+        document.getElementById('double-sided-option').style.pointerEvents='auto';
+        document.getElementById('page_count').min=1;
+        document.getElementById('page_count').step=1;
+        document.getElementById('page-count-label').innerText='Number of Pages';
+        document.getElementById('passport-copies').style.display='none';
+        document.getElementById('page-count-container').style.display='block';
+    } else {
+        document.getElementById('paper_size').value='A4';
+        document.getElementById('binding-option').style.opacity='1';
+        document.getElementById('binding-option').style.pointerEvents='auto';
+        document.getElementById('double-sided-option').style.opacity='1';
+        document.getElementById('double-sided-option').style.pointerEvents='auto';
+        document.getElementById('page_count').min=1;
+        document.getElementById('page_count').step=1;
+        document.getElementById('page-count-label').innerText='Number of Pages';
+        document.getElementById('passport-copies').style.display='none';
+        document.getElementById('page-count-container').style.display='block';
+    }
+    calculatePrice();
+}
 
 // ============================================================
 // FILE UPLOAD HANDLER - Count pages automatically
@@ -214,10 +282,10 @@ document.getElementById('file').addEventListener('change', function(e) {
                 document.getElementById('page_count').value = estimatedPages;
                 document.getElementById('page-count-status').innerText = '~' + estimatedPages + ' page(s) estimated (' + words + ' words)';
                 document.getElementById('preview-container').classList.remove('hidden');
-                document.getElementById('preview-content').innerHTML = '<p class="text-yellow-400">DOCX loaded: ~' + estimatedPages + ' pages (estimated from ' + words + ' words)</p>';
+                document.getElementById('preview-content').innerHTML = '<p class="text-yellow-400">DOCX loaded: ~' + estimatedPages + ' pages</p>';
                 calculatePrice();
             }).catch(function(err) {
-                document.getElementById('page-count-status').innerText = 'Error reading DOCX. Enter pages manually.';
+                document.getElementById('page-count-status').innerText = 'Error reading DOCX.';
             });
         };
         reader.readAsArrayBuffer(file);
@@ -232,12 +300,12 @@ document.getElementById('file').addEventListener('change', function(e) {
                 );
                 const estimatedPages = Math.max(1, Math.ceil(slides.length / 2));
                 document.getElementById('page_count').value = estimatedPages;
-                document.getElementById('page-count-status').innerText = '~' + estimatedPages + ' page(s) estimated (' + slides.length + ' slides)';
+                document.getElementById('page-count-status').innerText = '~' + estimatedPages + ' page(s) (' + slides.length + ' slides)';
                 document.getElementById('preview-container').classList.remove('hidden');
-                document.getElementById('preview-content').innerHTML = '<p class="text-yellow-400">PPTX loaded: ' + slides.length + ' slides, ~' + estimatedPages + ' pages</p>';
+                document.getElementById('preview-content').innerHTML = '<p class="text-yellow-400">PPTX: ' + slides.length + ' slides, ~' + estimatedPages + ' pages</p>';
                 calculatePrice();
             }).catch(function(err) {
-                document.getElementById('page-count-status').innerText = 'Error reading PPTX. Enter pages manually.';
+                document.getElementById('page-count-status').innerText = 'Error reading PPTX.';
             });
         };
         reader.readAsArrayBuffer(file);
@@ -252,7 +320,7 @@ document.getElementById('file').addEventListener('change', function(e) {
     } else {
         const estimatedPages = Math.max(1, Math.ceil(file.size / 3000));
         document.getElementById('page_count').value = estimatedPages;
-        document.getElementById('page-count-status').innerText = '~' + estimatedPages + ' page(s) estimated from file size';
+        document.getElementById('page-count-status').innerText = '~' + estimatedPages + ' page(s) estimated';
         calculatePrice();
     }
 });
@@ -263,7 +331,7 @@ function startAnalysis(video){analysisTimer=setInterval(async()=>{const c=docume
 
 function updateCheck(id,pass,g,b){const e=document.getElementById(id);e.textContent=pass?g:b;e.className=pass?'text-green-400':'text-red-400'}
 
-async function capturePassport(){if(analysisTimer){clearInterval(analysisTimer);analysisTimer=null}const v=document.getElementById('passport-video');const c=document.createElement('canvas');c.width=v.videoWidth||640;c.height=v.videoHeight||480;c.getContext('2d').drawImage(v,0,0);const dataUrl=c.toDataURL('image/jpeg',0.9);document.getElementById('passport-processing').classList.remove('hidden');document.getElementById('capture-passport').style.display='none';try{const res=await fetch('/orders/api/process-passport/',{method:'POST',headers:{'Content-Type':'application/json','X-CSRFToken':getCSRF()},body:JSON.stringify({image:dataUrl,bg_color:bgColor,size:document.querySelector('input[name="passport_size"]:checked').value})});const data=await res.json();if(data.success){document.getElementById('passport-canvas').src=data.processed_image;const pc=document.getElementById('passport-canvas');const img=new Image();img.onload=()=>{pc.width=img.width;pc.height=img.height;pc.getContext('2d').drawImage(img,0,0);pc.style.display='block';v.style.display='none';document.getElementById('face-guide').style.display='none';document.getElementById('passport-analysis').style.display='none';document.getElementById('passport-processing').classList.add('hidden');document.getElementById('retake-passport').style.display='block';document.getElementById('passport-data').value=data.processed_image;document.getElementById('page_count').value=1;createPassportFile(data.processed_image);calculatePrice()};img.src=data.processed_image}}catch(e){alert('Processing failed.')}}
+async function capturePassport(){if(analysisTimer){clearInterval(analysisTimer);analysisTimer=null}const v=document.getElementById('passport-video');const c=document.createElement('canvas');c.width=v.videoWidth||640;c.height=v.videoHeight||480;c.getContext('2d').drawImage(v,0,0);const dataUrl=c.toDataURL('image/jpeg',0.9);document.getElementById('passport-processing').classList.remove('hidden');document.getElementById('capture-passport').style.display='none';try{const res=await fetch('/orders/api/process-passport/',{method:'POST',headers:{'Content-Type':'application/json','X-CSRFToken':getCSRF()},body:JSON.stringify({image:dataUrl,bg_color:bgColor,size:document.querySelector('input[name="passport_size"]:checked').value})});const data=await res.json();if(data.success){document.getElementById('passport-canvas').src=data.processed_image;const pc=document.getElementById('passport-canvas');const img=new Image();img.onload=()=>{pc.width=img.width;pc.height=img.height;pc.getContext('2d').drawImage(img,0,0);pc.style.display='block';v.style.display='none';document.getElementById('face-guide').style.display='none';document.getElementById('passport-analysis').style.display='none';document.getElementById('passport-processing').classList.add('hidden');document.getElementById('retake-passport').style.display='block';document.getElementById('passport-data').value=data.processed_image;document.getElementById('page_count').value=4;createPassportFile(data.processed_image);calculatePrice()};img.src=data.processed_image}}catch(e){alert('Processing failed.')}}
 
 function createPassportFile(dataUrl){fetch(dataUrl).then(r=>r.blob()).then(b=>{const f=new File([b],'passport-photo.jpg',{type:'image/jpeg'});const dt=new DataTransfer();dt.items.add(f);document.getElementById('file').files=dt.files;document.getElementById('dropzone-text').innerText='passport-photo.jpg';document.getElementById('dropzone-text').classList.add('font-bold')})}
 
@@ -282,34 +350,68 @@ function stopScannerCamera(){if(scannerStream){scannerStream.getTracks().forEach
 
 function getCSRF(){return document.querySelector('[name=csrfmiddlewaretoken]').value}
 
-// Price calculator
+// ============================================================
+// PRICE CALCULATOR - Clear if/else for each mode
+// ============================================================
 const pageCountInput=document.getElementById('page_count'),livePrice=document.getElementById('live-price'),submitPrice=document.getElementById('submit-price'),priceTriggers=document.querySelectorAll('.price-trigger'),deliveryZoneSelect=document.getElementById('delivery_zone'),discountCodeInput=document.getElementById('discount_code'),applyDiscountBtn=document.getElementById('apply-discount'),discountMessage=document.getElementById('discount-message'),discountAmountInput=document.getElementById('discount_amount'),calculatedPriceInput=document.getElementById('calculated_price');
 let discountApplied=false,discountValue=0;
 
 document.querySelectorAll('.delivery-trigger').forEach(t=>t.addEventListener('change',function(){document.getElementById('delivery-zone-container').classList.toggle('hidden',this.value!=='delivery');if(this.value!=='delivery')deliveryZoneSelect.value='';calculatePrice()}));
 
 function calculatePrice(){
-    let p=parseInt(pageCountInput.value)||0;
-    let c=document.querySelector('input[name="is_color"]:checked')?.value==='True';
-    let d=document.getElementById('double_sided').checked;
-    let b=document.getElementById('binding').value;
-    let df=0;
-    if((document.querySelector('input[name="delivery_type"]:checked')?.value||'pickup')==='delivery'){
-        const o=deliveryZoneSelect.options[deliveryZoneSelect.selectedIndex];
-        if(o)df=parseInt(o.getAttribute('data-fee'))||0
+    let p = parseInt(pageCountInput.value) || 0;
+    let c = document.querySelector('input[name="is_color"]:checked')?.value === 'True';
+    let d = document.getElementById('double_sided').checked;
+    let b = document.getElementById('binding').value;
+    let df = 0;
+    let t = 0;
+    
+    // Get delivery fee
+    if ((document.querySelector('input[name="delivery_type"]:checked')?.value || 'pickup') === 'delivery') {
+        const o = deliveryZoneSelect.options[deliveryZoneSelect.selectedIndex];
+        if (o) df = parseInt(o.getAttribute('data-fee')) || 0;
     }
-    let t=currentMode==='passport'?
-        (document.querySelector('input[name="passport_size"]:checked')?.value==='4x6'?Math.ceil(p/2):p)*PASSPORT_PRICE*(c?1:0.8):
-        Math.ceil(p/(d?2:1))*(BASE_PRICE_BW+(c?COLOR_SURCHARGE:0))+(b==='spiral'?SPIRAL_FEE:0);
-    t+=df;
-    if(discountApplied)t=Math.max(0,t-discountValue);
-    calculatedPriceInput.value=t;
-    livePrice.innerText=t.toLocaleString()+' UGX';
-    submitPrice.innerText=t.toLocaleString()+' UGX'
+    
+    // PRICE BY ORDER TYPE
+    if (currentMode === 'document') {
+        // Document: pages × price per page + binding
+        let effectivePages = d ? Math.ceil(p / 2) : p;
+        let pricePerPage = BASE_PRICE_BW + (c ? COLOR_SURCHARGE : 0);
+        t = effectivePages * pricePerPage;
+        if (b === 'spiral') t += SPIRAL_FEE;
+        
+    } else if (currentMode === 'passport') {
+        // Passport: copies × 1000 UGX per photo
+        let copies = parseInt(document.getElementById('passport-copies')?.value) || p || 4;
+        if (copies < 4) copies = 4;
+        if (copies % 2 !== 0) copies = Math.max(4, copies - 1);
+        document.getElementById('page_count').value = copies;
+        t = copies * PASSPORT_PRICE_PER_COPY;
+        
+    } else if (currentMode === 'scanner') {
+        // Scanner: same as document (scanned pages)
+        let effectivePages = d ? Math.ceil(p / 2) : p;
+        let pricePerPage = BASE_PRICE_BW + (c ? COLOR_SURCHARGE : 0);
+        t = effectivePages * pricePerPage;
+        if (b === 'spiral') t += SPIRAL_FEE;
+    }
+    
+    // Add delivery fee
+    t += df;
+    
+    // Apply discount
+    if (discountApplied) t = Math.max(0, t - discountValue);
+    
+    // SET THE HIDDEN FIELD - same line for ALL modes
+    calculatedPriceInput.value = t;
+    
+    // Update display
+    livePrice.innerText = t.toLocaleString() + ' UGX';
+    submitPrice.innerText = t.toLocaleString() + ' UGX';
 }
 
 applyDiscountBtn.addEventListener('click',function(){const code=discountCodeInput.value.trim().toUpperCase();if(!code){showDiscountMsg('Enter a code.','error');return}fetch('{% url "validate_discount_code" %}',{method:'POST',headers:{'Content-Type':'application/x-www-form-urlencoded','X-CSRFToken':getCSRF()},body:'code='+encodeURIComponent(code)+'&order_total='+calculateRawTotal()}).then(r=>r.json()).then(data=>{if(data.valid){discountApplied=true;discountValue=data.savings;discountAmountInput.value=data.savings;showDiscountMsg('Discount applied! Save '+data.savings.toLocaleString()+' UGX','success');applyDiscountBtn.innerText='Remove';applyDiscountBtn.classList.add('bg-red-600')}else showDiscountMsg(data.error,'error');calculatePrice()}).catch(()=>showDiscountMsg('Error.','error'))});
-function calculateRawTotal(){let p=parseInt(pageCountInput.value)||0;let c=document.querySelector('input[name="is_color"]:checked')?.value==='True';let d=document.getElementById('double_sided').checked;let b=document.getElementById('binding').value;return Math.ceil(p/(d?2:1))*(BASE_PRICE_BW+(c?COLOR_SURCHARGE:0))+(b==='spiral'?SPIRAL_FEE:0)}
+function calculateRawTotal(){let p=parseInt(pageCountInput.value)||0;let c=document.querySelector('input[name="is_color"]:checked')?.value==='True';let d=document.getElementById('double_sided').checked;let b=document.getElementById('binding').value;if(currentMode==='passport'){let copies=parseInt(document.getElementById('passport-copies')?.value)||p||4;return copies*PASSPORT_PRICE_PER_COPY}return Math.ceil(p/(d?2:1))*(BASE_PRICE_BW+(c?COLOR_SURCHARGE:0))+(b==='spiral'?SPIRAL_FEE:0)}
 function showDiscountMsg(m,t){discountMessage.innerText=m;discountMessage.classList.remove('hidden');discountMessage.className='text-sm mt-2 font-medium '+(t==='success'?'text-green-400':'text-red-400')}
 
 pageCountInput.addEventListener('input',calculatePrice);
