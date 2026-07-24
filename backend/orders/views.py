@@ -130,12 +130,15 @@ def upload_view(request):
         binding = request.POST.get('binding', 'none')
         delivery_type = request.POST.get('delivery_type', 'pickup')
         delivery_zone_id = request.POST.get('delivery_zone')
-        notes = strip_tags(request.POST.get('notes', '').strip())  # Sanitize HTML
+        notes = strip_tags(request.POST.get('notes', '').strip())
 
         # New fields
         order_type = request.POST.get('order_type', 'document')
         paper_size = request.POST.get('paper_size', 'A4')
         copies = request.POST.get('copies', 1)
+        
+        # *** GET JAVASCRIPT CALCULATED PRICE ***
+        calculated_price = request.POST.get('calculated_price', '0')
         
         # Handle passport and scanner data
         passport_data = request.POST.get('passport_data', '')
@@ -145,7 +148,6 @@ def upload_view(request):
         if not file and (passport_data or scanner_data):
             try:
                 if passport_data:
-                    # Convert base64 to file
                     format, imgstr = passport_data.split(';base64,')
                     ext = format.split('/')[-1]
                     file = ContentFile(
@@ -153,9 +155,6 @@ def upload_view(request):
                         name=f'passport_photo.{ext}'
                     )
                 elif scanner_data:
-                    # Scanner data is already handled in JS as PDF
-                    # The scanner creates a PDF file on the client side
-                    # and sets it to the file input, so this is a fallback
                     pass
             except Exception as e:
                 logger.error(f"Error processing camera/scanner data: {e}")
@@ -173,7 +172,6 @@ def upload_view(request):
                 'upload_error': upload_error,
             })
 
-        # Validate station ID to prevent injection
         station = None
         if station_id and station_id.isdigit():
             station = Station.objects.filter(id=int(station_id)).first()
@@ -191,7 +189,6 @@ def upload_view(request):
             if copies_int < 1:
                 copies_int = 1
 
-            # Build notes with order type info
             order_type_display = dict(Order.ORDER_TYPE_CHOICES).get(order_type, 'Document Print')
             paper_size_display = dict(Order.PAPER_SIZE_CHOICES).get(paper_size, 'A4')
             
@@ -204,8 +201,8 @@ def upload_view(request):
             else:
                 notes = extra_notes
 
-            # Create the order
-            order = Order.objects.create(
+            # Create the order object first (don't save yet)
+            order = Order(
                 client=request.user,
                 station=station,
                 file=file,
@@ -222,12 +219,23 @@ def upload_view(request):
                 paper_size=paper_size,
                 copies=copies_int,
             )
+            
+            # *** SET JAVASCRIPT PRICE BEFORE SAVE ***
+            if calculated_price:
+                try:
+                    js_price = Decimal(str(calculated_price))
+                    if js_price > 0:
+                        order.total_price = js_price
+                except Exception:
+                    pass
+            
+            # Now save - model's save() sees total_price > 0 and skips recalculation
+            order.save()
 
             try:
                 send_order_confirmation_email(order)
             except Exception as e:
                 logger.error(f"Failed to send confirmation email for order #{order.id}: {e}", exc_info=True)
-                # Don't fail the order creation
 
             messages.success(request, f'Order #{order.id} submitted! Total: {order.total_price:,.0f} UGX')
             return redirect('order_receipt', order_id=order.id)
@@ -259,7 +267,6 @@ def api_analyze_passport(request):
         data = json.loads(request.body)
         image_data = data.get('image', '')
         
-        # Basic analysis (enhance with actual face detection in production)
         analysis = {
             'face_position': {'status': 'pass', 'label': 'Centered'},
             'brightness': {'status': 'pass', 'label': 'Good'},
@@ -287,7 +294,6 @@ def api_process_passport(request):
         bg_color = data.get('bg_color', '#ffffff')
         size = data.get('size', '4x6')
         
-        # Return processed image (implement proper processing in production)
         return JsonResponse({
             'success': True,
             'processed_image': image_data,
@@ -307,7 +313,6 @@ def api_process_scan(request):
         data = json.loads(request.body)
         image_data = data.get('image', '')
         
-        # Return enhanced image (implement proper enhancement in production)
         return JsonResponse({
             'success': True,
             'processed_image': image_data,
@@ -326,7 +331,6 @@ def validate_discount_code(request):
     code = request.POST.get('code', '').strip().upper()
     order_total = request.POST.get('order_total', 0)
     
-    # Example discount codes
     discounts = {
         'HEC10': 0.10,
         'STUDENT20': 0.20,
@@ -349,7 +353,7 @@ def validate_discount_code(request):
 
 
 # ============================================================
-# NEW: Payment Page View
+# Payment Page View
 # ============================================================
 
 @login_required
@@ -403,26 +407,22 @@ def _build_order_queryset(request):
     """Build filtered order queryset with proper validation."""
     qs = Order.objects.select_related('client', 'station', 'delivery_zone').order_by('-created_at')
 
-    # Status filter - validate against choices
     status = request.GET.get('status', '').strip()
     if status:
         valid_statuses = dict(Order.STATUS_CHOICES).keys()
         if status in valid_statuses:
             qs = qs.filter(status=status)
 
-    # Station filter - validate integer
     station_id = request.GET.get('station', '').strip()
     if station_id and station_id.isdigit():
         qs = qs.filter(station_id=int(station_id))
 
-    # Order type filter - validate against choices
     order_type = request.GET.get('order_type', '').strip()
     if order_type:
         valid_types = dict(Order.ORDER_TYPE_CHOICES).keys()
         if order_type in valid_types:
             qs = qs.filter(order_type=order_type)
 
-    # Date filter - validate against allowed values
     date_filter = request.GET.get('date', '').strip()
     now = timezone.now()
     if date_filter == 'today':
@@ -432,20 +432,16 @@ def _build_order_queryset(request):
     elif date_filter == 'month':
         qs = qs.filter(created_at__gte=now - timedelta(days=30))
 
-    # Search - prevent SQL injection
     search = request.GET.get('search', '').strip()
     if search:
-        # Limit search length and sanitize
-        search = search[:100]  # Prevent overly long searches
+        search = search[:100]
         
         if search.isdigit():
-            # Django ORM handles parameterization automatically
             qs = qs.filter(
                 Q(id=int(search)) | 
                 Q(client__email__icontains=search)
             )
         else:
-            # Sanitize search input
             from django.utils.html import escape
             safe_search = escape(search)
             qs = qs.filter(
@@ -490,7 +486,6 @@ def admin_dashboard_view(request):
             agent_id = request.POST.get('agent_id')
             station_id = request.POST.get('agent_station_id') or None
             
-            # Validate IDs
             if not agent_id or not agent_id.isdigit():
                 messages.error(request, 'Invalid agent ID.')
                 return redirect('admin_dashboard')
@@ -516,7 +511,6 @@ def admin_dashboard_view(request):
             valid = ['printing', 'in_transit', 'ready', 'collected', 'cancelled']
             
             if new_status in valid and order_ids:
-                # Validate all order IDs
                 valid_order_ids = [oid for oid in order_ids if oid.isdigit()]
                 updated_count = 0
                 
@@ -544,7 +538,6 @@ def admin_dashboard_view(request):
                 is_active = request.POST.get('announcement_active') == 'on'
                 show_home = request.POST.get('announcement_home') == 'on'
 
-                # Validate color to prevent CSS injection
                 allowed_colors = ['bg-blue-600', 'bg-red-600', 'bg-green-600', 'bg-yellow-600', 'bg-purple-600']
                 if color not in allowed_colors:
                     color = 'bg-blue-600'
@@ -568,11 +561,9 @@ def admin_dashboard_view(request):
     orders_qs = _build_order_queryset(request)
     summary = _order_summary_counts()
 
-    # Calculate overdue efficiently in database
     from django.utils import timezone
     overdue_count = Order.objects.filter(
         status__in=['paid', 'printing', 'in_transit', 'ready'],
-        # Add your overdue logic here based on your business rules
     ).count()
     summary['overdue'] = overdue_count
 
@@ -585,7 +576,6 @@ def admin_dashboard_view(request):
 
     system_settings = SystemSettings.load()
 
-    # Build active filters safely
     active_filters = []
     filter_keys = {
         'status': 'Status',
@@ -598,7 +588,6 @@ def admin_dashboard_view(request):
     for key, label in filter_keys.items():
         val = request.GET.get(key, '').strip()
         if val:
-            # Sanitize filter values for display
             safe_val = strip_tags(val)
             active_filters.append({'key': key, 'value': safe_val, 'label': label})
 
@@ -633,7 +622,6 @@ def toggle_system_pause_view(request):
         action = request.POST.get('action')
         csrf_token = request.POST.get('csrfmiddlewaretoken')
         
-        # Verify CSRF token (Django middleware handles this, but extra check)
         if not csrf_token:
             return HttpResponseForbidden("Invalid request.")
 
@@ -641,7 +629,7 @@ def toggle_system_pause_view(request):
             if not sys_settings.is_paused:
                 reason = strip_tags(request.POST.get('reason', 'Unforeseen circumstances'))
                 sys_settings.is_paused = True
-                sys_settings.pause_reason = reason[:200]  # Limit length
+                sys_settings.pause_reason = reason[:200]
                 sys_settings.pause_started_at = timezone.now()
                 sys_settings.save()
                 messages.success(request, "System timers PAUSED successfully.")
@@ -678,7 +666,6 @@ def agent_dashboard_view(request):
             'client', 'station', 'delivery_zone'
         ).order_by('-created_at')
 
-    # Get agent earnings with error handling
     agent_earnings = None
     if request.user.role == 'agent':
         try:
@@ -698,7 +685,6 @@ def agent_dashboard_view(request):
         action = request.POST.get('action')
         order_id = request.POST.get('order_id')
 
-        # Validate order ID
         if not order_id or not order_id.isdigit():
             messages.error(request, 'Invalid order ID.')
             return redirect('agent_dashboard')
@@ -710,7 +696,6 @@ def agent_dashboard_view(request):
                 if action == 'update_status':
                     new_status = request.POST.get('status')
                     
-                    # Validate status
                     valid_statuses = dict(Order.STATUS_CHOICES).keys()
                     if new_status not in valid_statuses:
                         messages.error(request, 'Invalid status.')
@@ -748,7 +733,7 @@ def agent_dashboard_view(request):
                     if order.status not in ['collected', 'cancelled']:
                         reason = strip_tags(request.POST.get('cancellation_reason', '').strip())
                         order.status = 'cancelled'
-                        order.cancellation_reason = reason[:500]  # Limit reason length
+                        order.cancellation_reason = reason[:500]
                         order.cancelled_at = timezone.now()
                         order.save(update_fields=['status', 'cancellation_reason', 'cancelled_at'])
                         messages.success(request, f'Order #{order.id} has been CANCELLED.')
@@ -759,7 +744,7 @@ def agent_dashboard_view(request):
                     if order.status not in ['collected', 'cancelled']:
                         try:
                             extra_minutes = int(request.POST.get('extra_minutes', 30))
-                            if 0 < extra_minutes <= 1440:  # Max 24 hours
+                            if 0 < extra_minutes <= 1440:
                                 order.postponed_minutes += extra_minutes
                                 order.save(update_fields=['postponed_minutes'])
                                 messages.success(request, f'Order #{order.id} postponed by {extra_minutes} minutes.')
@@ -801,7 +786,6 @@ def update_order_status_view(request, order_id):
     if not _is_staff_role(request.user):
         return HttpResponseForbidden('You do not have permission to update order status.')
 
-    # Validate order_id
     if not str(order_id).isdigit():
         return HttpResponseForbidden('Invalid order ID.')
 
@@ -839,7 +823,6 @@ def update_order_status_view(request, order_id):
 
 @login_required
 def download_order_file_view(request, order_id):
-    # Validate order_id
     if not str(order_id).isdigit():
         return HttpResponseForbidden('Invalid order ID.')
     
@@ -856,25 +839,20 @@ def download_order_file_view(request, order_id):
     content_type, _ = mimetypes.guess_type(order.file_name)
     response = FileResponse(order.file.open('rb'), content_type=content_type or 'application/octet-stream')
     response['Content-Disposition'] = f'attachment; filename="{order.file_name}"'
-    
-    # Add security headers
     response['X-Content-Type-Options'] = 'nosniff'
     
     return response
 
 
 def _get_tracked_orders(order_id=None, email=None):
-    """Get tracked orders with validation."""
     qs = Order.objects.select_related('station', 'client', 'delivery_zone')
     
     if order_id:
-        # Validate order_id is numeric
         if str(order_id).isdigit():
             return qs.filter(id=int(order_id))
         return Order.objects.none()
     
     if email:
-        # Validate email format
         from django.core.validators import validate_email
         try:
             validate_email(email)
@@ -980,9 +958,8 @@ def live_board_view(request):
     return render(request, 'orders/live_board.html')
 
 
-@cache_page(60 * 1)  # Cache for 1 minute
+@cache_page(60 * 1)
 def live_board_api_view(request):
-    """API endpoint for live board with caching to prevent abuse."""
     active_statuses = ['paid', 'printing', 'in_transit', 'ready']
     orders = Order.objects.filter(
         status__in=active_statuses
@@ -1030,7 +1007,6 @@ def live_board_api_view(request):
         'last_updated': timezone.now().isoformat(),
     })
     
-    # Add CORS and security headers
     response["Access-Control-Allow-Origin"] = "*"
     response["X-Content-Type-Options"] = "nosniff"
     response["X-Frame-Options"] = "DENY"
@@ -1069,16 +1045,12 @@ def all_links_view(request):
 
 
 # ============================================================
-# NEW: Client Order Cancellation & My Orders
+# Client Order Cancellation & My Orders
 # ============================================================
 
 @login_required
 @transaction.atomic
 def cancel_order_view(request, order_id):
-    """
-    Allow clients to cancel their own orders before printing starts.
-    """
-    # Validate order_id
     if not str(order_id).isdigit():
         messages.error(request, 'Invalid order ID.')
         return redirect('dashboard')
@@ -1089,30 +1061,24 @@ def cancel_order_view(request, order_id):
         messages.error(request, 'Order not found.')
         return redirect('dashboard')
     
-    # Check permissions - only the order owner can cancel
     if order.client != request.user:
         return HttpResponseForbidden('You can only cancel your own orders.')
     
-    # Check if order can be cancelled (status is pending or paid, not yet printing)
     if order.status not in ['pending', 'paid']:
-        messages.error(request, 
-            'This order cannot be cancelled. It may already be in production.')
+        messages.error(request, 'This order cannot be cancelled. It may already be in production.')
         return redirect('order_receipt', order_id=order.id)
     
     if request.method == 'POST':
         reason = strip_tags(request.POST.get('cancellation_reason', '').strip())
         
-        # Update order status
         order.status = 'cancelled'
         order.cancellation_reason = reason[:500] if reason else 'Cancelled by customer'
         order.cancelled_at = timezone.now()
         order.save(update_fields=['status', 'cancellation_reason', 'cancelled_at'])
         
-        # Create notification for admins/agents
         try:
             from notifications.models import Notification
             
-            # Notify station agents if assigned
             if order.station:
                 agents = User.objects.filter(role='agent', station=order.station)
                 for agent in agents:
@@ -1120,58 +1086,46 @@ def cancel_order_view(request, order_id):
                         user=agent,
                         notification_type='order_cancelled',
                         title='Order Cancelled by Customer',
-                        message=f'Order #{order.id} ({order.file_name}) has been cancelled by the customer. Reason: {reason or "No reason provided"}',
+                        message=f'Order #{order.id} ({order.file_name}) cancelled. Reason: {reason or "None"}',
                         link=f'/orders/agent-dashboard/'
                     )
             
-            # Notify admins
             admins = User.objects.filter(role='admin')
             for admin in admins:
                 Notification.create_notification(
                     user=admin,
                     notification_type='order_cancelled',
                     title='Order Cancelled by Customer',
-                    message=f'Order #{order.id} ({order.file_name}) has been cancelled by {request.user.username}. Reason: {reason or "No reason provided"}',
+                    message=f'Order #{order.id} cancelled by {request.user.username}',
                     link=f'/orders/admin-dashboard/'
                 )
         except Exception as e:
             logger.error(f"Failed to create cancellation notifications: {e}")
         
-        # Send confirmation email to customer
         try:
             send_cancellation_email(order, reason)
         except Exception as e:
             logger.error(f"Failed to send cancellation email: {e}")
         
-        messages.success(request, 
-            f'Order #{order.id} has been cancelled successfully.')
+        messages.success(request, f'Order #{order.id} has been cancelled successfully.')
         return redirect('dashboard')
     
-    # GET request - show confirmation page
-    return render(request, 'orders/cancel_order.html', {
-        'order': order,
-    })
+    return render(request, 'orders/cancel_order.html', {'order': order})
 
 
 @login_required
 def my_orders_view(request):
-    """
-    View for clients to see all their orders with cancellation options.
-    """
     orders = Order.objects.filter(
         client=request.user
     ).select_related('station', 'delivery_zone').order_by('-created_at')
     
-    # Add cancellation eligibility info
     for order in orders:
         order.can_cancel = order.status in ['pending', 'paid']
     
-    # Filter options
     status_filter = request.GET.get('status', '').strip()
     if status_filter and status_filter in dict(Order.STATUS_CHOICES).keys():
         orders = orders.filter(status=status_filter)
     
-    # Pagination
     paginator = Paginator(orders, 10)
     page_number = request.GET.get('page')
     page_obj = paginator.get_page(page_number)
@@ -1185,9 +1139,7 @@ def my_orders_view(request):
 
 
 def send_cancellation_email(order, reason=''):
-    """Send cancellation confirmation email to customer."""
     subject = f'Order #{order.id} Cancelled - PrintHub'
-    
     message = f"""
 Dear {order.client.username},
 
@@ -1201,22 +1153,12 @@ Order Details:
 
 Reason for cancellation: {reason or 'Not specified'}
 
-If you did not request this cancellation or have any questions, 
-please contact our support team immediately.
-
-You can place a new order at any time: {settings.SITE_URL}/upload/
+Place a new order at: {settings.SITE_URL}/upload/
 
 Thank you,
 PrintHub Team
 """
-    
-    send_mail(
-        subject, 
-        message, 
-        settings.DEFAULT_FROM_EMAIL, 
-        [order.client.email], 
-        fail_silently=True
-    )
+    send_mail(subject, message, settings.DEFAULT_FROM_EMAIL, [order.client.email], fail_silently=True)
 
 
 # ============================================================
@@ -1225,7 +1167,6 @@ PrintHub Team
 
 @cache_control(max_age=60)
 def live_board_preview_image(request):
-    """Generate preview image for social sharing."""
     active_statuses = ['paid', 'printing', 'in_transit', 'ready']
     orders = Order.objects.filter(
         status__in=active_statuses
@@ -1248,17 +1189,14 @@ def live_board_preview_image(request):
         font_body = ImageFont.truetype('/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf', 24)
         font_small = ImageFont.truetype('/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf', 20)
     except Exception:
-        # Fallback to default font if custom fonts not available
         font_title = ImageFont.load_default()
         font_subtitle = ImageFont.load_default()
         font_body = ImageFont.load_default()
         font_small = ImageFont.load_default()
 
-    # Draw board content
     draw.text((50, 50), "PrintHub Live Board", fill='#e2e8f0', font=font_title)
     draw.text((50, 110), "Kabale University Printing Service", fill='#94a3b8', font=font_subtitle)
 
-    # Stats row
     stats = [
         ("Active", total_active, '#22c55e'),
         ("Ready", ready_count, '#3b82f6'),
@@ -1271,7 +1209,6 @@ def live_board_preview_image(request):
         draw.text((x, 210), str(value), fill=color, font=font_body)
         x += 250
 
-    # Table header
     draw.rectangle([50, 280, 1150, 320], fill='#1e293b')
     headers = [
         ("Order", 70), ("Client", 200), ("Station", 400),
@@ -1280,7 +1217,6 @@ def live_board_preview_image(request):
     for text, x_pos in headers:
         draw.text((x_pos, 285), text, fill='#94a3b8', font=font_small)
 
-    # Orders list
     y = 330
     for order in orders[:4]:
         priority = order.priority_info
@@ -1309,10 +1245,8 @@ def live_board_preview_image(request):
 # ============================================================
 
 def send_order_confirmation_email(order):
-    """Send order confirmation email."""
     subject = f'Order #{order.id} Confirmed - PrintHub'
     
-    # Enhanced email with order type info
     order_type_info = ""
     if order.order_type == 'passport':
         order_type_info = f"""
