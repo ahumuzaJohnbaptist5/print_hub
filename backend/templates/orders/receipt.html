@@ -4,690 +4,165 @@
 
 {% block title %}Receipt #{{ order.id }} - PrintHub{% endblock %}
 
-{% block extra_head %}
-<style>
-    @import url('https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800&display=swap');
-    
-    * { margin: 0; padding: 0; box-sizing: border-box; }
-
-    /* ========== SCREEN STYLES ========== */
-    .receipt-wrapper {
-        min-height: 100vh;
-        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        padding: 20px;
-    }
-    
-    .receipt-card {
-        background: #ffffff;
-        border-radius: 24px;
-        box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25);
-        max-width: 420px;
-        width: 100%;
-        overflow: hidden;
-        font-family: 'Outfit', sans-serif;
-        position: relative;
-    }
-    
-    /* Top gradient bar */
-    .receipt-header {
-        background: linear-gradient(135deg, #1e293b 0%, #334155 100%);
-        padding: 28px 24px 24px;
-        color: white;
-        text-align: center;
-        position: relative;
-        overflow: hidden;
-    }
-    
-    .receipt-header::before {
-        content: '';
-        position: absolute;
-        top: -50%;
-        right: -50%;
-        width: 200%;
-        height: 200%;
-        background: radial-gradient(circle, rgba(255,255,255,0.05) 0%, transparent 70%);
-        animation: pulse 4s ease-in-out infinite;
-    }
-    
-    @keyframes pulse {
-        0%, 100% { transform: scale(1); opacity: 0.5; }
-        50% { transform: scale(1.1); opacity: 0.8; }
-    }
-    
-    .store-logo {
-        width: 60px;
-        height: 60px;
-        background: linear-gradient(135deg, #3b82f6 0%, #8b5cf6 100%);
-        border-radius: 16px;
-        display: inline-flex;
-        align-items: center;
-        justify-content: center;
-        margin-bottom: 12px;
-        position: relative;
-        z-index: 1;
-        box-shadow: 0 8px 16px rgba(59, 130, 246, 0.3);
-    }
-    
-    .store-logo svg {
-        width: 32px;
-        height: 32px;
-        fill: white;
-    }
-    
-    .store-name {
-        font-size: 24px;
-        font-weight: 800;
-        letter-spacing: 2px;
-        text-transform: uppercase;
-        position: relative;
-        z-index: 1;
-    }
-    
-    .store-subtitle {
-        font-size: 11px;
-        color: #94a3b8;
-        margin-top: 4px;
-        font-weight: 400;
-        position: relative;
-        z-index: 1;
-    }
-    
-    .receipt-body {
-        padding: 24px;
-    }
-    
-    .order-info {
-        background: #f8fafc;
-        border-radius: 16px;
-        padding: 16px;
-        margin-bottom: 20px;
-        display: grid;
-        grid-template-columns: 1fr 1fr;
-        gap: 12px;
-    }
-    
-    .info-item {
-        text-align: center;
-    }
-    
-    .info-label {
-        font-size: 10px;
-        text-transform: uppercase;
-        color: #64748b;
-        font-weight: 600;
-        letter-spacing: 0.5px;
-        margin-bottom: 4px;
-    }
-    
-    .info-value {
-        font-size: 14px;
-        font-weight: 700;
-        color: #1e293b;
-    }
-    
-    .order-type-badge {
-        display: inline-block;
-        padding: 4px 12px;
-        border-radius: 20px;
-        font-size: 11px;
-        font-weight: 700;
-        text-transform: uppercase;
-        letter-spacing: 0.5px;
-        margin-bottom: 16px;
-    }
-    
-    .badge-document {
-        background: #dbeafe;
-        color: #1e40af;
-    }
-    
-    .badge-passport {
-        background: #fce7f3;
-        color: #9d174d;
-    }
-    
-    .badge-scanned {
-        background: #d1fae5;
-        color: #065f46;
-    }
-    
-    .file-name {
-        font-size: 16px;
-        font-weight: 600;
-        color: #1e293b;
-        margin-bottom: 20px;
-        padding-bottom: 16px;
-        border-bottom: 2px dashed #e2e8f0;
-        word-break: break-all;
-    }
-    
-    .price-breakdown {
-        margin-bottom: 20px;
-    }
-    
-    .price-row {
-        display: flex;
-        justify-content: space-between;
-        align-items: center;
-        padding: 10px 0;
-        border-bottom: 1px solid #f1f5f9;
-        font-size: 14px;
-    }
-    
-    .price-row:last-child {
-        border-bottom: none;
-    }
-    
-    .price-label {
-        color: #475569;
-        font-weight: 500;
-        display: flex;
-        align-items: center;
-        gap: 8px;
-    }
-    
-    .price-label .icon {
-        width: 20px;
-        height: 20px;
-        display: inline-flex;
-        align-items: center;
-        justify-content: center;
-        border-radius: 6px;
-        font-size: 11px;
-    }
-    
-    .icon-print { background: #dbeafe; color: #3b82f6; }
-    .icon-copy { background: #fce7f3; color: #ec4899; }
-    .icon-bind { background: #fef3c7; color: #f59e0b; }
-    .icon-ship { background: #d1fae5; color: #10b981; }
-    .icon-page { background: #e0e7ff; color: #6366f1; }
-    
-    .price-amount {
-        color: #1e293b;
-        font-weight: 600;
-    }
-    
-    .total-section {
-        background: linear-gradient(135deg, #1e293b 0%, #334155 100%);
-        border-radius: 16px;
-        padding: 20px;
-        margin: 20px 0;
-        color: white;
-        position: relative;
-        overflow: hidden;
-    }
-    
-    .total-section::after {
-        content: '';
-        position: absolute;
-        top: -30px;
-        right: -30px;
-        width: 100px;
-        height: 100px;
-        background: rgba(255,255,255,0.05);
-        border-radius: 50%;
-    }
-    
-    .total-label {
-        font-size: 12px;
-        text-transform: uppercase;
-        letter-spacing: 1px;
-        color: #94a3b8;
-        margin-bottom: 4px;
-    }
-    
-    .total-amount {
-        font-size: 32px;
-        font-weight: 800;
-        position: relative;
-        z-index: 1;
-    }
-    
-    .total-currency {
-        font-size: 18px;
-        font-weight: 500;
-        opacity: 0.8;
-    }
-    
-    .payment-status {
-        display: flex;
-        align-items: center;
-        gap: 8px;
-        padding: 8px 16px;
-        border-radius: 12px;
-        font-size: 13px;
-        font-weight: 600;
-        margin-top: 12px;
-        position: relative;
-        z-index: 1;
-    }
-    
-    .status-unpaid {
-        background: rgba(251, 191, 36, 0.2);
-        color: #fbbf24;
-    }
-    
-    .status-paid {
-        background: rgba(52, 211, 153, 0.2);
-        color: #34d399;
-    }
-    
-    .qr-section {
-        display: flex;
-        align-items: center;
-        gap: 16px;
-        background: #f8fafc;
-        border-radius: 16px;
-        padding: 16px;
-        margin-top: 20px;
-    }
-    
-    .qr-code {
-        flex-shrink: 0;
-    }
-    
-    .qr-code img {
-        width: 80px;
-        height: 80px;
-        border-radius: 12px;
-        box-shadow: 0 4px 12px rgba(0,0,0,0.1);
-    }
-    
-    .qr-text {
-        flex: 1;
-    }
-    
-    .qr-title {
-        font-size: 13px;
-        font-weight: 700;
-        color: #1e293b;
-        margin-bottom: 4px;
-    }
-    
-    .qr-subtitle {
-        font-size: 11px;
-        color: #64748b;
-        line-height: 1.4;
-    }
-    
-    .receipt-footer {
-        text-align: center;
-        padding: 16px 24px 24px;
-        border-top: 2px dashed #e2e8f0;
-    }
-    
-    .customer-name {
-        font-size: 15px;
-        font-weight: 700;
-        color: #1e293b;
-        text-transform: uppercase;
-        margin-bottom: 8px;
-    }
-    
-    .footer-info {
-        font-size: 11px;
-        color: #94a3b8;
-        line-height: 1.6;
-    }
-    
-    .action-buttons {
-        display: grid;
-        grid-template-columns: 1fr 1fr;
-        gap: 10px;
-        padding: 0 24px 24px;
-    }
-    
-    .action-buttons.full-width {
-        grid-template-columns: 1fr;
-    }
-    
-    .btn {
-        padding: 12px;
-        border-radius: 12px;
-        font-weight: 700;
-        font-size: 13px;
-        text-align: center;
-        cursor: pointer;
-        transition: all 0.2s;
-        text-decoration: none;
-        display: inline-flex;
-        align-items: center;
-        justify-content: center;
-        gap: 6px;
-        border: none;
-        font-family: 'Outfit', sans-serif;
-    }
-    
-    .btn-pay {
-        background: linear-gradient(135deg, #10b981 0%, #059669 100%);
-        color: white;
-    }
-    
-    .btn-pay:hover {
-        transform: translateY(-2px);
-        box-shadow: 0 8px 20px rgba(16, 185, 129, 0.3);
-    }
-    
-    .btn-cancel {
-        background: #fee2e2;
-        color: #dc2626;
-    }
-    
-    .btn-cancel:hover {
-        background: #fecaca;
-    }
-    
-    .btn-print {
-        background: linear-gradient(135deg, #6366f1 0%, #4f46e5 100%);
-        color: white;
-    }
-    
-    .btn-print:hover {
-        transform: translateY(-2px);
-        box-shadow: 0 8px 20px rgba(99, 102, 241, 0.3);
-    }
-    
-    .btn-share {
-        background: linear-gradient(135deg, #06b6d4 0%, #0891b2 100%);
-        color: white;
-    }
-    
-    .btn-share:hover {
-        transform: translateY(-2px);
-        box-shadow: 0 8px 20px rgba(6, 182, 212, 0.3);
-    }
-    
-    .btn-back {
-        background: #f1f5f9;
-        color: #475569;
-    }
-
-    /* ========== PRINT STYLES ========== */
-    @media print {
-        @page { margin: 0; size: 80mm 200mm; }
-        
-        body { 
-            background: white !important; 
-            -webkit-print-color-adjust: exact;
-            print-color-adjust: exact;
-        }
-        
-        .receipt-wrapper {
-            background: white !important;
-            padding: 0 !important;
-            min-height: auto !important;
-        }
-        
-        .receipt-card {
-            box-shadow: none !important;
-            border-radius: 0 !important;
-            max-width: 80mm !important;
-        }
-        
-        .receipt-header {
-            padding: 20px 16px 16px !important;
-        }
-        
-        .store-name { font-size: 18px !important; }
-        .store-logo { width: 45px !important; height: 45px !important; }
-        .store-logo svg { width: 24px !important; height: 24px !important; }
-        
-        .receipt-body { padding: 16px !important; }
-        .file-name { font-size: 13px !important; }
-        .price-row { font-size: 12px !important; padding: 6px 0 !important; }
-        .total-amount { font-size: 26px !important; }
-        .qr-code img { width: 65px !important; height: 65px !important; }
-        
-        .action-buttons, .no-print { display: none !important; }
-    }
-</style>
-{% endblock %}
-
 {% block content %}
-<div class="receipt-wrapper">
-    <div class="receipt-card">
+<div style="min-height: 100vh; background: linear-gradient(135deg, #1e293b 0%, #0f172a 100%); display: flex; align-items: center; justify-content: center; padding: 20px; font-family: 'Courier New', monospace;">
+    
+    <div style="background: #ffffff; border-radius: 16px; max-width: 400px; width: 100%; overflow: hidden; box-shadow: 0 25px 50px rgba(0,0,0,0.3);">
         
-        <!-- Header -->
-        <div class="receipt-header">
-            <div class="store-logo">
-                <svg viewBox="0 0 24 24"><path d="M19 3H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm-7 14l-5-5 1.41-1.41L12 14.17l4.59-4.58L18 11l-6 6z"/></svg>
+        <!-- HEADER -->
+        <div style="background: #000000; padding: 24px 20px; text-align: center;">
+            <div style="font-size: 22px; font-weight: 900; color: #ffffff; letter-spacing: 3px;">PRINTHUB</div>
+            <div style="font-size: 10px; color: #999999; margin-top: 4px;">Kabale University Printing Service</div>
+            <div style="font-size: 10px; color: #666666; margin-top: 8px;">
+                Receipt #{{ order.id }} | {{ order.created_at|date:"d M Y" }} {{ order.created_at|date:"g:iA"|lower }}
             </div>
-            <div class="store-name">PrintHub</div>
-            <div class="store-subtitle">Kabale University • Digital Print Service</div>
         </div>
         
-        <!-- Body -->
-        <div class="receipt-body">
+        <!-- BODY -->
+        <div style="padding: 20px;">
             
             <!-- Order Type Badge -->
-            <span class="order-type-badge 
-                {% if order.order_type == 'document' %}badge-document
-                {% elif order.order_type == 'passport' %}badge-passport
-                {% else %}badge-scanned{% endif %}">
-                {{ order.get_order_type_display }}
-            </span>
-            
-            <!-- Order Info Grid -->
-            <div class="order-info">
-                <div class="info-item">
-                    <div class="info-label">Order #</div>
-                    <div class="info-value">{{ order.id }}</div>
-                </div>
-                <div class="info-item">
-                    <div class="info-label">Date</div>
-                    <div class="info-value">{{ order.created_at|date:"d M Y" }}</div>
-                </div>
-                <div class="info-item">
-                    <div class="info-label">Station</div>
-                    <div class="info-value">{{ order.station.name|default:"N/A"|truncatechars:12 }}</div>
-                </div>
-                <div class="info-item">
-                    <div class="info-label">Status</div>
-                    <div class="info-value">{{ order.get_status_display }}</div>
-                </div>
+            <div style="text-align: center; margin-bottom: 16px;">
+                <span style="display: inline-block; padding: 4px 16px; border-radius: 20px; font-size: 10px; font-weight: 700; letter-spacing: 1px;
+                    {% if order.order_type == 'document' %}background: #dbeafe; color: #1e40af;
+                    {% elif order.order_type == 'passport' %}background: #fce7f3; color: #9d174d;
+                    {% else %}background: #d1fae5; color: #065f46;{% endif %}">
+                    {{ order.get_order_type_display|upper }}
+                </span>
             </div>
             
             <!-- File Name -->
-            <div class="file-name">
-                📄 {{ order.file_name|truncatechars:35 }}
+            <div style="font-size: 14px; font-weight: 700; color: #1e293b; text-align: center; margin-bottom: 16px; padding-bottom: 12px; border-bottom: 2px dashed #e5e7eb; word-break: break-all;">
+                📄 {{ order.file_name|truncatechars:30 }}
             </div>
             
-            <!-- Price Breakdown -->
-            <div class="price-breakdown">
-                
-                {% if order.order_type == 'document' %}
-                    <div class="price-row">
-                        <span class="price-label">
-                            <span class="icon icon-print">🖨</span>
-                            {{ order.page_count }} page{{ order.page_count|pluralize }} ({{ order.get_paper_size_display }})
-                        </span>
-                    </div>
-                    <div class="price-row">
-                        <span class="price-label">
-                            <span class="icon icon-page">📝</span>
-                            {% if order.is_color %}Color{% else %}B&W{% endif %} @ UGX {{ order.price_per_unit|intcomma }}/page
-                        </span>
-                        <span class="price-amount">UGX {% widthratio order.page_count 1 order.price_per_unit %}</span>
-                    </div>
-                    {% if order.copies > 1 %}
-                    <div class="price-row">
-                        <span class="price-label">
-                            <span class="icon icon-copy">📋</span>
-                            {{ order.copies }} cop{{ order.copies|pluralize:"y,ies" }}
-                        </span>
-                    </div>
-                    {% endif %}
-                    {% if order.is_double_sided %}
-                    <div class="price-row">
-                        <span class="price-label">↔️ Duplex</span>
-                        <span class="price-amount">Included</span>
-                    </div>
-                    {% endif %}
-                
-                {% elif order.order_type == 'passport' %}
-                    <div class="price-row">
-                        <span class="price-label">
-                            <span class="icon icon-copy">📸</span>
-                            {{ order.get_paper_size_display }} Passport Photo
-                        </span>
-                    </div>
-                    <div class="price-row">
-                        <span class="price-label">
-                            <span class="icon icon-page">🖼</span>
-                            {{ order.copies }} cop{{ order.copies|pluralize:"y,ies" }} @ UGX {{ order.price_per_unit|intcomma }}
-                        </span>
-                        <span class="price-amount">UGX {% widthratio order.copies 1 order.price_per_unit %}</span>
-                    </div>
-                
-                {% elif order.order_type == 'scanned' %}
-                    <div class="price-row">
-                        <span class="price-label">
-                            <span class="icon icon-print">📑</span>
-                            {{ order.page_count }} scanned page{{ order.page_count|pluralize }}
-                        </span>
-                    </div>
-                    <div class="price-row">
-                        <span class="price-label">
-                            <span class="icon icon-page">🖨</span>
-                            Print @ UGX {{ order.price_per_unit|intcomma }}/page
-                        </span>
-                        <span class="price-amount">UGX {% widthratio order.page_count 1 order.price_per_unit %}</span>
-                    </div>
-                    {% if order.copies > 1 %}
-                    <div class="price-row">
-                        <span class="price-label">📋 {{ order.copies }} copies</span>
-                    </div>
-                    {% endif %}
-                {% endif %}
-                
-                {% if order.binding != 'none' %}
-                <div class="price-row">
-                    <span class="price-label">
-                        <span class="icon icon-bind">📎</span>
-                        {{ order.get_binding_display }}
-                    </span>
-                    <span class="price-amount">
-                        {% if order.binding == 'spiral' %}UGX 1,000{% else %}Free{% endif %}
-                    </span>
+            <!-- PRICE BREAKDOWN -->
+            {% if order.order_type == 'document' %}
+                <div style="display: flex; justify-content: space-between; padding: 6px 0; font-size: 13px; border-bottom: 1px solid #f3f4f6;">
+                    <span style="color: #6b7280;">{{ order.page_count }} page{{ order.page_count|pluralize }} ({{ order.get_paper_size_display }})</span>
+                </div>
+                <div style="display: flex; justify-content: space-between; padding: 6px 0; font-size: 13px; border-bottom: 1px solid #f3f4f6;">
+                    <span style="color: #6b7280;">{% if order.is_color %}Color{% else %}B&W{% endif %} @ UGX {{ order.price_per_unit|intcomma }}</span>
+                    <span style="font-weight: 600; color: #1e293b;">UGX {% widthratio order.page_count 1 order.price_per_unit %}</span>
+                </div>
+                {% if order.copies > 1 %}
+                <div style="display: flex; justify-content: space-between; padding: 6px 0; font-size: 13px; border-bottom: 1px solid #f3f4f6;">
+                    <span style="color: #6b7280;">× {{ order.copies }} copies</span>
                 </div>
                 {% endif %}
-                
-                {% if order.delivery_type == 'delivery' and order.delivery_zone %}
-                <div class="price-row">
-                    <span class="price-label">
-                        <span class="icon icon-ship">🚚</span>
-                        Delivery - {{ order.delivery_zone.name }}
-                    </span>
-                    <span class="price-amount">UGX {{ order.delivery_zone.delivery_fee|intcomma }}</span>
-                </div>
-                {% else %}
-                <div class="price-row">
-                    <span class="price-label">📍 Pickup</span>
-                    <span class="price-amount">Free</span>
+                {% if order.is_double_sided %}
+                <div style="display: flex; justify-content: space-between; padding: 6px 0; font-size: 13px; border-bottom: 1px solid #f3f4f6;">
+                    <span style="color: #6b7280;">Duplex</span>
+                    <span style="color: #059669;">Included</span>
                 </div>
                 {% endif %}
-            </div>
             
-            <!-- Total Section -->
-            <div class="total-section">
-                <div class="total-label">Total Amount</div>
-                <div class="total-amount">
-                    <span class="total-currency">UGX</span> {{ order.total_price|floatformat:0|intcomma }}
+            {% elif order.order_type == 'passport' %}
+                <div style="display: flex; justify-content: space-between; padding: 6px 0; font-size: 13px; border-bottom: 1px solid #f3f4f6;">
+                    <span style="color: #6b7280;">📸 {{ order.get_paper_size_display }} Passport</span>
                 </div>
-                <div class="payment-status {% if payment %}status-paid{% else %}status-unpaid{% endif %}">
-                    {% if payment %}
-                        ✅ Paid via {{ payment.get_payment_method_display }}
-                    {% else %}
-                        ⚠️ Payment Pending
-                    {% endif %}
+                <div style="display: flex; justify-content: space-between; padding: 6px 0; font-size: 13px; border-bottom: 1px solid #f3f4f6;">
+                    <span style="color: #6b7280;">{{ order.copies }} cop{{ order.copies|pluralize:"y,ies" }} @ UGX {{ order.price_per_unit|intcomma }}</span>
+                    <span style="font-weight: 600; color: #1e293b;">UGX {% widthratio order.copies 1 order.price_per_unit %}</span>
                 </div>
-            </div>
             
-            <!-- QR Code Section -->
-            <div class="qr-section">
-                <div class="qr-code">
-                    <img src="https://api.qrserver.com/v1/create-qr-code/?size=100x100&color=000000&bgcolor=ffffff&data=https://printlink.pythonanywhere.com/track/?order_id={{ order.id }}" 
-                         alt="Track Order QR" 
-                         crossorigin="anonymous">
+            {% elif order.order_type == 'scanned' %}
+                <div style="display: flex; justify-content: space-between; padding: 6px 0; font-size: 13px; border-bottom: 1px solid #f3f4f6;">
+                    <span style="color: #6b7280;">📑 {{ order.page_count }} scanned page{{ order.page_count|pluralize }}</span>
                 </div>
-                <div class="qr-text">
-                    <div class="qr-title">📱 Track Your Order</div>
-                    <div class="qr-subtitle">Scan QR code to check real-time order status and updates</div>
+                <div style="display: flex; justify-content: space-between; padding: 6px 0; font-size: 13px; border-bottom: 1px solid #f3f4f6;">
+                    <span style="color: #6b7280;">Print @ UGX {{ order.price_per_unit|intcomma }}/page</span>
+                    <span style="font-weight: 600; color: #1e293b;">UGX {% widthratio order.page_count 1 order.price_per_unit %}</span>
                 </div>
-            </div>
-        </div>
-        
-        <!-- Footer -->
-        <div class="receipt-footer">
-            <div class="customer-name">{{ order.client.get_full_name|default:order.client.username }}</div>
-            <div class="footer-info">
-                PrintHub • Kabale University<br>
-                printhub2027@gmail.com • +256791046296<br>
-                Thank you for choosing PrintHub! 🙏
-            </div>
-        </div>
-        
-        <!-- Action Buttons -->
-        <div class="action-buttons {% if order.status != 'pending' %}full-width{% endif %}">
-            {% if order.status == 'pending' %}
-                <a href="{% url 'payment_page' order.id %}" class="btn btn-pay">
-                    💳 Pay Now
-                </a>
-                {% if order.client == request.user %}
-                    <a href="{% url 'cancel_order' order.id %}" class="btn btn-cancel">
-                        ✕ Cancel
-                    </a>
+                {% if order.copies > 1 %}
+                <div style="display: flex; justify-content: space-between; padding: 6px 0; font-size: 13px; border-bottom: 1px solid #f3f4f6;">
+                    <span style="color: #6b7280;">× {{ order.copies }} copies</span>
+                </div>
                 {% endif %}
             {% endif %}
-            <button onclick="window.print()" class="btn btn-print">
-                🖨 Print
-            </button>
-            <button onclick="shareReceipt()" class="btn btn-share">
-                📤 Share
-            </button>
-            <a href="{% url 'dashboard' %}" class="btn btn-back">
-                ← Back
-            </a>
+            
+            {% if order.binding != 'none' %}
+            <div style="display: flex; justify-content: space-between; padding: 6px 0; font-size: 13px; border-bottom: 1px solid #f3f4f6;">
+                <span style="color: #6b7280;">📎 {{ order.get_binding_display }}</span>
+                <span style="font-weight: 600; color: #1e293b;">{% if order.binding == 'spiral' %}UGX 1,000{% else %}Free{% endif %}</span>
+            </div>
+            {% endif %}
+            
+            <div style="display: flex; justify-content: space-between; padding: 6px 0; font-size: 13px;">
+                <span style="color: #6b7280;">{% if order.delivery_type == 'delivery' %}🚚 Delivery{% else %}📍 Pickup{% endif %}</span>
+                <span style="font-weight: 600; color: #1e293b;">{% if order.delivery_type == 'delivery' and order.delivery_zone %}UGX {{ order.delivery_zone.delivery_fee|intcomma }}{% else %}Free{% endif %}</span>
+            </div>
+            
+            <!-- TOTAL -->
+            <div style="background: #000000; border-radius: 12px; padding: 16px; margin-top: 16px; text-align: center;">
+                <div style="font-size: 10px; color: #999999; letter-spacing: 2px; text-transform: uppercase;">Total Amount</div>
+                <div style="font-size: 28px; font-weight: 900; color: #ffffff; margin-top: 4px;">UGX {{ order.total_price|floatformat:0|intcomma }}</div>
+                <div style="display: inline-block; margin-top: 8px; padding: 4px 12px; border-radius: 8px; font-size: 11px; font-weight: 600;
+                    {% if payment %}background: rgba(52,211,153,0.2); color: #34d399;
+                    {% else %}background: rgba(251,191,36,0.2); color: #fbbf24;{% endif %}">
+                    {% if payment %}✅ Paid{% else %}⚠️ Payment Pending{% endif %}
+                </div>
+            </div>
+            
+            <!-- QR CODE -->
+            <div style="display: flex; align-items: center; gap: 12px; background: #f9fafb; border-radius: 12px; padding: 12px; margin-top: 16px;">
+                <img src="https://api.qrserver.com/v1/create-qr-code/?size=80x80&color=000000&bgcolor=ffffff&data=https://printlink.pythonanywhere.com/track/?order_id={{ order.id }}" 
+                     style="width: 70px; height: 70px; border-radius: 8px;" alt="QR">
+                <div>
+                    <div style="font-size: 12px; font-weight: 700; color: #1e293b;">📱 Track Your Order</div>
+                    <div style="font-size: 10px; color: #6b7280;">Scan QR to check real-time status</div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- FOOTER -->
+        <div style="text-align: center; padding: 16px 20px; border-top: 2px dashed #e5e7eb;">
+            <div style="font-size: 13px; font-weight: 700; color: #1e293b; text-transform: uppercase;">{{ order.client.get_full_name|default:order.client.username }}</div>
+            <div style="font-size: 10px; color: #9ca3af; margin-top: 4px; line-height: 1.5;">
+                PrintHub • Kabale University<br>
+                printhub2027@gmail.com • +256791046296<br>
+                Thank you for your business! 🙏
+            </div>
+        </div>
+        
+        <!-- BUTTONS -->
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px; padding: 0 20px 20px;">
+            {% if order.status == 'pending' %}
+                <a href="{% url 'payment_page' order.id %}" style="padding: 12px; border-radius: 10px; font-weight: 700; font-size: 12px; text-align: center; text-decoration: none; background: #10b981; color: #fff;">💳 Pay Now</a>
+                {% if order.client == request.user %}
+                    <a href="{% url 'cancel_order' order.id %}" style="padding: 12px; border-radius: 10px; font-weight: 700; font-size: 12px; text-align: center; text-decoration: none; background: #fee2e2; color: #dc2626;">✕ Cancel</a>
+                {% endif %}
+            {% endif %}
+            <button onclick="window.print()" style="padding: 12px; border-radius: 10px; font-weight: 700; font-size: 12px; border: none; cursor: pointer; background: #6366f1; color: #fff; font-family: inherit;">🖨 Print</button>
+            <button onclick="shareReceipt()" style="padding: 12px; border-radius: 10px; font-weight: 700; font-size: 12px; border: none; cursor: pointer; background: #0891b2; color: #fff; font-family: inherit;">📤 Share</button>
+            <a href="{% url 'dashboard' %}" style="padding: 12px; border-radius: 10px; font-weight: 700; font-size: 12px; text-align: center; text-decoration: none; background: #f3f4f6; color: #6b7280;">← Back</a>
         </div>
     </div>
 </div>
 
+<style>
+    @media print {
+        @page { margin: 0; size: 80mm auto; }
+        body { background: white !important; }
+        .no-print, nav, footer { display: none !important; }
+    }
+</style>
+
 <script src="https://html2canvas.hertzen.com/dist/html2canvas.min.js"></script>
 <script>
 function shareReceipt() {
-    const card = document.querySelector('.receipt-card');
-    html2canvas(card, { 
-        scale: 2, 
-        backgroundColor: '#ffffff', 
-        useCORS: true, 
-        allowTaint: true 
-    }).then(canvas => {
+    const card = document.querySelector('[style*="min-height: 100vh"] > div');
+    html2canvas(card, { scale: 2, backgroundColor: '#ffffff', useCORS: true, allowTaint: true }).then(canvas => {
         canvas.toBlob(blob => {
             const file = new File([blob], 'PrintHub-Receipt-{{ order.id }}.png', { type: 'image/png' });
             if (navigator.share && navigator.canShare({ files: [file] })) {
-                navigator.share({ 
-                    files: [file], 
-                    title: 'PrintHub Receipt #{{ order.id }}', 
-                    text: 'Total: UGX {{ order.total_price|floatformat:0|intcomma }}' 
-                }).catch(() => downloadImage(canvas));
-            } else { 
-                downloadImage(canvas); 
-            }
+                navigator.share({ files: [file], title: 'Receipt #{{ order.id }}', text: 'UGX {{ order.total_price|floatformat:0|intcomma }}' }).catch(() => downloadImage(canvas));
+            } else { downloadImage(canvas); }
         }, 'image/png');
     }).catch(() => {
-        // Fallback: Share via WhatsApp
-        window.open('https://wa.me/?text=🖨%20PrintHub%20Receipt%20%23{{ order.id }}%0A%0A📄%20{{ order.file_name|urlencode }}%0A💰%20Total:%20UGX%20{{ order.total_price|floatformat:0|intcomma }}%0A🔗%20Track:%20https://printlink.pythonanywhere.com/track/?order_id={{ order.id }}', '_blank');
+        window.open('https://wa.me/?text=PrintHub%20Receipt%20%23{{ order.id }}%20-%20UGX%20{{ order.total_price|floatformat:0|intcomma }}', '_blank');
     });
 }
-
-function downloadImage(canvas) {
-    const link = document.createElement('a');
-    link.download = 'PrintHub-Receipt-{{ order.id }}.png';
-    link.href = canvas.toDataURL('image/png');
-    link.click();
-}
+function downloadImage(c) { const a = document.createElement('a'); a.download = 'Receipt-{{ order.id }}.png'; a.href = c.toDataURL('image/png'); a.click(); }
 </script>
 {% endblock %}
