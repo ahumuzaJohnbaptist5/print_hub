@@ -366,22 +366,18 @@ function calculatePrice(){
     let df = 0;
     let t = 0;
     
-    // Get delivery fee
     if ((document.querySelector('input[name="delivery_type"]:checked')?.value || 'pickup') === 'delivery') {
         const o = deliveryZoneSelect.options[deliveryZoneSelect.selectedIndex];
         if (o) df = parseInt(o.getAttribute('data-fee')) || 0;
     }
     
-    // PRICE BY ORDER TYPE
     if (currentMode === 'document') {
-        // Document: pages × price per page + binding
         let effectivePages = d ? Math.ceil(p / 2) : p;
         let pricePerPage = BASE_PRICE_BW + (c ? COLOR_SURCHARGE : 0);
         t = effectivePages * pricePerPage;
         if (b === 'spiral') t += SPIRAL_FEE;
         
     } else if (currentMode === 'passport') {
-        // Passport: copies × 1000 UGX per photo
         let copies = parseInt(document.getElementById('passport-copies')?.value) || p || 4;
         if (copies < 4) copies = 4;
         if (copies % 2 !== 0) copies = Math.max(4, copies - 1);
@@ -389,23 +385,16 @@ function calculatePrice(){
         t = copies * PASSPORT_PRICE_PER_COPY;
         
     } else if (currentMode === 'scanner') {
-        // Scanner: same as document (scanned pages)
         let effectivePages = d ? Math.ceil(p / 2) : p;
         let pricePerPage = BASE_PRICE_BW + (c ? COLOR_SURCHARGE : 0);
         t = effectivePages * pricePerPage;
         if (b === 'spiral') t += SPIRAL_FEE;
     }
     
-    // Add delivery fee
     t += df;
-    
-    // Apply discount
     if (discountApplied) t = Math.max(0, t - discountValue);
     
-    // SET THE HIDDEN FIELD - same line for ALL modes
     calculatedPriceInput.value = t;
-    
-    // Update display
     livePrice.innerText = t.toLocaleString() + ' UGX';
     submitPrice.innerText = t.toLocaleString() + ' UGX';
 }
@@ -417,5 +406,25 @@ function showDiscountMsg(m,t){discountMessage.innerText=m;discountMessage.classL
 pageCountInput.addEventListener('input',calculatePrice);
 priceTriggers.forEach(t=>t.addEventListener('change',calculatePrice));
 calculatePrice();
+
+// ============================================================
+// FORM SUBMIT - Force correct values before sending
+// ============================================================
+document.getElementById('upload-form').addEventListener('submit', function(e) {
+    if (currentMode === 'passport') {
+        document.getElementById('order_type').value = 'passport';
+        var copiesVal = document.getElementById('passport-copies').value;
+        document.getElementById('page_count').value = copiesVal;
+        document.getElementById('copies').value = copiesVal;
+        document.querySelector('input[name="is_color"][value="True"]').checked = true;
+        document.getElementById('calculated_price').value = parseInt(copiesVal) * PASSPORT_PRICE_PER_COPY;
+    } else if (currentMode === 'scanner') {
+        document.getElementById('order_type').value = 'scanned';
+        document.getElementById('copies').value = '1';
+    } else {
+        document.getElementById('order_type').value = 'document';
+        document.getElementById('copies').value = '1';
+    }
+});
 </script>
 {% endblock %}
