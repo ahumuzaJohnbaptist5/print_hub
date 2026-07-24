@@ -348,6 +348,30 @@ def validate_discount_code(request):
     return JsonResponse({'valid': False, 'error': 'Invalid or expired discount code'})
 
 
+# ============================================================
+# NEW: Payment Page View
+# ============================================================
+
+@login_required
+def payment_page_view(request, order_id):
+    """Payment page for an order."""
+    if not str(order_id).isdigit():
+        return HttpResponseForbidden('Invalid order ID.')
+    
+    order = get_object_or_404(Order.objects.select_related('station', 'delivery_zone'), id=int(order_id))
+    
+    if order.client != request.user:
+        return HttpResponseForbidden('You can only pay for your own orders.')
+    
+    if order.status != 'pending':
+        messages.info(request, 'This order has already been paid or is being processed.')
+        return redirect('order_receipt', order_id=order.id)
+    
+    return render(request, 'orders/payment.html', {
+        'order': order,
+    })
+
+
 @login_required
 def order_receipt_view(request, order_id):
     # Validate order_id is numeric
