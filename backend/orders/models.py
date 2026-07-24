@@ -169,7 +169,7 @@ class Order(models.Model):
     BASE_PRICE_BW = 200
     COLOR_SURCHARGE = 100
     SPIRAL_BINDING_FEE = 1000
-    PASSPORT_PHOTO_PRICE = 2000
+    PASSPORT_PHOTO_PRICE = 1000  # Updated to 1000 per photo
     SCANNED_DOC_PRICE = 200
 
     class Meta:
@@ -187,34 +187,15 @@ class Order(models.Model):
     def compute_price(cls, page_count, is_color=False, is_double_sided=False, binding='none', delivery_fee=0, order_type='document', paper_size='A4', copies=1):
         """
         Calculate total price based on order type and options.
-        
         Returns: (total_price, effective_pages, price_per_unit)
         """
         
         if order_type == 'passport':
-            # Passport photos have fixed pricing
+            # Passport: copies × 1000 UGX per photo
             price_per_unit = cls.PASSPORT_PHOTO_PRICE
-            
-            if paper_size == '4x6':
-                # 4x6 can fit 2 passport photos per sheet
-                effective_sheets = max(1, math.ceil(page_count / 2))
-            else:
-                # 2x2 - one photo per sheet
-                effective_sheets = page_count
-            
-            # Calculate cost based on sheets needed
-            printing_cost = price_per_unit * effective_sheets
-            
-            # Color is standard for passport photos, B&W gets small discount
-            if not is_color:
-                printing_cost = int(printing_cost * 0.8)
-            
-            # Apply copies multiplier
-            printing_cost *= copies
-            
-            total_price = printing_cost + (cls.SPIRAL_BINDING_FEE if binding == 'spiral' else 0) + delivery_fee
-            
-            return total_price, effective_sheets * copies, price_per_unit
+            printing_cost = price_per_unit * page_count
+            total_price = printing_cost + delivery_fee
+            return total_price, page_count, price_per_unit
         
         elif order_type == 'scanned':
             # Scanned documents use standard B&W/color pricing
@@ -267,7 +248,7 @@ class Order(models.Model):
             self.is_color, 
             self.is_double_sided, 
             self.binding,
-            0,  # delivery_fee not included in financials
+            0,
             self.order_type,
             self.paper_size,
             self.copies
@@ -312,16 +293,9 @@ class Order(models.Model):
             return self.paid_at + timedelta(minutes=total_minutes)
         return None
 
-    # ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-    # NEW PROPERTIES
-    # ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-
     @property
     def price_per_unit(self):
-        """
-        Get the price per unit based on order type.
-        Used by the receipt template to show rate.
-        """
+        """Get the price per unit based on order type."""
         if self.order_type == 'passport':
             return self.PASSPORT_PHOTO_PRICE
         elif self.order_type == 'scanned':
@@ -427,14 +401,14 @@ class Order(models.Model):
         return self.page_count
 
     # ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-    # SAVE
+    # SAVE - Only calculates price if total_price is 0
     # ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
     def save(self, *args, **kwargs):
         is_new = self._state.adding
         
-        # Calculate price for new orders or if price is 0
-        if is_new or not self.total_price:
+        # ONLY calculate price if total_price is 0 (JavaScript didn't provide one)
+        if self.total_price == 0:
             self.calculate_price()
         
         # Track old status for signal handling
