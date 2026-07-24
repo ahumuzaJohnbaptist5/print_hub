@@ -35,6 +35,15 @@
     .receipt-screen .barcode img { height: 35px; width: 100%; max-width: 250px; }
     .receipt-screen .footer-text { font-size: 11px; text-align: center; color: #333; }
     .receipt-screen .customer-info { margin: 8px 0; }
+    .receipt-screen .order-type-badge { 
+        display: inline-block; 
+        background: #000; 
+        color: #fff; 
+        padding: 2px 8px; 
+        font-size: 10px; 
+        font-weight: 700;
+        margin: 4px 0;
+    }
 
     /* ========== PRINT STYLES (when printed) ========== */
     @media print {
@@ -67,6 +76,7 @@
         .receipt-screen .divider { margin: 4px 0 !important; }
         .receipt-screen .divider-dash { margin: 4px 0 !important; }
         .receipt-screen .divider-double { margin: 6px 0 !important; }
+        .receipt-screen .order-type-badge { font-size: 7px !important; }
         .max-w-2xl { max-width: 100% !important; }
         .py-6, .px-4 { padding: 0 !important; }
         .mt-4 { margin-top: 0 !important; }
@@ -77,7 +87,7 @@
 {% block content %}
 <div class="max-w-2xl mx-auto px-4 py-6">
 
-    <!-- Receipt Card – looks like a real POS slip both on screen and when printed -->
+    <!-- Receipt Card -->
     <div id="receipt-card" class="receipt-screen">
         
         <!-- Header -->
@@ -90,70 +100,141 @@
         
         <div class="divider-double"></div>
         
-        <!-- Line Items -->
-        <div class="item-row">
+        <!-- Order Type Badge -->
+        <div class="center">
+            <span class="order-type-badge">{{ order.get_order_type_display|upper }}</span>
+        </div>
+        
+        <!-- File/Item Name -->
+        <div class="item-row bold">
             <span>{{ order.file_name|truncatechars:28 }}</span>
         </div>
-        <div class="item-row">
-            <span>{{ order.page_count }} page{{ order.page_count|pluralize }} @ UGX {% if order.is_color %}300{% else %}200{% endif %}</span>
-            <span class="right">
-                {% if order.is_color %}
-                    {% widthratio order.page_count 1 300 %}
-                {% else %}
-                    {% widthratio order.page_count 1 200 %}
-                {% endif %} UGX
-            </span>
-        </div>
-        {% if order.is_double_sided %}
-        <div class="item-row">
-            <span>Duplex printing</span>
-            <span class="right">Included</span>
-        </div>
+        
+        <!-- ===== DOCUMENT PRINTING ===== -->
+        {% if order.order_type == 'document' %}
+            <div class="item-row">
+                <span>{{ order.page_count }} page{{ order.page_count|pluralize }} ({{ order.get_paper_size_display }})</span>
+            </div>
+            <div class="item-row">
+                <span>Print Type: {% if order.is_color %}Color{% else %}B&W{% endif %}</span>
+            </div>
+            {% if order.is_double_sided %}
+            <div class="item-row">
+                <span>Duplex printing</span>
+                <span class="right">Included</span>
+            </div>
+            {% endif %}
+            {% if order.copies > 1 %}
+            <div class="item-row">
+                <span>Copies: {{ order.copies }}</span>
+            </div>
+            {% endif %}
+            <div class="item-row">
+                <span>Rate: UGX {{ order.price_per_unit|intcomma }} per {% if order.is_double_sided %}sheet{% else %}page{% endif %}</span>
+                {% with effective_pages=order.page_count %}
+                    {% if order.is_double_sided %}
+                        {% widthratio effective_pages 2 1 as sheets %}
+                        <span class="right">UGX {% widthratio sheets 1 order.price_per_unit %}</span>
+                    {% else %}
+                        <span class="right">UGX {% widthratio effective_pages 1 order.price_per_unit %}</span>
+                    {% endif %}
+                {% endwith %}
+            </div>
+        
+        <!-- ===== PASSPORT PHOTO ===== -->
+        {% elif order.order_type == 'passport' %}
+            <div class="item-row">
+                <span>Size: {{ order.get_paper_size_display }}</span>
+            </div>
+            <div class="item-row">
+                <span>Copies: {{ order.copies }}</span>
+            </div>
+            <div class="item-row">
+                <span>Rate: UGX {{ order.price_per_unit|intcomma }} per copy</span>
+                <span class="right">UGX {% widthratio order.copies 1 order.price_per_unit %}</span>
+            </div>
+        
+        <!-- ===== SCANNED DOCUMENT ===== -->
+        {% elif order.order_type == 'scanned' %}
+            <div class="item-row">
+                <span>Scanned Pages: {{ order.page_count }}</span>
+            </div>
+            <div class="item-row">
+                <span>Paper Size: {{ order.get_paper_size_display }}</span>
+            </div>
+            {% if order.copies > 1 %}
+            <div class="item-row">
+                <span>Copies: {{ order.copies }}</span>
+            </div>
+            {% endif %}
+            <div class="item-row">
+                <span>Rate: UGX {{ order.price_per_unit|intcomma }} per page</span>
+                <span class="right">UGX {% widthratio order.page_count 1 order.price_per_unit %}</span>
+            </div>
         {% endif %}
+        
+        <!-- ===== BINDING ===== -->
         {% if order.binding != 'none' %}
         <div class="item-row">
             <span>{{ order.get_binding_display }}</span>
             <span class="right">
-                {% if order.binding == 'spiral' %}
-                    UGX 1,000
-                {% else %}
-                    UGX 0
-                {% endif %}
+                {% if order.binding == 'spiral' %}UGX 1,000{% else %}Included{% endif %}
             </span>
         </div>
         {% endif %}
+        
+        <!-- ===== DELIVERY ===== -->
         {% if order.delivery_type == 'delivery' and order.delivery_zone %}
         <div class="item-row">
             <span>Delivery ({{ order.delivery_zone.name }})</span>
             <span class="right">UGX {{ order.delivery_zone.delivery_fee|intcomma }}</span>
         </div>
+        {% else %}
+        <div class="item-row">
+            <span>Pickup</span>
+            <span class="right">Free</span>
+        </div>
         {% endif %}
         
         <div class="divider"></div>
         
-        <!-- Totals -->
+        <!-- ===== TOTALS ===== -->
         <div class="item-row total-row">
-            <span>TOTAL ({{ order.page_count }} item{{ order.page_count|pluralize }})</span>
+            <span>TOTAL</span>
             <span class="right">UGX {{ order.total_price|floatformat:0|intcomma }}</span>
         </div>
+        
+        <!-- Payment Status -->
         <div class="item-row">
-            <span>Payment: {% if payment %}{{ payment.get_payment_method_display }} {{ payment.transaction_id }}{% else %}Pending{% endif %}</span>
+            <span>Status: {{ order.get_status_display }}</span>
+        </div>
+        
+        {% if payment %}
+        <div class="item-row">
+            <span>Paid via {{ payment.get_payment_method_display }}</span>
+            <span class="right">UGX {{ payment.amount|floatformat:0|intcomma }}</span>
         </div>
         <div class="item-row">
             <span>TO PAY</span>
             <span class="right">UGX 0</span>
         </div>
+        {% else %}
+        <div class="item-row bold">
+            <span>TO PAY</span>
+            <span class="right">UGX {{ order.total_price|floatformat:0|intcomma }}</span>
+        </div>
+        {% endif %}
         
         <div class="divider-dash"></div>
         
-        <!-- QR Code -->
+        <!-- ===== QR CODE ===== -->
         <div class="qr-code">
             <img src="https://api.qrserver.com/v1/create-qr-code/?size=90x90&data=https://printlink.pythonanywhere.com/track/?order_id={{ order.id }}" 
                  alt="QR" crossorigin="anonymous">
             <div class="meta" style="margin-top:4px;">E-RECEIPT</div>
         </div>
         
-        <!-- Barcode -->
+        <!-- ===== BARCODE ===== -->
         <div class="barcode">
             <img src="https://barcodeapi.org/api/auto/{{ order.id }}" 
                  alt="Barcode" crossorigin="anonymous"
@@ -162,9 +243,12 @@
         
         <div class="divider"></div>
         
-        <!-- Customer Info -->
+        <!-- ===== CUSTOMER INFO ===== -->
         <div class="customer-info">
             <div class="center bold">{{ order.client.get_full_name|default:order.client.username|upper }}</div>
+            {% if order.notes %}
+            <div class="meta center" style="margin-top:4px;">Note: {{ order.notes|truncatechars:40 }}</div>
+            {% endif %}
         </div>
         
         <div class="footer-text">
@@ -180,6 +264,9 @@
     <div class="flex flex-wrap gap-2 mt-4 no-print">
         {% if order.status == 'pending' %}
         <a href="{% url 'payment_page' order.id %}" class="flex-1 bg-green-600 hover:bg-green-700 text-white font-bold py-2.5 rounded text-sm text-center min-w-[120px]">Pay Now</a>
+        {% endif %}
+        {% if order.status in 'pending,paid' and order.client == request.user %}
+        <a href="{% url 'cancel_order' order.id %}" class="flex-1 bg-red-600 hover:bg-red-700 text-white font-bold py-2.5 rounded text-sm text-center min-w-[100px]">Cancel</a>
         {% endif %}
         <button onclick="window.print()" class="flex-1 bg-indigo-600 hover:bg-indigo-500 text-white font-bold py-2.5 rounded text-sm min-w-[100px]">Print</button>
         <button onclick="shareAsImage()" class="flex-1 bg-emerald-600 hover:bg-emerald-500 text-white font-bold py-2.5 rounded text-sm min-w-[100px]">Share</button>
