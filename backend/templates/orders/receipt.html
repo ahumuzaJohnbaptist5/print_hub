@@ -85,11 +85,11 @@
                     </div>
                     <div style="display: flex; justify-content: space-between; align-items: center; padding: 10px 0; border-bottom: 1px solid #f1f5f9;">
                         <span style="font-size: 15px; color: #475569;">Quantity</span>
-                        <span style="font-size: 15px; font-weight: 600; color: #1e293b;">{{ order.copies }} cop{{ order.copies|pluralize:"y,ies" }}</span>
+                        <span style="font-size: 15px; font-weight: 600; color: #1e293b;">{{ order.page_count }} photos</span>
                     </div>
                     <div style="display: flex; justify-content: space-between; align-items: center; padding: 10px 0; border-bottom: 1px solid #f1f5f9;">
                         <span style="font-size: 15px; color: #475569;">Rate</span>
-                        <span style="font-size: 13px; color: #64748b;">UGX {{ order.price_per_unit|intcomma }}/copy</span>
+                        <span style="font-size: 13px; color: #64748b;">UGX {{ order.price_per_unit|intcomma }}/photo</span>
                     </div>
                 
                 {% elif order.order_type == 'scanned' %}
