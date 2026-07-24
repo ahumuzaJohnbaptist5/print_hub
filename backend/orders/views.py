@@ -951,6 +951,155 @@ def live_board_preview_image(request):
         font_body = ImageFont.load_default()
         font_small = ImageFont.load_default()
 
+
+    # Add these new views to orders/views.py
+
+@login_required
+@transaction.atomic
+def cancel_order_view(request, order_id):
+    """
+    Allow clients to cancel their own orders before printing starts.
+    """
+    # Validate order_id
+    if not str(order_id).isdigit():
+        messages.error(request, 'Invalid order ID.')
+        return redirect('dashboard')
+    
+    try:
+        order = Order.objects.select_for_update().get(id=int(order_id))
+    except Order.DoesNotExist:
+        messages.error(request, 'Order not found.')
+        return redirect('dashboard')
+    
+    # Check permissions - only the order owner can cancel
+    if order.client != request.user:
+        return HttpResponseForbidden('You can only cancel your own orders.')
+    
+    # Check if order can be cancelled
+    if not order.can_be_cancelled:
+        messages.error(request, 
+            'This order cannot be cancelled. It may already be in production.')
+        return redirect('order_receipt', order_id=order.id)
+    
+    if request.method == 'POST':
+        reason = strip_tags(request.POST.get('cancellation_reason', '').strip())
+        
+        # Update order status
+        order.status = 'cancelled'
+        order.cancellation_reason = reason[:500] if reason else 'Cancelled by customer'
+        order.cancelled_at = timezone.now()
+        order.save(update_fields=['status', 'cancellation_reason', 'cancelled_at'])
+        
+        # Create notification for admins/agents
+        try:
+            from notifications.models import Notification
+            
+            # Notify station agents if assigned
+            if order.station:
+                agents = User.objects.filter(role='agent', station=order.station)
+                for agent in agents:
+                    Notification.create_notification(
+                        user=agent,
+                        notification_type='order_cancelled',
+                        title='Order Cancelled by Customer',
+                        message=f'Order #{order.id} ({order.file_name}) has been cancelled by the customer. Reason: {reason or "No reason provided"}',
+                        link=f'/orders/agent-dashboard/'
+                    )
+            
+            # Notify admins
+            admins = User.objects.filter(role='admin')
+            for admin in admins:
+                Notification.create_notification(
+                    user=admin,
+                    notification_type='order_cancelled',
+                    title='Order Cancelled by Customer',
+                    message=f'Order #{order.id} ({order.file_name}) has been cancelled by {request.user.username}. Reason: {reason or "No reason provided"}',
+                    link=f'/orders/admin-dashboard/'
+                )
+        except Exception as e:
+            logger.error(f"Failed to create cancellation notifications: {e}")
+        
+        # Send confirmation email to customer
+        try:
+            send_cancellation_email(order, reason)
+        except Exception as e:
+            logger.error(f"Failed to send cancellation email: {e}")
+        
+        messages.success(request, 
+            f'Order #{order.id} has been cancelled successfully.')
+        return redirect('dashboard')
+    
+    # GET request - show confirmation page
+    return render(request, 'orders/cancel_order.html', {
+        'order': order,
+    })
+
+
+@login_required
+def my_orders_view(request):
+    """
+    View for clients to see all their orders with cancellation options.
+    """
+    orders = Order.objects.filter(
+        client=request.user
+    ).select_related('station', 'delivery_zone').order_by('-created_at')
+    
+    # Add cancellation eligibility info
+    for order in orders:
+        order.can_cancel = order.can_be_cancelled
+    
+    # Filter options
+    status_filter = request.GET.get('status', '').strip()
+    if status_filter and status_filter in dict(Order.STATUS_CHOICES).keys():
+        orders = orders.filter(status=status_filter)
+    
+    # Pagination
+    paginator = Paginator(orders, 10)
+    page_number = request.GET.get('page')
+    page_obj = paginator.get_page(page_number)
+    
+    return render(request, 'orders/my_orders.html', {
+        'page_obj': page_obj,
+        'orders': page_obj.object_list,
+        'status_filter': status_filter,
+        'status_choices': Order.STATUS_CHOICES,
+    })
+
+
+def send_cancellation_email(order, reason=''):
+    """Send cancellation confirmation email to customer."""
+    subject = f'Order #{order.id} Cancelled - PrintHub'
+    
+    message = f"""
+Dear {order.client.username},
+
+Your order has been cancelled as requested.
+
+Order Details:
+- Order ID: #{order.id}
+- File: {order.file_name}
+- Date: {order.created_at.strftime('%Y-%m-%d %H:%M')}
+- Status: Cancelled
+
+Reason for cancellation: {reason or 'Not specified'}
+
+If you did not request this cancellation or have any questions, 
+please contact our support team immediately.
+
+You can place a new order at any time: {settings.SITE_URL}/upload/
+
+Thank you,
+PrintHub Team
+"""
+    
+    send_mail(
+        subject, 
+        message, 
+        settings.DEFAULT_FROM_EMAIL, 
+        [order.client.email], 
+        fail_silently=True
+    )
+
     # Draw board content
     draw.text((50, 50), "PrintHub Live Board", fill='#e2e8f0', font=font_title)
     draw.text((50, 110), "Kabale University Printing Service", fill='#94a3b8
