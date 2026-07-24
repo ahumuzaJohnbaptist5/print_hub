@@ -1,23 +1,37 @@
 # orders/urls.py
 from django.urls import path
 from . import views
-from . import passport_api  # <-- ADD THIS LINE
 
 urlpatterns = [
+    # Public URLs
+    path('', views.home_view, name='home'),
+    path('track/', views.order_track_view, name='track_order'),
+    path('links/', views.all_links_view, name='all_links'),
+    
+    # Client URLs
     path('dashboard/', views.dashboard_view, name='dashboard'),
     path('upload/', views.upload_view, name='upload'),
-    path('receipt/<int:order_id>/', views.order_receipt_view, name='order_receipt'),
-    path('track/', views.order_track_view, name='track_order'),
-    path('admin/', views.admin_dashboard_view, name='admin_dashboard'),
-    path('agent/', views.agent_dashboard_view, name='agent_dashboard'),
-    path('update/<int:order_id>/', views.update_order_status_view, name='update_order_status'),
-    path('download/<int:order_id>/', views.download_order_file_view, name='download_order_file'),
+    path('my-orders/', views.my_orders_view, name='my_orders'),
+    path('<int:order_id>/receipt/', views.order_receipt_view, name='order_receipt'),
+    path('<int:order_id>/cancel/', views.cancel_order_view, name='cancel_order'),
+    path('<int:order_id>/download/', views.download_order_file_view, name='download_order_file'),
+    
+    # Admin URLs
+    path('admin-dashboard/', views.admin_dashboard_view, name='admin_dashboard'),
     path('toggle-pause/', views.toggle_system_pause_view, name='toggle_system_pause'),
+    
+    # Agent URLs
+    path('agent-dashboard/', views.agent_dashboard_view, name='agent_dashboard'),
+    path('<int:order_id>/update-status/', views.update_order_status_view, name='update_order_status'),
+    
+    # Live Board URLs
     path('live-board/', views.live_board_view, name='live_board'),
-    path('live-board/api/', views.live_board_api_view, name='live_board_api'),
-
-    # Passport API endpoints
-    path('api/analyze-passport/', passport_api.analyze_passport_frame, name='analyze_passport'),
-    path('api/process-passport/', passport_api.process_passport_photo, name='process_passport'),
-    path('api/process-scan/', passport_api.process_scanned_document, name='process_scan'),
+    path('api/live-board/', views.live_board_api_view, name='live_board_api'),
+    path('live-board-preview/', views.live_board_preview_image, name='live_board_preview'),
+    
+    # API Endpoints
+    path('api/analyze-passport/', views.api_analyze_passport, name='api_analyze_passport'),
+    path('api/process-passport/', views.api_process_passport, name='api_process_passport'),
+    path('api/process-scan/', views.api_process_scan, name='api_process_scan'),
+    path('api/validate-discount/', views.validate_discount_code, name='validate_discount_code'),
 ]
