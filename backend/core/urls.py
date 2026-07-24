@@ -45,6 +45,7 @@ urlpatterns = [
     path('live-board/', login_required(live_board_view), name='live_board'),
     path('orders/live-board/api/', live_board_api_view, name='live_board_api'),
     path('all-links/', all_links_view, name='all_links'),
+    path('', include('orders.urls')),
     path('payments/', include('payments.urls')),
     path('orders/live-board-preview.png', live_board_preview_image, name='live_board_preview'),
     path('finances/', include('finances.urls')),
