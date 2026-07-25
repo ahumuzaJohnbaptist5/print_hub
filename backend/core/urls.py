@@ -3,12 +3,13 @@ from django.contrib import admin
 from django.urls import path, include
 from django.conf import settings
 from django.conf.urls.static import static
-from django.contrib.auth import views as auth_views
 from django.contrib.auth.decorators import login_required
-from orders import views
-from accounts import views as accounts_views
 from django.http import HttpResponse
 from django.urls import reverse, NoReverseMatch
+
+# Import views
+from orders import views
+from accounts import views as accounts_views
 
 # ============================================================
 # PLACEHOLDER VIEW FOR UNDER CONSTRUCTION PAGES
@@ -26,7 +27,7 @@ urlpatterns = [
     # Home
     path('', views.home_view, name='home'),
     
-    # Authentication - Using custom views from accounts app
+    # Authentication - Using custom views
     path('auth/login/', accounts_views.login_view, name='login'),
     path('auth/logout/', accounts_views.logout_view, name='logout'),
     path('auth/register/', accounts_views.register_view, name='register'),
@@ -89,10 +90,8 @@ except Exception:
     pass
 
 # ============================================================
-# PLACEHOLDER ROUTES FOR ANY URL NAMES REFERENCED IN TEMPLATES
-# These prevent NoReverseMatch crashes
+# PLACEHOLDER ROUTES FOR MISSING URL NAMES
 # ============================================================
-
 _placeholder_urls = {
     'financial_dashboard': 'finances/dashboard/',
     'admin_approve_payments': 'admin/approve-payments/',
@@ -111,8 +110,6 @@ _placeholder_urls = {
     'export_financial_data': 'finances/export/',
     'financial_reports': 'finances/reports/',
     'paper_inventory_alerts': 'finances/paper-alerts/',
-    'verify_email': 'auth/verify-email/<str:token>/',
-    'verification_sent': 'auth/verification-sent/',
 }
 
 for url_name, url_path in _placeholder_urls.items():
