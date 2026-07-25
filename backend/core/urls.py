@@ -13,11 +13,15 @@ urlpatterns = [
     # Home
     path('', views.home_view, name='home'),
     
-    # Auth (Login/Logout handled by Django's built-in auth views)
+    # Auth
     path('auth/login/', auth_views.LoginView.as_view(template_name='auth/login.html'), name='login'),
     path('auth/logout/', auth_views.LogoutView.as_view(next_page='/'), name='logout'),
-    # NOTE: The 'users.urls' include was removed because your project doesn't have a 'users' app.
-    # If you have a custom registration app with a different name, you can add it back here.
+    
+    # 🛑 ADDED MISSING URLS TO PREVENT TEMPLATE CRASHES 🛑
+    # Placeholder for 'register' (points to login page for now so the site doesn't crash)
+    path('auth/register/', auth_views.LoginView.as_view(template_name='auth/login.html'), name='register'),
+    # Placeholder for 'admin_approve_payments' (points to admin dashboard for now)
+    path('admin/approve-payments/', views.admin_dashboard_view, name='admin_approve_payments'),
     
     # Orders & Upload
     path('dashboard/', views.dashboard_view, name='dashboard'),
