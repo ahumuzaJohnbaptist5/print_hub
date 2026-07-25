@@ -233,3 +233,22 @@ LOGGING = {
 LOGS_DIR = BASE_DIR / 'logs'
 if not LOGS_DIR.exists():
     LOGS_DIR.mkdir(parents=True)
+
+
+
+
+
+# ============================================================
+# RATE LIMITING
+# ============================================================
+RATELIMIT_ENABLE = True
+RATELIMIT_USE_CACHE = 'default'
+
+# Override cache for rate limiting (using memory cache for PythonAnywhere)
+# If you upgrade to Redis later, you can change this
+CACHES = {
+    'default': {
+        'BACKEND': 'django.core.cache.backends.locmem.LocMemCache',
+        'LOCATION': 'rate-limit-cache',
+    }
+}
