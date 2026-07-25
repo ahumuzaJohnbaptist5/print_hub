@@ -11,3 +11,12 @@ django-cloudinary-storage
 Pillow
 django-ratelimit  # <-- ADD THIS
 django-allauth
+
+
+# Add to requirements.txt
+python-magic
+PyPDF2
+python-docx
+python-pptx
+Pillow
+reportlab
