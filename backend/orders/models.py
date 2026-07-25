@@ -2,11 +2,9 @@
 import math
 from datetime import timedelta
 from decimal import Decimal
-
 from django.db import models
 from django.conf import settings
 from django.utils import timezone
-
 
 class SystemSettings(models.Model):
     """Singleton model to store global system state like pause timers."""
@@ -27,13 +25,12 @@ class SystemSettings(models.Model):
     def load(cls):
         obj, created = cls.objects.get_or_create(pk=1)
         return obj
-        
+
     def get_current_paused_seconds(self):
         total = self.total_paused_seconds
         if self.is_paused and self.pause_started_at:
             total += (timezone.now() - self.pause_started_at).total_seconds()
         return total
-
 
 class Announcement(models.Model):
     """Custom announcement banner shown at top of all pages."""
@@ -45,19 +42,18 @@ class Announcement(models.Model):
         help_text="Tailwind class: bg-blue-600, bg-red-600, bg-green-600, bg-purple-600, bg-orange-600, etc.")
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
-    
+
     class Meta:
         ordering = ['-created_at']
         verbose_name = "Announcement"
         verbose_name_plural = "Announcements"
-    
+
     def __str__(self):
         return self.message[:60]
-    
+
     @classmethod
     def get_active(cls):
         return cls.objects.filter(is_active=True).first()
-
 
 class DeliveryZone(models.Model):
     name = models.CharField(max_length=100, help_text="e.g., Main Campus, City Center")
@@ -72,7 +68,6 @@ class DeliveryZone(models.Model):
 
     def __str__(self):
         return f"{self.name} ({self.delivery_fee:,} UGX)"
-
 
 class Order(models.Model):
     STATUS_CHOICES = (
@@ -116,21 +111,20 @@ class Order(models.Model):
     page_count = models.IntegerField()
     is_color = models.BooleanField(default=False)
     is_double_sided = models.BooleanField(default=False)
-
     binding = models.CharField(max_length=20, choices=BINDING_CHOICES, default='none')
     delivery_type = models.CharField(max_length=20, choices=DELIVERY_TYPE_CHOICES, default='pickup')
     delivery_zone = models.ForeignKey(DeliveryZone, on_delete=models.SET_NULL, null=True, blank=True)
 
     # Order type, paper size, copies
     order_type = models.CharField(
-        max_length=20, 
-        choices=ORDER_TYPE_CHOICES, 
+        max_length=20,
+        choices=ORDER_TYPE_CHOICES,
         default='document',
         help_text="Type of print order (document, passport photo, or scanned document)"
     )
     paper_size = models.CharField(
-        max_length=10, 
-        choices=PAPER_SIZE_CHOICES, 
+        max_length=10,
+        choices=PAPER_SIZE_CHOICES,
         default='A4',
         help_text="Paper size for printing"
     )
@@ -144,24 +138,19 @@ class Order(models.Model):
     status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='pending')
     transaction_id = models.CharField(max_length=100, blank=True, null=True)
     tx_ref = models.CharField(max_length=100, blank=True, null=True)
-    
     paid_at = models.DateTimeField(blank=True, null=True)
     printing_at = models.DateTimeField(blank=True, null=True)
     in_transit_at = models.DateTimeField(blank=True, null=True)
     ready_at = models.DateTimeField(blank=True, null=True)
     collected_at = models.DateTimeField(blank=True, null=True)
     created_at = models.DateTimeField(auto_now_add=True)
-    
     sla_minutes = models.IntegerField(default=120, help_text="Target time to complete order in minutes.")
     postponed_minutes = models.IntegerField(default=0, help_text="Extra minutes added if the order is postponed.")
-
     paper_used = models.IntegerField(default=0, help_text="Number of physical sheets consumed")
     cost_of_goods = models.DecimalField(max_digits=10, decimal_places=2, default=0, help_text="Cost of paper used")
     agent_commission = models.DecimalField(max_digits=10, decimal_places=2, default=0, help_text="Commission paid to agent")
     profit = models.DecimalField(max_digits=10, decimal_places=2, default=0, help_text="Net profit for this order")
-
     notes = models.TextField(blank=True, default='', help_text="Internal notes about this order")
-    
     cancellation_reason = models.TextField(blank=True, default='', help_text="Reason for cancellation")
     cancelled_at = models.DateTimeField(blank=True, null=True)
 
@@ -169,7 +158,7 @@ class Order(models.Model):
     BASE_PRICE_BW = 200
     COLOR_SURCHARGE = 100
     SPIRAL_BINDING_FEE = 1000
-    PASSPORT_PHOTO_PRICE = 1000  # Updated to 1000 per photo
+    PASSPORT_PHOTO_PRICE = 1000  # 1000 UGX per photo
     SCANNED_DOC_PRICE = 200
 
     class Meta:
@@ -189,50 +178,49 @@ class Order(models.Model):
         Calculate total price based on order type and options.
         Returns: (total_price, effective_pages, price_per_unit)
         """
-        
         if order_type == 'passport':
             # Passport: copies × 1000 UGX per photo
             price_per_unit = cls.PASSPORT_PHOTO_PRICE
-            printing_cost = price_per_unit * page_count
+            
+            # FIX: Use 'copies' instead of 'page_count' to calculate passport price.
+            # This guarantees that even if page_count is somehow mismatched, 
+            # the price is strictly based on the number of photos requested.
+            printing_cost = price_per_unit * copies
             total_price = printing_cost + delivery_fee
-            return total_price, page_count, price_per_unit
-        
+            
+            # For passports, effective pages/sheets is equal to the number of photos
+            return total_price, copies, price_per_unit
+
         elif order_type == 'scanned':
             # Scanned documents use standard B&W/color pricing
             price_per_unit = cls.SCANNED_DOC_PRICE + (cls.COLOR_SURCHARGE if is_color else 0)
             effective_pages = page_count
-            
             if is_double_sided:
                 effective_pages = max(1, math.ceil(page_count / 2))
-            
             printing_cost = price_per_unit * effective_pages * copies
             binding_cost = cls.SPIRAL_BINDING_FEE if binding == 'spiral' else 0
             total_price = printing_cost + binding_cost + delivery_fee
-            
             return total_price, effective_pages * copies, price_per_unit
-        
+
         else:
             # Standard document printing
             price_per_unit = cls.BASE_PRICE_BW + (cls.COLOR_SURCHARGE if is_color else 0)
             effective_pages = page_count
-            
             if is_double_sided:
                 effective_pages = max(1, math.ceil(page_count / 2))
-            
             printing_cost = price_per_unit * effective_pages * copies
             binding_cost = cls.SPIRAL_BINDING_FEE if binding == 'spiral' else 0
             total_price = printing_cost + binding_cost + delivery_fee
-            
             return total_price, effective_pages * copies, price_per_unit
 
     def calculate_price(self):
         """Calculate and set the total price for this order."""
         delivery_fee = self.delivery_zone.delivery_fee if self.delivery_zone and self.delivery_type == 'delivery' else 0
         total, effective_pages, price_per_page = self.compute_price(
-            self.page_count, 
-            self.is_color, 
-            self.is_double_sided, 
-            self.binding, 
+            self.page_count,
+            self.is_color,
+            self.is_double_sided,
+            self.binding,
             delivery_fee,
             self.order_type,
             self.paper_size,
@@ -244,9 +232,9 @@ class Order(models.Model):
     def calculate_financials(self):
         """Calculate cost of goods, commission, and profit."""
         _, effective_pages, _ = self.compute_price(
-            self.page_count, 
-            self.is_color, 
-            self.is_double_sided, 
+            self.page_count,
+            self.is_color,
+            self.is_double_sided,
             self.binding,
             0,
             self.order_type,
@@ -254,7 +242,6 @@ class Order(models.Model):
             self.copies
         )
         self.paper_used = effective_pages
-
         try:
             from finances.models import PaperInventory
             paper = PaperInventory.objects.first()
@@ -338,19 +325,19 @@ class Order(models.Model):
         total_minutes = self.sla_minutes + self.postponed_minutes
         deadline = start_time + timedelta(minutes=total_minutes)
         now = timezone.now()
-        
+
         try:
             sys_settings = SystemSettings.load()
             paused_seconds = sys_settings.get_current_paused_seconds()
         except Exception:
             paused_seconds = 0
-            
+
         effective_deadline = deadline + timedelta(seconds=paused_seconds)
         remaining_td = effective_deadline - now
         remaining_seconds = max(0, int(remaining_td.total_seconds()))
         is_overdue = now > effective_deadline
         is_postponed = self.postponed_minutes > 0
-        
+
         if is_postponed:
             level, display = 'postponed', 'POSTPONED'
         elif is_overdue:
@@ -363,11 +350,11 @@ class Order(models.Model):
             level, display = 'high', 'HIGH'
         else:
             level, display = 'normal', 'NORMAL'
-            
+
         hours, remainder = divmod(remaining_seconds, 3600)
         minutes, seconds = divmod(remainder, 60)
         time_display = f"{hours:02d}:{minutes:02d}:{seconds:02d}"
-        
+
         return {
             'level': level, 'display': display,
             'remaining_seconds': remaining_seconds,
@@ -388,7 +375,7 @@ class Order(models.Model):
     def total_sheets(self):
         """Calculate total physical sheets needed."""
         _, effective_pages, _ = self.compute_price(
-            self.page_count, self.is_color, self.is_double_sided, 
+            self.page_count, self.is_color, self.is_double_sided,
             self.binding, 0, self.order_type, self.paper_size, self.copies
         )
         return effective_pages
@@ -400,17 +387,16 @@ class Order(models.Model):
             return self.copies
         return self.page_count
 
-    # ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+    # ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
     # SAVE - Only calculates price if total_price is 0
-    # ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-
+    # ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
     def save(self, *args, **kwargs):
         is_new = self._state.adding
-        
-        # ONLY calculate price if total_price is 0 (JavaScript didn't provide one)
+
+        # ONLY calculate price if total_price is 0 (JavaScript/View didn't provide one)
         if self.total_price == 0:
             self.calculate_price()
-        
+
         # Track old status for signal handling
         if not is_new:
             try:
@@ -420,11 +406,11 @@ class Order(models.Model):
                 self._old_status = None
         else:
             self._old_status = None
-        
+
         # Set cancelled timestamp
         if self.status == 'cancelled' and not self.cancelled_at:
             self.cancelled_at = timezone.now()
-        
+
         super().save(*args, **kwargs)
 
     def __str__(self):
