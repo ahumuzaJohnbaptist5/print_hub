@@ -184,22 +184,18 @@ def upload_view(request):
 
             # ==========================================================
             # 🛡️ SERVER-SIDE ENFORCEMENT FOR PASSPORT & SCANNER MODES 🛡️
-            # This prevents JS mismatches from causing wrong prices.
             # ==========================================================
             if order_type == 'passport':
-                # Force correct semantics for passport
                 is_color = True
                 binding = 'none'
                 is_double_sided = False
-                page_count_int = copies_int  # For passport, 1 copy = 1 photo/page
+                page_count_int = copies_int 
                 
-                # Calculate exact passport price server-side to guarantee accuracy
                 passport_base_price = copies_int * Order.PASSPORT_PHOTO_PRICE
                 delivery_fee = delivery_zone.delivery_fee if delivery_zone and delivery_type == 'delivery' else 0
                 calculated_price = str(passport_base_price + delivery_fee)
                 
             elif order_type == 'scanned':
-                # Force correct semantics for scanned documents
                 binding = 'none'
                 is_double_sided = False
                 page_count_int = copies_int if copies_int > page_count_int else page_count_int
@@ -249,11 +245,21 @@ def upload_view(request):
             logger.error(f"Error creating order: {e}", exc_info=True)
             upload_error = 'Error creating order. Please try again.'
             
+        # If we hit an error during POST, render the page with the error
         return render(request, 'orders/upload.html', {
             'stations': stations,
             'delivery_zones': delivery_zones,
             'upload_error': upload_error,
         })
+
+    # ====================================================================
+    # 🛑 THIS WAS MISSING! Handles the initial GET request when loading page
+    # ====================================================================
+    return render(request, 'orders/upload.html', {
+        'stations': stations,
+        'delivery_zones': delivery_zones,
+        'upload_error': upload_error,
+    })
 
 # ============================================================
 # API Endpoints for Passport & Scanner
@@ -735,7 +741,6 @@ def update_order_status_view(request, order_id):
     if _user_role(request.user) == 'agent':
         return redirect('agent_dashboard')
     return redirect('dashboard')
-    return render(request, 'orders/update_status.html', {'order': order})
 
 @login_required
 def download_order_file_view(request, order_id):
