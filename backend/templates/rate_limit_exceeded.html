@@ -1,0 +1,42 @@
+{% extends 'base.html' %}
+
+{% block title %}Rate Limit Exceeded - PrintHub{% endblock %}
+
+{% block content %}
+<div class="min-h-[70vh] flex items-center justify-center px-4 py-12">
+    <div class="max-w-md w-full bg-white/5 border border-white/10 backdrop-blur-md rounded-3xl p-8 text-center shadow-2xl">
+        <!-- Icon -->
+        <div class="w-20 h-20 bg-yellow-500/20 rounded-full flex items-center justify-center mx-auto mb-6">
+            <svg class="w-10 h-10 text-yellow-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+            </svg>
+        </div>
+        
+        <h1 class="text-3xl font-bold text-white mb-4">Too Many Requests</h1>
+        
+        <div class="bg-yellow-500/10 border border-yellow-500/30 rounded-xl p-4 mb-6">
+            <p class="text-yellow-400 font-medium">
+                {{ message|default:"You have exceeded the allowed number of requests." }}
+            </p>
+            {% if retry_after %}
+            <p class="text-yellow-400/70 text-sm mt-2">
+                Please wait <strong>{{ retry_after }}</strong> before trying again.
+            </p>
+            {% endif %}
+        </div>
+        
+        <div class="space-y-3">
+            <a href="javascript:history.back()" class="block w-full bg-blue-600 hover:bg-blue-700 text-white font-medium py-3 rounded-xl transition-colors">
+                Go Back
+            </a>
+            <a href="{% url 'home' %}" class="block w-full bg-white/10 hover:bg-white/20 text-white font-medium py-3 rounded-xl transition-colors">
+                Return to Home
+            </a>
+        </div>
+        
+        <p class="text-gray-500 text-xs mt-6">
+            If you believe this is a mistake, please contact support at printhub2027@gmail.com
+        </p>
+    </div>
+</div>
+{% endblock %}
