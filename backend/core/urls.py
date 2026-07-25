@@ -13,10 +13,11 @@ urlpatterns = [
     # Home
     path('', views.home_view, name='home'),
     
-    # Auth (Assuming you have a users app for registration)
+    # Auth (Login/Logout handled by Django's built-in auth views)
     path('auth/login/', auth_views.LoginView.as_view(template_name='auth/login.html'), name='login'),
     path('auth/logout/', auth_views.LogoutView.as_view(next_page='/'), name='logout'),
-    path('auth/', include('users.urls')), 
+    # NOTE: The 'users.urls' include was removed because your project doesn't have a 'users' app.
+    # If you have a custom registration app with a different name, you can add it back here.
     
     # Orders & Upload
     path('dashboard/', views.dashboard_view, name='dashboard'),
