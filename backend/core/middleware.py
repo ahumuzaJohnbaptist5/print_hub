@@ -113,7 +113,20 @@ class GlobalRateLimitMiddleware(MiddlewareMixin):
         """Get unique client identifier."""
         if request.user.is_authenticated:
             return f"user_{request.user.id}"
-        
+
+
+
+    # Add this method to GlobalRateLimitMiddleware
+
+def process_response(self, request, response):
+    """Add rate limit headers to response."""
+    if hasattr(request, 'rate_limit_info'):
+        info = request.rate_limit_info
+        response['X-RateLimit-Limit'] = str(info['limit'])
+        response['X-RateLimit-Remaining'] = str(info['remaining'])
+        response['X-RateLimit-Reset'] = str(timezone.now().timestamp() + info['period'])
+    
+    return response
         ip = request.META.get('HTTP_X_FORWARDED_FOR', '').split(',')[0].strip()
         if not ip:
             ip = request.META.get('REMOTE_ADDR', 'unknown')
