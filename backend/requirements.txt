@@ -10,3 +10,4 @@ cloudinary
 django-cloudinary-storage
 Pillow
 django-ratelimit  # <-- ADD THIS
+django-allauth
