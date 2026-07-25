@@ -6,18 +6,33 @@ from django.conf.urls.static import static
 from django.contrib.auth import views as auth_views
 from django.contrib.auth.decorators import login_required
 from orders import views
+from accounts import views as accounts_views
+from django.http import HttpResponse
+from django.urls import reverse, NoReverseMatch
 
+# ============================================================
+# PLACEHOLDER VIEW FOR UNDER CONSTRUCTION PAGES
+# ============================================================
+def _placeholder_view(request, *args, **kwargs):
+    return HttpResponse("This page is under construction.", status=200)
+
+# ============================================================
+# URL PATTERNS
+# ============================================================
 urlpatterns = [
+    # Admin
     path('admin/', admin.site.urls),
     
     # Home
     path('', views.home_view, name='home'),
     
-    # Auth
-    path('auth/login/', auth_views.LoginView.as_view(template_name='auth/login.html'), name='login'),
-    path('auth/logout/', auth_views.LogoutView.as_view(next_page='/'), name='logout'),
+    # Authentication - Using custom views from accounts app
+    path('auth/login/', accounts_views.login_view, name='login'),
+    path('auth/logout/', accounts_views.logout_view, name='logout'),
+    path('auth/register/', accounts_views.register_view, name='register'),
+    path('auth/profile/', accounts_views.profile_view, name='profile'),
     
-    # Orders & Upload
+    # Orders & Upload (Client)
     path('dashboard/', views.dashboard_view, name='dashboard'),
     path('upload/', views.upload_view, name='upload'),
     path('my-orders/', views.my_orders_view, name='my_orders'),
@@ -51,11 +66,8 @@ urlpatterns = [
 ]
 
 # ============================================================
-# INCLUDE OTHER APP URLS (if they exist in your project)
+# INCLUDE OTHER APP URLS
 # ============================================================
-# These try/except blocks safely include your other apps' URLs.
-# If an app doesn't have a urls.py, it silently skips it.
-
 try:
     urlpatterns += [path('finances/', include('finances.urls'))]
 except Exception:
@@ -76,29 +88,31 @@ try:
 except Exception:
     pass
 
-try:
-    urlpatterns += [path('auth/', include('users.urls'))]
-except Exception:
-    pass
-
 # ============================================================
 # PLACEHOLDER ROUTES FOR ANY URL NAMES REFERENCED IN TEMPLATES
-# These prevent NoReverseMatch crashes. Replace with real views later.
+# These prevent NoReverseMatch crashes
 # ============================================================
-from django.http import HttpResponse
-
-def _placeholder_view(request, *args, **kwargs):
-    return HttpResponse("This page is under construction.", status=200)
-
-# Only add placeholders if the URL name isn't already registered
-from django.urls import reverse, NoReverseMatch
 
 _placeholder_urls = {
-    'register': 'auth/register/',
     'financial_dashboard': 'finances/dashboard/',
     'admin_approve_payments': 'admin/approve-payments/',
     'low_stock_alerts': 'api/low-stock-alerts/',
     'payment_status_check': 'payments/status/<int:order_id>/check/',
+    'manage_commission_rates': 'finances/commission-rates/',
+    'manage_paper_inventory': 'finances/paper-inventory/',
+    'add_expense': 'finances/add-expense/',
+    'expense_list': 'finances/expenses/',
+    'manage_discount_codes': 'finances/discount-codes/',
+    'toggle_discount_code': 'finances/discount-codes/<int:code_id>/toggle/',
+    'manage_merchant_settings': 'finances/merchant-settings/',
+    'agent_earnings': 'finances/agent-earnings/',
+    'agent_earnings_management': 'finances/agent-earnings/management/',
+    'mark_earning_paid': 'finances/agent-earnings/<int:earning_id>/pay/',
+    'export_financial_data': 'finances/export/',
+    'financial_reports': 'finances/reports/',
+    'paper_inventory_alerts': 'finances/paper-alerts/',
+    'verify_email': 'auth/verify-email/<str:token>/',
+    'verification_sent': 'auth/verification-sent/',
 }
 
 for url_name, url_path in _placeholder_urls.items():
@@ -107,6 +121,9 @@ for url_name, url_path in _placeholder_urls.items():
     except NoReverseMatch:
         urlpatterns.append(path(url_path, _placeholder_view, name=url_name))
 
+# ============================================================
+# STATIC & MEDIA FILES (Development only)
+# ============================================================
 if settings.DEBUG:
     urlpatterns += static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)
     urlpatterns += static(settings.STATIC_URL, document_root=settings.STATIC_ROOT)
