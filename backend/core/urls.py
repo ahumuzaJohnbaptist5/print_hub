@@ -17,12 +17,6 @@ urlpatterns = [
     path('auth/login/', auth_views.LoginView.as_view(template_name='auth/login.html'), name='login'),
     path('auth/logout/', auth_views.LogoutView.as_view(next_page='/'), name='logout'),
     
-    # 🛑 ADDED MISSING URLS TO PREVENT TEMPLATE CRASHES 🛑
-    # Placeholder for 'register' (points to login page for now so the site doesn't crash)
-    path('auth/register/', auth_views.LoginView.as_view(template_name='auth/login.html'), name='register'),
-    # Placeholder for 'admin_approve_payments' (points to admin dashboard for now)
-    path('admin/approve-payments/', views.admin_dashboard_view, name='admin_approve_payments'),
-    
     # Orders & Upload
     path('dashboard/', views.dashboard_view, name='dashboard'),
     path('upload/', views.upload_view, name='upload'),
@@ -46,7 +40,7 @@ urlpatterns = [
     path('api/live-board/', views.live_board_api_view, name='live_board_api'),
     path('api/live-board/preview/', views.live_board_preview_image, name='live_board_preview'),
     
-    # API Endpoints for Passport & Scanner
+    # API Endpoints
     path('orders/api/analyze-passport/', login_required(views.api_analyze_passport), name='analyze_passport'),
     path('orders/api/process-passport/', login_required(views.api_process_passport), name='process_passport'),
     path('orders/api/process-scan/', login_required(views.api_process_scan), name='process_scan'),
@@ -55,6 +49,63 @@ urlpatterns = [
     # Misc
     path('all-links/', views.all_links_view, name='all_links'),
 ]
+
+# ============================================================
+# INCLUDE OTHER APP URLS (if they exist in your project)
+# ============================================================
+# These try/except blocks safely include your other apps' URLs.
+# If an app doesn't have a urls.py, it silently skips it.
+
+try:
+    urlpatterns += [path('finances/', include('finances.urls'))]
+except Exception:
+    pass
+
+try:
+    urlpatterns += [path('payments/', include('payments.urls'))]
+except Exception:
+    pass
+
+try:
+    urlpatterns += [path('notifications/', include('notifications.urls'))]
+except Exception:
+    pass
+
+try:
+    urlpatterns += [path('stations/', include('stations.urls'))]
+except Exception:
+    pass
+
+try:
+    urlpatterns += [path('auth/', include('users.urls'))]
+except Exception:
+    pass
+
+# ============================================================
+# PLACEHOLDER ROUTES FOR ANY URL NAMES REFERENCED IN TEMPLATES
+# These prevent NoReverseMatch crashes. Replace with real views later.
+# ============================================================
+from django.http import HttpResponse
+
+def _placeholder_view(request, *args, **kwargs):
+    return HttpResponse("This page is under construction.", status=200)
+
+# Only add placeholders if the URL name isn't already registered
+from django.urls import reverse, NoReverseMatch
+
+_placeholder_urls = {
+    'register': 'auth/register/',
+    'financial_dashboard': 'finances/dashboard/',
+    'admin_approve_payments': 'admin/approve-payments/',
+    'low_stock_alerts': 'api/low-stock-alerts/',
+    'payment_status_check': 'payments/status/<int:order_id>/check/',
+}
+
+for url_name, url_path in _placeholder_urls.items():
+    try:
+        reverse(url_name)
+    except NoReverseMatch:
+        urlpatterns.append(path(url_path, _placeholder_view, name=url_name))
 
 if settings.DEBUG:
     urlpatterns += static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)
