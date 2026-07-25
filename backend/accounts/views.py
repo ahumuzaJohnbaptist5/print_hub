@@ -1,7 +1,8 @@
 from django.shortcuts import render, redirect
 from django.contrib.auth import get_user_model, authenticate, login, logout
-from django.contrib.auth.decorators import login_required  # <--- THIS WAS MISSING!
+from django.contrib.auth.decorators import login_required
 from django.contrib import messages
+from django_ratelimit.decorators import ratelimit  # <-- ADD THIS
 from stations.models import Station
 from orders.models import Order
 
@@ -34,6 +35,7 @@ def profile_view(request):
     })
 
 
+@ratelimit(key='ip', rate='3/10m', method='POST')  # <-- ADD THIS
 def register_view(request):
     next_url = request.GET.get('next', 'dashboard')
     
@@ -71,6 +73,7 @@ def register_view(request):
     return render(request, 'accounts/register.html')
 
 
+@ratelimit(key='ip', rate='5/5m', method='POST')  # <-- ADD THIS
 def login_view(request):
     next_url = request.GET.get('next', 'dashboard')
     
