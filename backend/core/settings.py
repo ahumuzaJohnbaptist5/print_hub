@@ -1,3 +1,4 @@
+# core/settings.py
 import os
 from pathlib import Path
 from dotenv import load_dotenv
@@ -8,37 +9,41 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 # Load environment variables
 load_dotenv(BASE_DIR / '.env')
 
-# SECURITY
+# SECURITY WARNING: keep the secret key used in production secret!
 SECRET_KEY = os.environ.get('DJANGO_SECRET_KEY', 'django-insecure-dev-fallback-key')
+
+# SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = os.environ.get('DEBUG', 'False').lower() == 'true'
 
 ALLOWED_HOSTS = [
     'localhost',
     '127.0.0.1',
+    '.pythonanywhere.com',  # This matches any subdomain on pythonanywhere
     'printlink.pythonanywhere.com',
     'www.printlink.pythonanywhere.com',
-    '.pythonanywhere.com',
     '.trycloudflare.com',
 ]
 
 SITE_URL = os.environ.get('SITE_URL', 'https://printlink.pythonanywhere.com')
 
-LOGIN_URL = '/auth/login/'
-LOGIN_REDIRECT_URL = '/dashboard/'
-LOGOUT_REDIRECT_URL = '/'
-
-# CSRF
+# CSRF Settings
 CSRF_TRUSTED_ORIGINS = [
     'https://printlink.pythonanywhere.com',
     'http://printlink.pythonanywhere.com',
     'http://localhost:8000',
     'http://127.0.0.1:8000',
+    'https://*.pythonanywhere.com',
 ]
-CSRF_COOKIE_SECURE = False
-CSRF_COOKIE_HTTPONLY = False
+CSRF_COOKIE_SECURE = True  # Changed to True for production
+CSRF_COOKIE_HTTPONLY = True  # Changed to True for security
 CSRF_COOKIE_SAMESITE = 'Lax'
 
-# Apps
+# Session Security
+SESSION_COOKIE_SECURE = True
+SESSION_COOKIE_HTTPONLY = True
+SESSION_COOKIE_SAMESITE = 'Lax'
+
+# Application definition
 INSTALLED_APPS = [
     'django.contrib.admin',
     'django.contrib.auth',
@@ -92,7 +97,7 @@ TEMPLATES = [
 
 WSGI_APPLICATION = 'core.wsgi.application'
 
-# Database - SQLite
+# Database - SQLite (PythonAnywhere default)
 DATABASES = {
     'default': {
         'ENGINE': 'django.db.backends.sqlite3',
@@ -100,7 +105,18 @@ DATABASES = {
     }
 }
 
-# Cache - Local memory
+# Optional: Use MySQL if you have it on PythonAnywhere
+# DATABASES = {
+#     'default': {
+#         'ENGINE': 'django.db.backends.mysql',
+#         'NAME': 'your_username$printhub',
+#         'USER': 'your_username',
+#         'PASSWORD': 'your_password',
+#         'HOST': 'your_username.mysql.pythonanywhere-services.com',
+#     }
+# }
+
+# Cache
 CACHES = {
     'default': {
         'BACKEND': 'django.core.cache.backends.locmem.LocMemCache',
@@ -114,6 +130,7 @@ CORS_ALLOWED_ORIGINS = [
     'http://localhost:5173',
     'http://localhost:8000',
     'https://printlink.pythonanywhere.com',
+    'https://*.pythonanywhere.com',
 ]
 
 # REST Framework
@@ -135,13 +152,13 @@ TIME_ZONE = 'Africa/Kampala'
 USE_I18N = True
 USE_TZ = True
 
-# Static files
+# Static files (CSS, JavaScript, Images)
 STATIC_URL = '/static/'
 STATIC_ROOT = BASE_DIR / 'staticfiles'
 STATICFILES_DIRS = [BASE_DIR / 'static'] if (BASE_DIR / 'static').exists() else []
 STATICFILES_STORAGE = 'whitenoise.storage.CompressedManifestStaticFilesStorage'
 
-# Media files - Local storage
+# Media files (User uploads)
 MEDIA_URL = '/media/'
 MEDIA_ROOT = BASE_DIR / 'media'
 
@@ -155,11 +172,16 @@ DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 # Custom User Model
 AUTH_USER_MODEL = 'accounts.CustomUser'
 
-# Email
+# Login URLs
+LOGIN_URL = '/auth/login/'
+LOGIN_REDIRECT_URL = '/dashboard/'
+LOGOUT_REDIRECT_URL = '/'
+
+# Email (Console for PythonAnywhere, or configure SMTP)
 EMAIL_BACKEND = 'django.core.mail.backends.console.EmailBackend'
 DEFAULT_FROM_EMAIL = 'PrintHub <noreply@printlink.com>'
 
-# Payment
+# Payment Settings
 PAYMENT_EXPIRY_MINUTES = 30
 DEFAULT_MTN_MERCHANT_PHONE = os.getenv('DEFAULT_MTN_MERCHANT_PHONE', '')
 DEFAULT_MTN_MERCHANT_NAME = os.getenv('DEFAULT_MTN_MERCHANT_NAME', '')
@@ -179,37 +201,35 @@ SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')
 VAPID_PRIVATE_KEY = os.getenv('VAPID_PRIVATE_KEY', '')
 VAPID_PUBLIC_KEY = os.getenv('VAPID_PUBLIC_KEY', '')
 
+# WhatsApp Cloud API
+WHATSAPP_API_TOKEN = os.getenv('WHATSAPP_API_TOKEN', '')
+WHATSAPP_PHONE_NUMBER_ID = os.getenv('WHATSAPP_PHONE_NUMBER_ID', '')
+WHATSAPP_VERIFY_TOKEN = os.getenv('WHATSAPP_VERIFY_TOKEN', 'printhub_webhook_2024')
+WHATSAPP_GROUP_IDS = os.getenv('WHATSAPP_GROUP_IDS', '').split(',') if os.getenv('WHATSAPP_GROUP_IDS') else []
+WHATSAPP_BUSINESS_PHONE = os.getenv('WHATSAPP_BUSINESS_PHONE', '')
+WHATSAPP_ADMIN_NUMBERS = os.getenv('WHATSAPP_ADMIN_NUMBERS', '').split(',') if os.getenv('WHATSAPP_ADMIN_NUMBERS') else []
+
 # Logging
 LOGGING = {
     'version': 1,
     'disable_existing_loggers': False,
     'handlers': {
+        'file': {
+            'level': 'INFO',
+            'class': 'logging.FileHandler',
+            'filename': BASE_DIR / 'logs' / 'django.log',
+        },
         'console': {
             'class': 'logging.StreamHandler',
         },
     },
     'root': {
-        'handlers': ['console'],
+        'handlers': ['console', 'file'],
         'level': 'INFO',
     },
 }
 
-
-
-
-# WhatsApp Cloud API
-WHATSAPP_API_TOKEN = "YOUR_TOKEN_HERE"
-WHATSAPP_PHONE_NUMBER_ID = "YOUR_PHONE_ID_HERE"
-WHATSAPP_VERIFY_TOKEN = "printhub_webhook_2024"
-
-
-
-# WhatsApp Group IDs (for sending adverts)
-WHATSAPP_GROUP_IDS = [
-    "2567XXXXXXXX-123456@g.us",  # HEC Students group
-    "2567XXXXXXXX-789012@g.us",  # Campus group
-]
-WHATSAPP_BUSINESS_PHONE = "+2567XXXXXXXX"
-WHATSAPP_ADMIN_NUMBERS = ["+2567XXXXXXXX"]
-
-
+# Create logs directory if it doesn't exist
+LOGS_DIR = BASE_DIR / 'logs'
+if not LOGS_DIR.exists():
+    LOGS_DIR.mkdir(parents=True)
