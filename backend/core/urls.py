@@ -64,6 +64,9 @@ urlpatterns = [
     
     # Misc
     path('all-links/', views.all_links_view, name='all_links'),
+
+    # Add this to urlpatterns
+    path('file-processor/', include('file_processor.urls')),
 ]
 
 # ============================================================
