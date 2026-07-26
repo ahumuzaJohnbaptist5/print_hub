@@ -27,7 +27,8 @@
 
     <input type="hidden" id="order_type" name="order_type" value="document">
     <input type="hidden" id="paper_size" name="paper_size" value="A4">
-    <input type="hidden" id="copies" name="copies" value="1">
+    <!-- 🆕 This hidden input will be set by JavaScript -->
+    <input type="hidden" id="copies" name="copies" value="6">
     <input type="hidden" id="calculated_price" name="calculated_price" value="0">
 
     <div class="bg-slate-800 border border-slate-700 rounded p-6 sm:p-8">
@@ -877,7 +878,7 @@ priceTriggers.forEach(t => t.addEventListener('change', calculatePrice));
 calculatePrice();
 
 // ============================================================
-// FORM SUBMIT - Send 0 to backend so model calculates
+// 🆕 FORM SUBMIT - FORCES THE CORRECT COPIES VALUE
 // ============================================================
 document.getElementById('upload-form').addEventListener('submit', function(e) {
     console.log('🚀 FORM SUBMITTED');
@@ -887,35 +888,31 @@ document.getElementById('upload-form').addEventListener('submit', function(e) {
     if (currentMode === 'passport') {
         document.getElementById('order_type').value = 'passport';
         console.log('  📸 Forcing order_type = passport');
+        
+        // 🆕 FORCE the copies value from the select dropdown
+        var copiesVal = document.getElementById('passport-copies').value;
+        console.log('  📸 Passport copies from select:', copiesVal);
+        
+        // ✅ Update ALL relevant fields
+        document.getElementById('page_count').value = copiesVal;
+        document.getElementById('copies').value = copiesVal;
+        document.querySelector('input[name="copies"]').value = copiesVal;  // Force the hidden input
+        document.querySelector('input[name="is_color"][value="True"]').checked = true;
+        
+        // ✅ Send 0 to backend so model calculates the final price
+        document.getElementById('calculated_price').value = '0';
+        console.log('  💰 Passport: Sending copies=' + copiesVal + ', price=0 to backend');
+        
     } else if (currentMode === 'scanner') {
         document.getElementById('order_type').value = 'scanned';
-        console.log('  📄 Forcing order_type = scanned');
+        document.getElementById('copies').value = '1';
     } else {
         document.getElementById('order_type').value = 'document';
-        console.log('  📄 Forcing order_type = document');
+        document.getElementById('copies').value = '1';
     }
     
     console.log('  ✅ Final order_type:', document.getElementById('order_type').value);
-    
-    if (currentMode === 'passport') {
-        var copiesVal = document.getElementById('passport-copies').value;
-        console.log('  📸 Passport copies:', copiesVal);
-        
-        document.getElementById('page_count').value = copiesVal;
-        document.getElementById('copies').value = copiesVal;
-        document.querySelector('input[name="is_color"][value="True"]').checked = true;
-        
-        // ✅ IMPORTANT: Send 0 to backend so model calculates the final price
-        // The frontend only shows an estimate, backend calculates the actual price
-        document.getElementById('calculated_price').value = '0';
-        console.log('  💰 Passport: Sending 0 to backend - model will calculate final price');
-    } else if (currentMode === 'scanner') {
-        document.getElementById('order_type').value = 'scanned';
-        document.getElementById('copies').value = '1';
-    } else {
-        document.getElementById('order_type').value = 'document';
-        document.getElementById('copies').value = '1';
-    }
+    console.log('  ✅ Final copies:', document.getElementById('copies').value);
 });
 </script>
 {% endblock %}
