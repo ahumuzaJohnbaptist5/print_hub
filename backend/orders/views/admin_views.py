@@ -1,4 +1,4 @@
-# orders/views/admin_views.py
+# backend/orders/views/admin_views.py
 import logging
 from django.contrib import messages
 from django.contrib.auth.decorators import login_required, user_passes_test
@@ -10,7 +10,8 @@ from django.contrib.auth import get_user_model
 from django.utils.html import strip_tags
 from django.http import HttpResponseForbidden
 
-from orders.models import Order, SystemSettings, Announcement, Station
+from orders.models import Order, SystemSettings, Announcement
+from stations.models import Station  # <-- FIXED: Import from correct app
 from orders.utils import apply_order_status_change
 from .helpers import _user_role, _build_order_queryset, _order_summary_counts
 
