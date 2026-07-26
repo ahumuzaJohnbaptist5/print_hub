@@ -1,10 +1,9 @@
-# orders/views/file_views.py
+# backend/orders/views/file_views.py
 import json
 import logging
 from django.http import JsonResponse
 from django.contrib.auth.decorators import login_required
 from django.views.decorators.csrf import csrf_exempt
-from django.core.files.base import ContentFile
 from orders.models import Order
 from file_processor.processors import FileProcessor
 from file_processor.utils import get_file_size_human
@@ -25,7 +24,6 @@ def process_file_api(request):
     processor = FileProcessor(file, file.name)
     result = processor.process()
     
-    # Add human-readable size
     if result.get('info'):
         result['info']['size_human'] = get_file_size_human(result['info']['size'])
     
@@ -40,7 +38,7 @@ def file_preview_api(request, order_id):
             return JsonResponse({'error': 'No file found'}, status=404)
         
         processor = FileProcessor(order.file, order.file_name)
-        preview = processor.process()['preview']
+        preview = processor.process().get('preview', {})
         return JsonResponse(preview)
     except Order.DoesNotExist:
         return JsonResponse({'error': 'Order not found'}, status=404)
