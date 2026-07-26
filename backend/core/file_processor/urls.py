@@ -1,4 +1,3 @@
-# file_processor/urls.py
 from django.urls import path
 from . import views
 
