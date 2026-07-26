@@ -1,4 +1,4 @@
-# orders/views/__init__.py
+# backend/orders/views/__init__.py
 from .client_views import *
 from .admin_views import *
 from .agent_views import *
