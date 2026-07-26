@@ -79,7 +79,6 @@
 
             <!-- PASSPORT MODE -->
             <div id="passport-mode" style="display:none;">
-                <!-- ... existing passport mode code ... -->
                 <div class="mb-4">
                     <label class="block text-sm font-bold text-gray-300 mb-2">Number of Photos (min 4, even numbers only)</label>
                     <select id="passport-copies" class="w-full bg-slate-700 border border-slate-600 rounded px-4 py-3 text-white" onchange="syncPassportValues(); calculatePrice();">
@@ -151,7 +150,6 @@
 
             <!-- SCANNER MODE -->
             <div id="scanner-mode" style="display:none;">
-                <!-- ... existing scanner mode code ... -->
                 <div class="mb-4">
                     <label class="block text-sm font-bold text-gray-300 mb-2">Paper Size</label>
                     <select id="scanner-paper-size" class="w-full bg-slate-700 border border-slate-600 rounded px-4 py-3 text-white" onchange="document.getElementById('paper_size').value=this.value;">
@@ -297,21 +295,6 @@ const infoTexts={
     passport:'<strong>Take a passport photo</strong> - 1,000 UGX per photo (min 4)', 
     scanner:'<strong>Scan documents</strong> - Server-powered enhancement'
 };
-
-// ============================================================
-// 🆕 DEBUG FUNCTION
-// ============================================================
-function debugOrderType() {
-    const orderType = document.getElementById('order_type').value;
-    const mode = currentMode;
-    console.log('🔍 DEBUG:');
-    console.log('  Current Mode:', mode);
-    console.log('  Order Type Hidden Field:', orderType);
-    console.log('  Passport Data:', document.getElementById('passport-data')?.value ? 'Yes' : 'No');
-    console.log('  Scanner Data:', document.getElementById('scanner-data')?.value ? 'Yes' : 'No');
-    console.log('  File:', document.getElementById('file').files[0]?.name || 'No file');
-    return orderType;
-}
 
 // ============================================================
 // HELPER: Sync Passport Hidden Fields
@@ -788,7 +771,7 @@ function stopScannerCamera(){
 function getCSRF(){return document.querySelector('[name=csrfmiddlewaretoken]').value}
 
 // ============================================================
-// PRICE CALCULATOR
+// PRICE CALCULATOR - FIXED
 // ============================================================
 const pageCountInput=document.getElementById('page_count'),
       livePrice=document.getElementById('live-price'),
@@ -835,7 +818,9 @@ function calculatePrice(){
         document.getElementById('page_count').value = copies;
         document.getElementById('copies').value = copies;
         
-        t = copies * PASSPORT_PRICE_PER_COPY;
+        // ✅ Set t = 0 so model calculates the price
+        t = 0;
+        console.log('📸 Passport: Price will be calculated by model');
     } else if (currentMode === 'scanner') {
         let effectivePages = d ? Math.ceil(p / 2) : p;
         let pricePerPage = BASE_PRICE_BW + (c ? COLOR_SURCHARGE : 0);
@@ -878,8 +863,8 @@ function calculateRawTotal(){
     let d=document.getElementById('double_sided').checked;
     let b=document.getElementById('binding').value;
     if(currentMode==='passport'){
-        let copies=parseInt(document.getElementById('passport-copies')?.value)||4;
-        return copies*PASSPORT_PRICE_PER_COPY
+        // ✅ Return 0 so model calculates
+        return 0;
     }
     return Math.ceil(p/(d?2:1))*(BASE_PRICE_BW+(c?COLOR_SURCHARGE:0))+(b==='spiral'?SPIRAL_FEE:0)
 }
@@ -895,7 +880,7 @@ priceTriggers.forEach(t=>t.addEventListener('change',calculatePrice));
 calculatePrice();
 
 // ============================================================
-// 🆕 FORM SUBMIT WITH DEBUG
+// FORM SUBMIT - FIXED
 // ============================================================
 document.getElementById('upload-form').addEventListener('submit', function(e) {
     console.log('🚀 FORM SUBMITTED');
@@ -925,20 +910,15 @@ document.getElementById('upload-form').addEventListener('submit', function(e) {
     
     if (currentMode === 'passport') {
         var copiesVal = document.getElementById('passport-copies').value;
+        console.log('  📸 Passport copies:', copiesVal);
+        
         document.getElementById('page_count').value = copiesVal;
         document.getElementById('copies').value = copiesVal;
         document.querySelector('input[name="is_color"][value="True"]').checked = true;
         
-        let df = 0;
-        if ((document.querySelector('input[name="delivery_type"]:checked')?.value || 'pickup') === 'delivery') {
-            const o = deliveryZoneSelect.options[deliveryZoneSelect.selectedIndex];
-            if (o) df = parseInt(o.getAttribute('data-fee')) || 0;
-        }
-        let finalPrice = (parseInt(copiesVal) * PASSPORT_PRICE_PER_COPY) + df;
-        if (discountApplied) finalPrice = Math.max(0, finalPrice - discountValue);
-        
-        document.getElementById('calculated_price').value = finalPrice;
-        console.log('  💰 Passport final price:', finalPrice);
+        // ✅ Set calculated_price to 0 so model calculates it
+        document.getElementById('calculated_price').value = '0';
+        console.log('  💰 Passport: Letting model calculate price');
     } else if (currentMode === 'scanner') {
         document.getElementById('order_type').value = 'scanned';
         document.getElementById('copies').value = '1';
