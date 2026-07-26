@@ -381,7 +381,7 @@ function switchMode(mode){
 }
 
 // ============================================================
-// 🆕 FIXED: ENHANCED FILE UPLOAD HANDLER with Page Counter
+// 🆕 FIXED: DIRECT CLIENT-SIDE FILE PROCESSING (No API dependency)
 // ============================================================
 document.getElementById('file').addEventListener('change', function(e) {
     const file = e.target.files[0];
@@ -397,92 +397,15 @@ document.getElementById('file').addEventListener('change', function(e) {
     
     // Show loading state
     previewContainer.classList.remove('hidden');
-    previewContent.innerHTML = '<div class="text-center py-4"><div class="animate-spin w-8 h-8 border-4 border-indigo-500 border-t-transparent rounded-full mx-auto mb-2"></div><p class="text-gray-400">Processing file...</p></div>';
+    previewContent.innerHTML = '<div class="text-center py-4"><div class="animate-spin w-8 h-8 border-4 border-indigo-500 border-t-transparent rounded-full mx-auto mb-2"></div><p class="text-gray-400">Reading file...</p></div>';
     pageCountStatus.textContent = 'Reading file...';
     
-    // 🆕 FIXED: Try the API first, then fallback to client-side
-    const formData = new FormData();
-    formData.append('file', file);
-    
-    fetch('/file-processor/api/process-file/', {
-        method: 'POST',
-        headers: {
-            'X-CSRFToken': getCSRF(),
-        },
-        body: formData
-    })
-    .then(response => response.json())
-    .then(result => {
-        if (result.success) {
-            // Display file info
-            document.getElementById('file-type').textContent = result.info.type || 'Unknown';
-            document.getElementById('file-size').textContent = result.info.size_human || 'Unknown';
-            document.getElementById('file-pages').textContent = result.info.pages || 'N/A';
-            fileInfo.classList.remove('hidden');
-            
-            // Update page count
-            if (result.info.pages) {
-                document.getElementById('page_count').value = result.info.pages;
-                pageCountStatus.textContent = '✅ ' + result.info.pages + ' page(s) detected';
-            }
-            
-            // Display preview based on file type
-            let previewHtml = '';
-            
-            if (result.preview.type === 'image' && result.preview.thumbnail) {
-                previewHtml = `<img src="${result.preview.thumbnail}" class="max-h-60 mx-auto rounded-lg border border-slate-600" alt="Preview">`;
-            } else if (result.preview.type === 'pdf') {
-                previewHtml = `
-                    <div class="text-center">
-                        <p class="text-green-400 font-bold text-lg">📄 PDF Document</p>
-                        <p class="text-gray-300">${result.preview.pages || 'Unknown'} pages</p>
-                        ${result.preview.preview ? `<div class="mt-2 bg-slate-800/50 rounded p-3 text-xs text-gray-400 max-h-40 overflow-auto whitespace-pre-wrap">${result.preview.preview}</div>` : ''}
-                    </div>
-                `;
-            } else if (result.preview.type === 'document') {
-                previewHtml = `
-                    <div class="text-center">
-                        <p class="text-blue-400 font-bold text-lg">📝 Document</p>
-                        <div class="mt-2 bg-slate-800/50 rounded p-3 text-sm text-gray-300 max-h-40 overflow-auto">${result.preview.preview || 'No preview available'}</div>
-                    </div>
-                `;
-            } else if (result.preview.type === 'presentation') {
-                previewHtml = `
-                    <div class="text-center">
-                        <p class="text-purple-400 font-bold text-lg">📊 Presentation</p>
-                        <p class="text-gray-300">${result.preview.slides || 'Unknown'} slides</p>
-                        ${result.preview.preview ? `<div class="mt-2 bg-slate-800/50 rounded p-3 text-xs text-gray-400">${result.preview.preview}</div>` : ''}
-                    </div>
-                `;
-            } else if (result.preview.type === 'text') {
-                previewHtml = `
-                    <div class="text-center">
-                        <p class="text-gray-400 font-bold text-lg">📄 Text File</p>
-                        <div class="mt-2 bg-slate-800/50 rounded p-3 text-sm text-gray-300 max-h-40 overflow-auto whitespace-pre-wrap">${result.preview.preview || 'Empty file'}</div>
-                    </div>
-                `;
-            } else {
-                previewHtml = `<p class="text-gray-400">📎 ${result.info.name || file.name}</p>`;
-            }
-            
-            previewContent.innerHTML = previewHtml;
-            calculatePrice();
-            
-        } else {
-            // 🆕 FALLBACK: Client-side processing if API fails
-            console.log('API processing failed, using client-side fallback');
-            processFileClientSide(file);
-        }
-    })
-    .catch(error => {
-        console.error('API error:', error);
-        // 🆕 FALLBACK: Client-side processing
-        processFileClientSide(file);
-    });
+    // Process file directly on client side
+    processFileClientSide(file);
 });
 
 // ============================================================
-// 🆕 CLIENT-SIDE FILE PROCESSING (Fallback)
+// 🆕 CLIENT-SIDE FILE PROCESSING
 // ============================================================
 function processFileClientSide(file) {
     const ext = file.name.split('.').pop().toLowerCase();
@@ -499,6 +422,7 @@ function processFileClientSide(file) {
     
     if (ext === 'pdf') {
         // Count PDF pages
+        pageCountStatus.textContent = '📄 Reading PDF...';
         const reader = new FileReader();
         reader.onload = function(e) {
             const typedarray = new Uint8Array(e.target.result);
@@ -529,12 +453,14 @@ function processFileClientSide(file) {
             }).catch(function(err) {
                 pageCountStatus.textContent = '⚠️ Could not read PDF. Enter pages manually.';
                 previewContent.innerHTML = '<p class="text-gray-400 text-center">📄 PDF uploaded. Enter page count manually.</p>';
+                calculatePrice();
             });
         };
         reader.readAsArrayBuffer(file);
         
     } else if (['jpg', 'jpeg', 'png'].includes(ext)) {
         // Image preview
+        pageCountStatus.textContent = '🖼️ Processing image...';
         const reader = new FileReader();
         reader.onload = function(e) {
             document.getElementById('page_count').value = 1;
@@ -547,6 +473,7 @@ function processFileClientSide(file) {
         
     } else if (ext === 'docx') {
         // DOCX preview
+        pageCountStatus.textContent = '📝 Reading Word document...';
         const reader = new FileReader();
         reader.onload = function(e) {
             mammoth.extractRawText({arrayBuffer: e.target.result}).then(function(result) {
@@ -565,12 +492,15 @@ function processFileClientSide(file) {
                 calculatePrice();
             }).catch(function() {
                 pageCountStatus.textContent = '⚠️ Could not read DOCX. Enter pages manually.';
+                previewContent.innerHTML = '<p class="text-gray-400 text-center">📝 Word document uploaded. Enter page count manually.</p>';
+                calculatePrice();
             });
         };
         reader.readAsArrayBuffer(file);
         
     } else if (ext === 'pptx') {
         // PPTX preview
+        pageCountStatus.textContent = '📊 Reading PowerPoint...';
         const reader = new FileReader();
         reader.onload = function(e) {
             JSZip.loadAsync(e.target.result).then(function(zip) {
@@ -590,9 +520,32 @@ function processFileClientSide(file) {
                 calculatePrice();
             }).catch(function() {
                 pageCountStatus.textContent = '⚠️ Could not read PPTX. Enter pages manually.';
+                previewContent.innerHTML = '<p class="text-gray-400 text-center">📊 PowerPoint uploaded. Enter page count manually.</p>';
+                calculatePrice();
             });
         };
         reader.readAsArrayBuffer(file);
+        
+    } else if (ext === 'txt') {
+        // Text file preview
+        pageCountStatus.textContent = '📄 Reading text file...';
+        const reader = new FileReader();
+        reader.onload = function(e) {
+            const content = e.target.result;
+            const lines = content.split('\n').length;
+            const estimatedPages = Math.max(1, Math.ceil(lines / 50));
+            document.getElementById('page_count').value = estimatedPages;
+            document.getElementById('file-pages').textContent = estimatedPages + ' (est.)';
+            pageCountStatus.textContent = '📄 ~' + estimatedPages + ' page(s) (' + lines + ' lines)';
+            previewContent.innerHTML = `
+                <div class="text-center">
+                    <p class="text-gray-400 font-bold text-lg">📄 Text File</p>
+                    <div class="mt-2 bg-slate-800/50 rounded p-3 text-sm text-gray-300 max-h-40 overflow-auto whitespace-pre-wrap">${content.substring(0, 500)}${content.length > 500 ? '...' : ''}</div>
+                </div>
+            `;
+            calculatePrice();
+        };
+        reader.readAsText(file);
         
     } else {
         // Unknown file type
