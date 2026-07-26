@@ -1,4 +1,3 @@
-# file_processor/views.py
 import json
 from django.http import JsonResponse
 from django.contrib.auth.decorators import login_required
@@ -22,7 +21,6 @@ def process_file(request):
     processor = FileProcessor(file, file.name)
     result = processor.process()
     
-    # Add human-readable size
     if result.get('info'):
         result['info']['size_human'] = get_file_size_human(result['info']['size'])
     
@@ -37,7 +35,7 @@ def file_preview(request, order_id):
             return JsonResponse({'error': 'No file found'}, status=404)
         
         processor = FileProcessor(order.file, order.file_name)
-        preview = processor.process()['preview']
+        preview = processor.process().get('preview', {})
         return JsonResponse(preview)
     except Order.DoesNotExist:
         return JsonResponse({'error': 'Order not found'}, status=404)
