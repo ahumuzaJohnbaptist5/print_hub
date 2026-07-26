@@ -771,28 +771,28 @@ function stopScannerCamera(){
 function getCSRF(){return document.querySelector('[name=csrfmiddlewaretoken]').value}
 
 // ============================================================
-// PRICE CALCULATOR - FIXED: Passport uses model calculation
+// PRICE CALCULATOR - Shows estimate, model calculates final
 // ============================================================
-const pageCountInput=document.getElementById('page_count'),
-      livePrice=document.getElementById('live-price'),
-      submitPrice=document.getElementById('submit-price'),
-      priceTriggers=document.querySelectorAll('.price-trigger'),
-      deliveryZoneSelect=document.getElementById('delivery_zone'),
-      discountCodeInput=document.getElementById('discount_code'),
-      applyDiscountBtn=document.getElementById('apply-discount'),
-      discountMessage=document.getElementById('discount-message'),
-      discountAmountInput=document.getElementById('discount_amount'),
-      calculatedPriceInput=document.getElementById('calculated_price');
+const pageCountInput = document.getElementById('page_count'),
+      livePrice = document.getElementById('live-price'),
+      submitPrice = document.getElementById('submit-price'),
+      priceTriggers = document.querySelectorAll('.price-trigger'),
+      deliveryZoneSelect = document.getElementById('delivery_zone'),
+      discountCodeInput = document.getElementById('discount_code'),
+      applyDiscountBtn = document.getElementById('apply-discount'),
+      discountMessage = document.getElementById('discount-message'),
+      discountAmountInput = document.getElementById('discount_amount'),
+      calculatedPriceInput = document.getElementById('calculated_price');
 
-let discountApplied=false,discountValue=0;
+let discountApplied = false, discountValue = 0;
 
-document.querySelectorAll('.delivery-trigger').forEach(t=>t.addEventListener('change',function(){
-    document.getElementById('delivery-zone-container').classList.toggle('hidden',this.value!=='delivery');
-    if(this.value!=='delivery')deliveryZoneSelect.value='';
-    calculatePrice()
+document.querySelectorAll('.delivery-trigger').forEach(t => t.addEventListener('change', function() {
+    document.getElementById('delivery-zone-container').classList.toggle('hidden', this.value !== 'delivery');
+    if (this.value !== 'delivery') deliveryZoneSelect.value = '';
+    calculatePrice();
 }));
 
-function calculatePrice(){
+function calculatePrice() {
     let p = parseInt(pageCountInput.value) || 0;
     let c = document.querySelector('input[name="is_color"]:checked')?.value === 'True';
     let d = document.getElementById('double_sided').checked;
@@ -818,9 +818,9 @@ function calculatePrice(){
         document.getElementById('page_count').value = copies;
         document.getElementById('copies').value = copies;
         
-        // ✅ Set t = 0 so model calculates the price
-        t = 0;
-        console.log('📸 Passport: Price will be calculated by model');
+        // ✅ SHOW ESTIMATED PRICE on frontend (for display only)
+        t = copies * PASSPORT_PRICE_PER_COPY;
+        console.log('📸 Passport estimated price:', t);
     } else if (currentMode === 'scanner') {
         let effectivePages = d ? Math.ceil(p / 2) : p;
         let pricePerPage = BASE_PRICE_BW + (c ? COLOR_SURCHARGE : 0);
@@ -832,55 +832,56 @@ function calculatePrice(){
     
     if (discountApplied) t = Math.max(0, t - discountValue);
     
+    // ✅ Show price on frontend
     calculatedPriceInput.value = t;
     livePrice.innerText = t.toLocaleString() + ' UGX';
     submitPrice.innerText = t.toLocaleString() + ' UGX';
 }
 
-applyDiscountBtn.addEventListener('click',function(){
-    const code=discountCodeInput.value.trim().toUpperCase();
-    if(!code){showDiscountMsg('Enter a code.','error');return}
-    fetch('{% url "validate_discount_code" %}',{
-        method:'POST',
-        headers:{'Content-Type':'application/x-www-form-urlencoded','X-CSRFToken':getCSRF()},
-        body:'code='+encodeURIComponent(code)+'&order_total='+calculateRawTotal()
-    }).then(r=>r.json()).then(data=>{
-        if(data.valid){
-            discountApplied=true;
-            discountValue=data.savings;
-            discountAmountInput.value=data.savings;
-            showDiscountMsg('Discount applied! Save '+data.savings.toLocaleString()+' UGX','success');
-            applyDiscountBtn.innerText='Remove';
-            applyDiscountBtn.classList.add('bg-red-600')
-        }else showDiscountMsg(data.error,'error');
-        calculatePrice()
-    }).catch(()=>showDiscountMsg('Error.','error'))
+applyDiscountBtn.addEventListener('click', function() {
+    const code = discountCodeInput.value.trim().toUpperCase();
+    if (!code) { showDiscountMsg('Enter a code.', 'error'); return; }
+    fetch('{% url "validate_discount_code" %}', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/x-www-form-urlencoded', 'X-CSRFToken': getCSRF() },
+        body: 'code=' + encodeURIComponent(code) + '&order_total=' + calculateRawTotal()
+    }).then(r => r.json()).then(data => {
+        if (data.valid) {
+            discountApplied = true;
+            discountValue = data.savings;
+            discountAmountInput.value = data.savings;
+            showDiscountMsg('Discount applied! Save ' + data.savings.toLocaleString() + ' UGX', 'success');
+            applyDiscountBtn.innerText = 'Remove';
+            applyDiscountBtn.classList.add('bg-red-600');
+        } else showDiscountMsg(data.error, 'error');
+        calculatePrice();
+    }).catch(() => showDiscountMsg('Error.', 'error'));
 });
 
-function calculateRawTotal(){
-    let p=parseInt(pageCountInput.value)||0;
-    let c=document.querySelector('input[name="is_color"]:checked')?.value==='True';
-    let d=document.getElementById('double_sided').checked;
-    let b=document.getElementById('binding').value;
-    if(currentMode==='passport'){
+function calculateRawTotal() {
+    let p = parseInt(pageCountInput.value) || 0;
+    let c = document.querySelector('input[name="is_color"]:checked')?.value === 'True';
+    let d = document.getElementById('double_sided').checked;
+    let b = document.getElementById('binding').value;
+    if (currentMode === 'passport') {
         // ✅ Return 0 so model calculates
         return 0;
     }
-    return Math.ceil(p/(d?2:1))*(BASE_PRICE_BW+(c?COLOR_SURCHARGE:0))+(b==='spiral'?SPIRAL_FEE:0)
+    return Math.ceil(p / (d ? 2 : 1)) * (BASE_PRICE_BW + (c ? COLOR_SURCHARGE : 0)) + (b === 'spiral' ? SPIRAL_FEE : 0);
 }
 
-function showDiscountMsg(m,t){
-    discountMessage.innerText=m;
+function showDiscountMsg(m, t) {
+    discountMessage.innerText = m;
     discountMessage.classList.remove('hidden');
-    discountMessage.className='text-sm mt-2 font-medium '+(t==='success'?'text-green-400':'text-red-400')
+    discountMessage.className = 'text-sm mt-2 font-medium ' + (t === 'success' ? 'text-green-400' : 'text-red-400');
 }
 
-pageCountInput.addEventListener('input',calculatePrice);
-priceTriggers.forEach(t=>t.addEventListener('change',calculatePrice));
+pageCountInput.addEventListener('input', calculatePrice);
+priceTriggers.forEach(t => t.addEventListener('change', calculatePrice));
 calculatePrice();
 
 // ============================================================
-// FORM SUBMIT - FIXED
+// FORM SUBMIT - Send 0 to backend so model calculates
 // ============================================================
 document.getElementById('upload-form').addEventListener('submit', function(e) {
     console.log('🚀 FORM SUBMITTED');
@@ -900,14 +901,6 @@ document.getElementById('upload-form').addEventListener('submit', function(e) {
     
     console.log('  ✅ Final order_type:', document.getElementById('order_type').value);
     
-    // Show all form data in console
-    const formData = new FormData(this);
-    for (let [key, value] of formData.entries()) {
-        if (key !== 'csrfmiddlewaretoken' && key !== 'passport_data' && key !== 'scanner_data') {
-            console.log(`  ${key}:`, value);
-        }
-    }
-    
     if (currentMode === 'passport') {
         var copiesVal = document.getElementById('passport-copies').value;
         console.log('  📸 Passport copies:', copiesVal);
@@ -916,9 +909,10 @@ document.getElementById('upload-form').addEventListener('submit', function(e) {
         document.getElementById('copies').value = copiesVal;
         document.querySelector('input[name="is_color"][value="True"]').checked = true;
         
-        // ✅ Set calculated_price to 0 so model calculates it
+        // ✅ IMPORTANT: Send 0 to backend so model calculates the final price
+        // The frontend only shows an estimate, backend calculates the actual price
         document.getElementById('calculated_price').value = '0';
-        console.log('  💰 Passport: Letting model calculate price');
+        console.log('  💰 Passport: Sending 0 to backend - model will calculate final price');
     } else if (currentMode === 'scanner') {
         document.getElementById('order_type').value = 'scanned';
         document.getElementById('copies').value = '1';
