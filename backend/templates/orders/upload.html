@@ -80,16 +80,12 @@
             <!-- PASSPORT MODE -->
             <div id="passport-mode" style="display:none;">
                 <div class="mb-4">
-                    <label class="block text-sm font-bold text-gray-300 mb-2">Number of Photos (min 4, even numbers only)</label>
+                    <label class="block text-sm font-bold text-gray-300 mb-2">Number of Photos</label>
                     <select id="passport-copies" class="w-full bg-slate-700 border border-slate-600 rounded px-4 py-3 text-white" onchange="syncPassportValues(); calculatePrice();">
-                        <option value="4" selected>4 photos - 4,000 UGX</option>
-                        <option value="6">6 photos - 6,000 UGX</option>
-                        <option value="8">8 photos - 8,000 UGX</option>
-                        <option value="10">10 photos - 10,000 UGX</option>
+                        <option value="6" selected>6 photos - 6,000 UGX</option>
                         <option value="12">12 photos - 12,000 UGX</option>
-                        <option value="14">14 photos - 14,000 UGX</option>
-                        <option value="16">16 photos - 16,000 UGX</option>
                     </select>
+                    <p class="text-xs text-gray-500 mt-1">1,000 UGX per photo</p>
                 </div>
                 <div class="mb-4">
                     <label class="block text-sm font-bold text-gray-300 mb-2">Photo Size</label>
@@ -292,7 +288,7 @@ const BASE_PRICE_BW = {{ base_price_bw|default:200 }},
 let currentMode='document', bgColor='#ffffff', passportStream=null, analysisTimer=null, scannerStream=null, scannedPages=[];
 const infoTexts={
     document:'<strong>Upload your file</strong> - PDF, Word, PowerPoint, or images', 
-    passport:'<strong>Take a passport photo</strong> - 1,000 UGX per photo (min 4)', 
+    passport:'<strong>Take a passport photo</strong> - Choose 6 or 12 photos (1,000 UGX each)', 
     scanner:'<strong>Scan documents</strong> - Server-powered enhancement'
 };
 
@@ -301,7 +297,7 @@ const infoTexts={
 // ============================================================
 function syncPassportValues() {
     if (currentMode === 'passport') {
-        let copies = parseInt(document.getElementById('passport-copies').value) || 4;
+        let copies = parseInt(document.getElementById('passport-copies').value) || 6;
         document.getElementById('page_count').value = copies;
         document.getElementById('copies').value = copies;
     }
@@ -811,9 +807,9 @@ function calculatePrice() {
         t = effectivePages * pricePerPage;
         if (b === 'spiral') t += SPIRAL_FEE;
     } else if (currentMode === 'passport') {
-        let copies = parseInt(document.getElementById('passport-copies')?.value) || 4;
-        if (copies < 4) copies = 4;
-        if (copies % 2 !== 0) copies = Math.max(4, copies - 1);
+        let copies = parseInt(document.getElementById('passport-copies')?.value) || 6;
+        if (copies < 6) copies = 6;
+        if (copies % 2 !== 0) copies = Math.max(6, copies - 1);
         
         document.getElementById('page_count').value = copies;
         document.getElementById('copies').value = copies;
