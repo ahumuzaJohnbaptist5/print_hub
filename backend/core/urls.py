@@ -10,7 +10,7 @@ from django.urls import reverse, NoReverseMatch
 # Import views - Using modular imports
 from orders.views import (
     client_views, admin_views, agent_views, 
-    api_views, live_board_views, file_views
+    api_views, live_board_views
 )
 from accounts import views as accounts_views
 
@@ -65,8 +65,8 @@ urlpatterns = [
     path('orders/api/process-scan/', login_required(api_views.api_process_scan), name='process_scan'),
     path('orders/api/validate-discount/', api_views.validate_discount_code, name='validate_discount_code'),
     
-    # 🆕 File Processor API
-    path('file-processor/', include('file_processor.urls')),
+    # File Processor API - Temporarily comment this out until file_processor is ready
+    # path('file-processor/', include('file_processor.urls')),
     
     # Misc
     path('all-links/', client_views.all_links_view, name='all_links'),
