@@ -58,7 +58,7 @@ def dashboard_view(request):
 
 
 # ============================================================
-# UPLOAD VIEW
+# UPLOAD VIEW - FIXED REDIRECT
 # ============================================================
 @transaction.atomic
 def upload_view(request):
@@ -209,7 +209,12 @@ def upload_view(request):
                 logger.error(f"Failed to send confirmation email for order #{order.id}: {e}", exc_info=True)
                 
             messages.success(request, f'Order #{order.id} submitted! Total: {order.total_price:,.0f} UGX')
-            return redirect('order_receipt', order_id=order.id)
+            
+            # 🆕 FIXED: Redirect based on order type
+            if order.order_type == 'passport':
+                return redirect('passport_receipt', order_id=order.id)
+            else:
+                return redirect('order_receipt', order_id=order.id)
             
         except ValueError as e:
             upload_error = f'Invalid input: {str(e)}'
@@ -231,7 +236,33 @@ def upload_view(request):
 
 
 # ============================================================
-# ORDER RECEIPT VIEW - FIXED with conditional template
+# PASSPORT RECEIPT VIEW - DIRECT (NEW)
+# ============================================================
+@login_required
+def passport_receipt_view(request, order_id):
+    """Direct passport receipt view"""
+    if not str(order_id).isdigit():
+        return HttpResponseForbidden('Invalid order ID.')
+    order = get_object_or_404(Order.objects.select_related('station', 'delivery_zone'), id=int(order_id))
+    if not _can_view_order(request.user, order):
+        return HttpResponseForbidden('You do not have permission to view this receipt.')
+    estimated_ready = order.estimated_ready_at()
+    payment = None
+    try:
+        from payments.models import Payment
+        payment = Payment.objects.filter(order=order).first()
+    except Exception:
+        pass
+    
+    return render(request, 'orders/receipt_passport.html', {
+        'order': order,
+        'estimated_ready': estimated_ready,
+        'payment': payment,
+    })
+
+
+# ============================================================
+# ORDER RECEIPT VIEW - FOR DOCUMENTS
 # ============================================================
 @login_required
 def order_receipt_view(request, order_id):
@@ -248,13 +279,7 @@ def order_receipt_view(request, order_id):
     except Exception:
         pass
     
-    # 🆕 Choose template based on order type
-    if order.order_type == 'passport':
-        template_name = 'orders/receipt_passport.html'
-    else:
-        template_name = 'orders/receipt.html'
-    
-    return render(request, template_name, {
+    return render(request, 'orders/receipt.html', {
         'order': order,
         'estimated_ready': estimated_ready,
         'payment': payment,
@@ -262,7 +287,7 @@ def order_receipt_view(request, order_id):
 
 
 # ============================================================
-# ORDER RECEIPT VIEW - FIXED with conditional template
+# CANCEL ORDER VIEW
 # ============================================================
 @login_required
 @transaction.atomic
