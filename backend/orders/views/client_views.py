@@ -58,7 +58,7 @@ def dashboard_view(request):
 
 
 # ============================================================
-# UPLOAD VIEW - FIXED WITH QUICK FIX
+# UPLOAD VIEW - FIXED WITH DEBUG
 # ============================================================
 @transaction.atomic
 def upload_view(request):
@@ -90,10 +90,20 @@ def upload_view(request):
         scanner_data = request.POST.get('scanner_data', '')
         
         # ============================================================
+        # 🆕 DEBUG: Log what's coming from the form
+        # ============================================================
+        logger.info(f"📸 PASSPORT DEBUG: order_type={order_type}, copies={copies}, page_count={page_count}, passport_data={'YES' if passport_data else 'NO'}")
+        
+        # ============================================================
         # 🆕 QUICK FIX: Force order_type based on data presence
         # ============================================================
         if passport_data:
             order_type = 'passport'
+            # 🆕 Force copies from passport_data if available
+            if passport_data and copies == '1':
+                # Try to get copies from the form or default to 4
+                copies = request.POST.get('copies', '4')
+                logger.info(f"📸 FORCED copies to {copies}")
             logger.info(f"📸 FORCED order_type to 'passport' because passport_data exists")
         elif scanner_data:
             order_type = 'scanned'
@@ -146,6 +156,9 @@ def upload_view(request):
             page_count_int = int(page_count)
             copies_int = int(copies)
             
+            # 🆕 DEBUG: Log the parsed values
+            logger.info(f"📸 PASSPORT PARSED: page_count_int={page_count_int}, copies_int={copies_int}")
+            
             if page_count_int < 1:
                 raise ValueError("Page count must be at least 1")
             if copies_int < 1:
@@ -170,9 +183,11 @@ def upload_view(request):
                 is_color = True
                 binding = 'none'
                 is_double_sided = False
-                page_count_int = copies_int 
+                # 🆕 Force page_count = copies for passport
+                page_count_int = copies_int
                 # ✅ Set calculated_price to 0 so model calculates it
                 calculated_price = '0'
+                logger.info(f"📸 PASSPORT ORDER: copies={copies_int}, page_count={page_count_int}")
                 
             elif order_type == 'scanned':
                 binding = 'none'
@@ -215,6 +230,9 @@ def upload_view(request):
                     pass
                     
             order.save()
+            
+            # 🆕 DEBUG: Log what was saved
+            logger.info(f"📸 PASSPORT SAVED: order #{order.id}, copies={order.copies}, page_count={order.page_count}, total_price={order.total_price}")
             
             try:
                 send_order_confirmation_email(order)
