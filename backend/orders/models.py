@@ -1,425 +1,505 @@
-# orders/models.py
-import math
-from datetime import timedelta
+# backend/orders/views/client_views.py
+import json
+import logging
+import base64
 from decimal import Decimal
-from django.db import models
-from django.conf import settings
+from django.contrib import messages
+from django.contrib.auth.decorators import login_required
+from django.db import transaction
+from django.db.models import Q, Sum, Count
+from django.http import FileResponse, HttpResponseForbidden
+from django.shortcuts import render, redirect, get_object_or_404
 from django.utils import timezone
+from django.contrib.auth import get_user_model
+from django.core.files.base import ContentFile
+from django.core.paginator import Paginator
+from django.core.validators import ValidationError
+from django.core.mail import send_mail
+from django.conf import settings
+from django.urls import reverse
+from django.utils.html import strip_tags
 
-class SystemSettings(models.Model):
-    """Singleton model to store global system state like pause timers."""
-    is_paused = models.BooleanField(default=False)
-    pause_reason = models.CharField(max_length=255, blank=True, default='')
-    total_paused_seconds = models.FloatField(default=0.0)
-    pause_started_at = models.DateTimeField(null=True, blank=True)
+from stations.models import Station
+from orders.models import Order, DeliveryZone, Announcement
+from orders.utils import apply_order_status_change
+from .helpers import (
+    _user_role, _can_view_order, validate_upload_file,
+    _build_order_queryset, _order_summary_counts,
+    _get_tracked_orders, send_order_confirmation_email, send_cancellation_email
+)
 
-    class Meta:
-        verbose_name = "System Setting"
-        verbose_name_plural = "System Settings"
+# Import file processor - wrap in try/except to avoid breaking if not installed
+try:
+    from file_processor.processors import FileProcessor
+except ImportError:
+    FileProcessor = None
+    print("Warning: file_processor not available")
 
-    def save(self, *args, **kwargs):
-        self.pk = 1
-        super().save(*args, **kwargs)
+User = get_user_model()
+logger = logging.getLogger(__name__)
 
-    @classmethod
-    def load(cls):
-        obj, created = cls.objects.get_or_create(pk=1)
-        return obj
 
-    def get_current_paused_seconds(self):
-        total = self.total_paused_seconds
-        if self.is_paused and self.pause_started_at:
-            total += (timezone.now() - self.pause_started_at).total_seconds()
-        return total
-
-class Announcement(models.Model):
-    """Custom announcement banner shown at top of all pages."""
-    title = models.CharField(max_length=200, default='Announcement')
-    message = models.TextField(help_text="Message to display in the announcement bar")
-    is_active = models.BooleanField(default=True)
-    show_on_home = models.BooleanField(default=True, help_text="Show on homepage")
-    background_color = models.CharField(max_length=30, default='bg-blue-600',
-        help_text="Tailwind class: bg-blue-600, bg-red-600, bg-green-600, bg-purple-600, bg-orange-600, etc.")
-    created_at = models.DateTimeField(auto_now_add=True)
-    updated_at = models.DateTimeField(auto_now=True)
-
-    class Meta:
-        ordering = ['-created_at']
-        verbose_name = "Announcement"
-        verbose_name_plural = "Announcements"
-
-    def __str__(self):
-        return self.message[:60]
-
-    @classmethod
-    def get_active(cls):
-        return cls.objects.filter(is_active=True).first()
-
-class DeliveryZone(models.Model):
-    name = models.CharField(max_length=100, help_text="e.g., Main Campus, City Center")
-    description = models.CharField(max_length=255, blank=True, null=True)
-    delivery_fee = models.IntegerField(default=0, help_text="Delivery fee in UGX")
-    is_active = models.BooleanField(default=True)
-
-    class Meta:
-        indexes = [
-            models.Index(fields=['is_active']),
-        ]
-
-    def __str__(self):
-        return f"{self.name} ({self.delivery_fee:,} UGX)"
-
-class Order(models.Model):
-    STATUS_CHOICES = (
-        ('pending', 'Pending'),
-        ('paid', 'Paid'),
-        ('printing', 'Printing'),
-        ('in_transit', 'In Transit'),
-        ('ready', 'Ready for Pickup'),
-        ('collected', 'Collected'),
-        ('cancelled', 'Cancelled'),
+# ============================================================
+# DASHBOARD VIEW
+# ============================================================
+@login_required
+def dashboard_view(request):
+    orders = Order.objects.filter(client=request.user).order_by('-created_at')
+    stats = Order.objects.filter(client=request.user).aggregate(
+        total_orders=Count('id'),
+        completed_orders=Count('id', filter=Q(status='collected')),
+        pending_orders=Count('id', filter=Q(status='pending')),
+        total_spent=Sum('total_price', filter=Q(status__in=['paid', 'printing', 'in_transit', 'ready', 'collected']))
     )
+    return render(request, 'orders/dashboard.html', {
+        'orders': orders,
+        'stats': stats,
+    })
 
-    DELIVERY_TYPE_CHOICES = (
-        ('pickup', 'Pickup at Station'),
-        ('delivery', 'Deliver to Me'),
-    )
 
-    BINDING_CHOICES = (
-        ('none', 'No Binding'),
-        ('staple', 'Staple (Corner)'),
-        ('spiral', 'Spiral Binding'),
-    )
-
-    ORDER_TYPE_CHOICES = (
-        ('document', 'Document Print'),
-        ('passport', 'Passport Photo'),
-        ('scanned', 'Scanned Document'),
-    )
-
-    PAPER_SIZE_CHOICES = (
-        ('A4', 'A4'),
-        ('4x6', '4x6 (Passport)'),
-        ('2x2', '2x2 (Passport)'),
-    )
-
-    # Core fields
-    client = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE)
-    station = models.ForeignKey('stations.Station', on_delete=models.SET_NULL, null=True)
-    file = models.FileField(upload_to='print_files/')
-    file_name = models.CharField(max_length=255)
-    page_count = models.IntegerField()
-    is_color = models.BooleanField(default=False)
-    is_double_sided = models.BooleanField(default=False)
-    binding = models.CharField(max_length=20, choices=BINDING_CHOICES, default='none')
-    delivery_type = models.CharField(max_length=20, choices=DELIVERY_TYPE_CHOICES, default='pickup')
-    delivery_zone = models.ForeignKey(DeliveryZone, on_delete=models.SET_NULL, null=True, blank=True)
-
-    # Order type, paper size, copies
-    order_type = models.CharField(
-        max_length=20,
-        choices=ORDER_TYPE_CHOICES,
-        default='document',
-        help_text="Type of print order (document, passport photo, or scanned document)"
-    )
-    paper_size = models.CharField(
-        max_length=10,
-        choices=PAPER_SIZE_CHOICES,
-        default='A4',
-        help_text="Paper size for printing"
-    )
-    copies = models.IntegerField(
-        default=1,
-        help_text="Number of copies to print"
-    )
-
-    # Pricing & status
-    total_price = models.DecimalField(max_digits=10, decimal_places=2, default=0)
-    status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='pending')
-    transaction_id = models.CharField(max_length=100, blank=True, null=True)
-    tx_ref = models.CharField(max_length=100, blank=True, null=True)
-    paid_at = models.DateTimeField(blank=True, null=True)
-    printing_at = models.DateTimeField(blank=True, null=True)
-    in_transit_at = models.DateTimeField(blank=True, null=True)
-    ready_at = models.DateTimeField(blank=True, null=True)
-    collected_at = models.DateTimeField(blank=True, null=True)
-    created_at = models.DateTimeField(auto_now_add=True)
-    sla_minutes = models.IntegerField(default=120, help_text="Target time to complete order in minutes.")
-    postponed_minutes = models.IntegerField(default=0, help_text="Extra minutes added if the order is postponed.")
-    paper_used = models.IntegerField(default=0, help_text="Number of physical sheets consumed")
-    cost_of_goods = models.DecimalField(max_digits=10, decimal_places=2, default=0, help_text="Cost of paper used")
-    agent_commission = models.DecimalField(max_digits=10, decimal_places=2, default=0, help_text="Commission paid to agent")
-    profit = models.DecimalField(max_digits=10, decimal_places=2, default=0, help_text="Net profit for this order")
-    notes = models.TextField(blank=True, default='', help_text="Internal notes about this order")
-    cancellation_reason = models.TextField(blank=True, default='', help_text="Reason for cancellation")
-    cancelled_at = models.DateTimeField(blank=True, null=True)
-
-    # ============================================================
-    # 🆕 FILE PROCESSING FIELDS
-    # ============================================================
-    file_metadata = models.JSONField(blank=True, default=dict, help_text="File metadata from processing")
-    file_preview = models.TextField(blank=True, default='', help_text="Text preview of file content")
-    file_thumbnail = models.TextField(blank=True, default='', help_text="Base64 thumbnail for images")
-
-    # Pricing constants
-    BASE_PRICE_BW = 200
-    COLOR_SURCHARGE = 100
-    SPIRAL_BINDING_FEE = 1000
-    PASSPORT_PHOTO_PRICE = 1000  # 1000 UGX per photo
-    SCANNED_DOC_PRICE = 200
-
-    class Meta:
-        indexes = [
-            models.Index(fields=['status', 'created_at']),
-            models.Index(fields=['station', 'status']),
-            models.Index(fields=['client', 'created_at']),
-            models.Index(fields=['created_at']),
-            models.Index(fields=['status']),
-            models.Index(fields=['order_type']),
-        ]
-        ordering = ['-created_at']
-
-    @classmethod
-    def compute_price(cls, page_count, is_color=False, is_double_sided=False, binding='none', delivery_fee=0, order_type='document', paper_size='A4', copies=1):
-        """
-        Calculate total price based on order type and options.
-        Returns: (total_price, effective_pages, price_per_unit)
-        """
-        if order_type == 'passport':
-            # Passport: copies × 1000 UGX per photo
-            price_per_unit = cls.PASSPORT_PHOTO_PRICE
+# ============================================================
+# UPLOAD VIEW - FIXED: Let model calculate passport price
+# ============================================================
+@transaction.atomic
+def upload_view(request):
+    stations = Station.objects.all()
+    delivery_zones = DeliveryZone.objects.filter(is_active=True)
+    upload_error = None
+    
+    if request.method == 'POST':
+        if not request.user.is_authenticated:
+            messages.info(request, 'Please log in or create an account to complete your upload.')
+            return redirect('/auth/login/?next=/upload/')
             
-            # FIX: Use 'copies' instead of 'page_count' to calculate passport price.
-            # This guarantees that even if page_count is somehow mismatched, 
-            # the price is strictly based on the number of photos requested.
-            printing_cost = price_per_unit * copies
-            total_price = printing_cost + delivery_fee
-            
-            # For passports, effective pages/sheets is equal to the number of photos
-            return total_price, copies, price_per_unit
-
-        elif order_type == 'scanned':
-            # Scanned documents use standard B&W/color pricing
-            price_per_unit = cls.SCANNED_DOC_PRICE + (cls.COLOR_SURCHARGE if is_color else 0)
-            effective_pages = page_count
-            if is_double_sided:
-                effective_pages = max(1, math.ceil(page_count / 2))
-            printing_cost = price_per_unit * effective_pages * copies
-            binding_cost = cls.SPIRAL_BINDING_FEE if binding == 'spiral' else 0
-            total_price = printing_cost + binding_cost + delivery_fee
-            return total_price, effective_pages * copies, price_per_unit
-
-        else:
-            # Standard document printing
-            price_per_unit = cls.BASE_PRICE_BW + (cls.COLOR_SURCHARGE if is_color else 0)
-            effective_pages = page_count
-            if is_double_sided:
-                effective_pages = max(1, math.ceil(page_count / 2))
-            printing_cost = price_per_unit * effective_pages * copies
-            binding_cost = cls.SPIRAL_BINDING_FEE if binding == 'spiral' else 0
-            total_price = printing_cost + binding_cost + delivery_fee
-            return total_price, effective_pages * copies, price_per_unit
-
-    def calculate_price(self):
-        """Calculate and set the total price for this order."""
-        delivery_fee = self.delivery_zone.delivery_fee if self.delivery_zone and self.delivery_type == 'delivery' else 0
-        total, effective_pages, price_per_page = self.compute_price(
-            self.page_count,
-            self.is_color,
-            self.is_double_sided,
-            self.binding,
-            delivery_fee,
-            self.order_type,
-            self.paper_size,
-            self.copies
-        )
-        self.total_price = Decimal(str(total))
-        return self.total_price, effective_pages, price_per_page
-
-    def calculate_financials(self):
-        """Calculate cost of goods, commission, and profit."""
-        _, effective_pages, _ = self.compute_price(
-            self.page_count,
-            self.is_color,
-            self.is_double_sided,
-            self.binding,
-            0,
-            self.order_type,
-            self.paper_size,
-            self.copies
-        )
-        self.paper_used = effective_pages
-        try:
-            from finances.models import PaperInventory
-            paper = PaperInventory.objects.first()
-            self.cost_of_goods = Decimal(str(effective_pages * paper.cost_per_sheet)) if paper else Decimal('0.00')
-        except Exception:
-            self.cost_of_goods = Decimal('0.00')
-
-        try:
-            from finances.models import CommissionRate
-            rate = CommissionRate.get_active_rate()
-            self.agent_commission = (self.total_price * Decimal(str(rate.rate_percentage))) / Decimal('100') if rate else Decimal('0.00')
-        except Exception:
-            self.agent_commission = Decimal('0.00')
-
-        self.profit = self.total_price - self.cost_of_goods - self.agent_commission
-        return self.profit
-
-    def deduct_paper_inventory(self):
-        """Deduct paper from inventory when printing starts."""
-        if self.status == 'printing' and self.paper_used > 0:
+        file = request.FILES.get('file')
+        page_count = request.POST.get('page_count', 1)
+        is_color = request.POST.get('is_color', 'False') == 'True'
+        is_double_sided = request.POST.get('is_double_sided') == 'on'
+        station_id = request.POST.get('station')
+        binding = request.POST.get('binding', 'none')
+        delivery_type = request.POST.get('delivery_type', 'pickup')
+        delivery_zone_id = request.POST.get('delivery_zone')
+        notes = strip_tags(request.POST.get('notes', '').strip())
+        
+        order_type = request.POST.get('order_type', 'document')
+        paper_size = request.POST.get('paper_size', 'A4')
+        copies = request.POST.get('copies', 1)
+        calculated_price = request.POST.get('calculated_price', '0')
+        
+        passport_data = request.POST.get('passport_data', '')
+        scanner_data = request.POST.get('scanner_data', '')
+        
+        if not file and (passport_data or scanner_data):
             try:
-                from finances.models import PaperInventory
-                paper = PaperInventory.objects.first()
-                if paper and paper.quantity >= self.paper_used:
-                    paper.quantity -= self.paper_used
-                    paper.save(update_fields=['quantity'])
-                    return True
-            except Exception:
-                pass
-        return False
-
-    def estimated_ready_at(self):
-        """Calculate estimated completion time."""
-        if self.paid_at:
-            total_minutes = self.sla_minutes + self.postponed_minutes
-            return self.paid_at + timedelta(minutes=total_minutes)
-        return None
-
-    @property
-    def price_per_unit(self):
-        """Get the price per unit based on order type."""
-        if self.order_type == 'passport':
-            return self.PASSPORT_PHOTO_PRICE
-        elif self.order_type == 'scanned':
-            return self.SCANNED_DOC_PRICE + (self.COLOR_SURCHARGE if self.is_color else 0)
+                if passport_data:
+                    format, imgstr = passport_data.split(';base64,')
+                    ext = format.split('/')[-1]
+                    file = ContentFile(
+                        base64.b64decode(imgstr),
+                        name=f'passport_photo.{ext}'
+                    )
+            except Exception as e:
+                logger.error(f"Error processing camera/scanner data: {e}")
+                upload_error = 'Error processing captured image.'
+                
+        if not file:
+            upload_error = 'Please select a file.'
         else:
-            return self.BASE_PRICE_BW + (self.COLOR_SURCHARGE if self.is_color else 0)
-
-    @property
-    def unit_label(self):
-        """Get the unit label for display (page, copy, sheet)."""
-        if self.order_type == 'passport':
-            return 'copy'
-        return 'page'
-
-    @property
-    def can_be_cancelled(self):
-        """Check if order can be cancelled by client."""
-        return self.status in ['pending', 'paid'] and not self.printing_at
-
-    @property
-    def is_overdue(self):
-        """Check if order is past its estimated completion time."""
-        if self.status in ['collected', 'cancelled']:
-            return False
-        estimated = self.estimated_ready_at()
-        if estimated:
-            return timezone.now() > estimated
-        return False
-
-    @property
-    def priority_info(self):
-        """Get priority information for live board display."""
-        if self.status == 'cancelled':
-            return {
-                'level': 'cancelled', 'display': 'CANCELLED',
-                'remaining_seconds': 0, 'time_display': '--:--:--', 'is_overdue': False
-            }
-
-        start_time = self.paid_at or self.created_at
-        total_minutes = self.sla_minutes + self.postponed_minutes
-        deadline = start_time + timedelta(minutes=total_minutes)
-        now = timezone.now()
-
+            upload_error = validate_upload_file(file)
+            
+        if upload_error:
+            return render(request, 'orders/upload.html', {
+                'stations': stations,
+                'delivery_zones': delivery_zones,
+                'upload_error': upload_error,
+            })
+        
+        processing_result = None
+        if FileProcessor:
+            try:
+                processor = FileProcessor(file, file.name)
+                processing_result = processor.process()
+                if processing_result['success']:
+                    logger.info(f"File processed successfully: {file.name}")
+            except Exception as e:
+                logger.error(f"File processing error: {e}")
+            
+        station = None
+        if station_id and station_id.isdigit():
+            station = Station.objects.filter(id=int(station_id)).first()
+            
+        delivery_zone = None
+        if delivery_type == 'delivery' and delivery_zone_id and delivery_zone_id.isdigit():
+            delivery_zone = DeliveryZone.objects.filter(id=int(delivery_zone_id)).first()
+            
         try:
-            sys_settings = SystemSettings.load()
-            paused_seconds = sys_settings.get_current_paused_seconds()
-        except Exception:
-            paused_seconds = 0
+            page_count_int = int(page_count)
+            copies_int = int(copies)
+            
+            if page_count_int < 1:
+                raise ValueError("Page count must be at least 1")
+            if copies_int < 1:
+                copies_int = 1
+                
+            order_type_display = dict(Order.ORDER_TYPE_CHOICES).get(order_type, 'Document Print')
+            paper_size_display = dict(Order.PAPER_SIZE_CHOICES).get(paper_size, 'A4')
+            
+            extra_notes = f"Order Type: {order_type_display}\n"
+            extra_notes += f"Paper Size: {paper_size_display}\n"
+            extra_notes += f"Copies: {copies_int}"
+            
+            if notes:
+                notes = f"{notes}\n{extra_notes}"
+            else:
+                notes = extra_notes
 
-        effective_deadline = deadline + timedelta(seconds=paused_seconds)
-        remaining_td = effective_deadline - now
-        remaining_seconds = max(0, int(remaining_td.total_seconds()))
-        is_overdue = now > effective_deadline
-        is_postponed = self.postponed_minutes > 0
+            # ============================================================
+            # 🆕 FIX 1: Let the model calculate passport price
+            # ============================================================
+            if order_type == 'passport':
+                is_color = True
+                binding = 'none'
+                is_double_sided = False
+                page_count_int = copies_int 
+                # ✅ Set calculated_price to 0 so model calculates it
+                calculated_price = '0'
+                
+            elif order_type == 'scanned':
+                binding = 'none'
+                is_double_sided = False
+                page_count_int = copies_int if copies_int > page_count_int else page_count_int
 
-        if is_postponed:
-            level, display = 'postponed', 'POSTPONED'
-        elif is_overdue:
-            level, display = 'overdue', 'OVERDUE'
-        elif remaining_seconds < 600:
-            level, display = 'critical', 'CRITICAL'
-        elif remaining_seconds < 1800:
-            level, display = 'urgent', 'URGENT'
-        elif remaining_seconds < 3600:
-            level, display = 'high', 'HIGH'
-        else:
-            level, display = 'normal', 'NORMAL'
+            order = Order(
+                client=request.user,
+                station=station,
+                file=file,
+                file_name=file.name,
+                page_count=page_count_int,
+                is_color=is_color,
+                is_double_sided=is_double_sided,
+                binding=binding,
+                delivery_type=delivery_type,
+                delivery_zone=delivery_zone,
+                notes=notes,
+                status='pending',
+                order_type=order_type,
+                paper_size=paper_size,
+                copies=copies_int,
+            )
+            
+            if processing_result and processing_result.get('success'):
+                order.file_metadata = processing_result.get('info', {})
+                if processing_result.get('preview'):
+                    order.file_preview = processing_result['preview'].get('preview', '')
+                    if 'thumbnail' in processing_result['preview']:
+                        order.file_thumbnail = processing_result['preview'].get('thumbnail', '')
+            
+            # ============================================================
+            # 🆕 FIX 2: Only override total_price if calculated_price is NOT 0
+            # ============================================================
+            if calculated_price and calculated_price != '0':
+                try:
+                    js_price = Decimal(str(calculated_price))
+                    if js_price > 0:
+                        order.total_price = js_price
+                except Exception:
+                    pass
+                    
+            order.save()
+            
+            try:
+                send_order_confirmation_email(order)
+            except Exception as e:
+                logger.error(f"Failed to send confirmation email for order #{order.id}: {e}", exc_info=True)
+                
+            messages.success(request, f'Order #{order.id} submitted! Total: {order.total_price:,.0f} UGX')
+            
+            # Redirect based on order type
+            if order.order_type == 'passport':
+                return redirect('passport_receipt', order_id=order.id)
+            else:
+                return redirect('order_receipt', order_id=order.id)
+            
+        except ValueError as e:
+            upload_error = f'Invalid input: {str(e)}'
+        except Exception as e:
+            logger.error(f"Error creating order: {e}", exc_info=True)
+            upload_error = 'Error creating order. Please try again.'
+            
+        return render(request, 'orders/upload.html', {
+            'stations': stations,
+            'delivery_zones': delivery_zones,
+            'upload_error': upload_error,
+        })
 
-        hours, remainder = divmod(remaining_seconds, 3600)
-        minutes, seconds = divmod(remainder, 60)
-        time_display = f"{hours:02d}:{minutes:02d}:{seconds:02d}"
+    return render(request, 'orders/upload.html', {
+        'stations': stations,
+        'delivery_zones': delivery_zones,
+        'upload_error': upload_error,
+    })
 
-        return {
-            'level': level, 'display': display,
-            'remaining_seconds': remaining_seconds,
-            'time_display': time_display, 'is_overdue': is_overdue
+
+# ============================================================
+# PASSPORT RECEIPT VIEW - DIRECT
+# ============================================================
+@login_required
+def passport_receipt_view(request, order_id):
+    """Direct passport receipt view"""
+    if not str(order_id).isdigit():
+        return HttpResponseForbidden('Invalid order ID.')
+    order = get_object_or_404(Order.objects.select_related('station', 'delivery_zone'), id=int(order_id))
+    if not _can_view_order(request.user, order):
+        return HttpResponseForbidden('You do not have permission to view this receipt.')
+    estimated_ready = order.estimated_ready_at()
+    payment = None
+    try:
+        from payments.models import Payment
+        payment = Payment.objects.filter(order=order).first()
+    except Exception:
+        pass
+    
+    return render(request, 'orders/receipt_passport.html', {
+        'order': order,
+        'estimated_ready': estimated_ready,
+        'payment': payment,
+    })
+
+
+# ============================================================
+# ORDER RECEIPT VIEW - FOR DOCUMENTS
+# ============================================================
+@login_required
+def order_receipt_view(request, order_id):
+    if not str(order_id).isdigit():
+        return HttpResponseForbidden('Invalid order ID.')
+    order = get_object_or_404(Order.objects.select_related('station', 'delivery_zone'), id=int(order_id))
+    if not _can_view_order(request.user, order):
+        return HttpResponseForbidden('You do not have permission to view this receipt.')
+    estimated_ready = order.estimated_ready_at()
+    payment = None
+    try:
+        from payments.models import Payment
+        payment = Payment.objects.filter(order=order).first()
+    except Exception:
+        pass
+    
+    return render(request, 'orders/receipt.html', {
+        'order': order,
+        'estimated_ready': estimated_ready,
+        'payment': payment,
+    })
+
+
+# ============================================================
+# CANCEL ORDER VIEW
+# ============================================================
+@login_required
+@transaction.atomic
+def cancel_order_view(request, order_id):
+    if not str(order_id).isdigit():
+        messages.error(request, 'Invalid order ID.')
+        return redirect('dashboard')
+    try:
+        order = Order.objects.select_for_update().get(id=int(order_id))
+    except Order.DoesNotExist:
+        messages.error(request, 'Order not found.')
+        return redirect('dashboard')
+    if order.client != request.user:
+        return HttpResponseForbidden('You can only cancel your own orders.')
+    if order.status not in ['pending', 'paid']:
+        messages.error(request, 'This order cannot be cancelled.')
+        return redirect('order_receipt', order_id=order.id)
+    if request.method == 'POST':
+        reason = strip_tags(request.POST.get('cancellation_reason', '').strip())
+        order.status = 'cancelled'
+        order.cancellation_reason = reason[:500] if reason else 'Cancelled by customer'
+        order.cancelled_at = timezone.now()
+        order.save(update_fields=['status', 'cancellation_reason', 'cancelled_at'])
+        messages.success(request, f'Order #{order.id} has been cancelled.')
+        return redirect('dashboard')
+    return render(request, 'orders/cancel_order.html', {'order': order})
+
+
+# ============================================================
+# MY ORDERS VIEW
+# ============================================================
+@login_required
+def my_orders_view(request):
+    orders = Order.objects.filter(
+        client=request.user
+    ).select_related('station', 'delivery_zone').order_by('-created_at')
+    for order in orders:
+        order.can_cancel = order.status in ['pending', 'paid']
+    status_filter = request.GET.get('status', '').strip()
+    if status_filter and status_filter in dict(Order.STATUS_CHOICES).keys():
+        orders = orders.filter(status=status_filter)
+    paginator = Paginator(orders, 10)
+    page_number = request.GET.get('page')
+    page_obj = paginator.get_page(page_number)
+    return render(request, 'orders/my_orders.html', {
+        'page_obj': page_obj,
+        'orders': page_obj.object_list,
+        'status_filter': status_filter,
+        'status_choices': Order.STATUS_CHOICES,
+    })
+
+
+# ============================================================
+# DOWNLOAD ORDER FILE VIEW
+# ============================================================
+@login_required
+def download_order_file_view(request, order_id):
+    if not str(order_id).isdigit():
+        return HttpResponseForbidden('Invalid order ID.')
+    order = get_object_or_404(Order, id=int(order_id))
+    user = request.user
+    if _user_role(user) not in ('admin', 'agent') and order.client != user:
+        return HttpResponseForbidden('You do not have permission to download this file.')
+    if not order.file:
+        messages.error(request, 'File not found.')
+        return redirect('dashboard')
+    import mimetypes
+    content_type, _ = mimetypes.guess_type(order.file_name)
+    response = FileResponse(order.file.open('rb'), content_type=content_type or 'application/octet-stream')
+    response['Content-Disposition'] = f'attachment; filename="{order.file_name}"'
+    return response
+
+
+# ============================================================
+# PAYMENT PAGE VIEW
+# ============================================================
+@login_required
+def payment_page_view(request, order_id):
+    if not str(order_id).isdigit():
+        return HttpResponseForbidden('Invalid order ID.')
+    order = get_object_or_404(Order.objects.select_related('station', 'delivery_zone'), id=int(order_id))
+    if order.client != request.user:
+        return HttpResponseForbidden('You can only pay for your own orders.')
+    if order.status != 'pending':
+        messages.info(request, 'This order has already been paid or is being processed.')
+        return redirect('order_receipt', order_id=order.id)
+    return render(request, 'orders/payment.html', {'order': order})
+
+
+# ============================================================
+# TRACK ORDER VIEW
+# ============================================================
+def order_track_view(request):
+    orders = None
+    lookup_error = None
+    order_id = request.GET.get('order_id', '').strip() or request.POST.get('order_id', '').strip()
+    email = request.GET.get('email', '').strip() or request.POST.get('email', '').strip()
+    
+    if order_id or email:
+        if order_id:
+            if str(order_id).isdigit():
+                orders = Order.objects.select_related('station', 'client', 'delivery_zone').filter(id=int(order_id))
+            if not orders or not orders.exists():
+                lookup_error = 'No order found with that order ID.'
+                orders = None
+        elif email:
+            try:
+                from django.core.validators import validate_email
+                validate_email(email)
+                orders = Order.objects.filter(client__email__iexact=email).select_related('station', 'client', 'delivery_zone').order_by('-created_at')
+                if not orders.exists():
+                    lookup_error = 'No orders found for that email address.'
+                    orders = None
+            except ValidationError:
+                lookup_error = 'Invalid email address.'
+    
+    timeline_steps = [
+        ('submitted', 'Submitted', 'created_at'),
+        ('paid', 'Paid', 'paid_at'),
+        ('printing', 'Printing', 'printing_at'),
+        ('in_transit', 'In Transit', 'in_transit_at'),
+        ('ready', 'Ready for Pickup', 'ready_at'),
+        ('collected', 'Collected', 'collected_at'),
+    ]
+    order_timelines = []
+    if orders:
+        status_step_map = {
+            'pending': 0, 'paid': 1, 'printing': 2,
+            'in_transit': 3, 'ready': 4, 'collected': 5
         }
+        for order in orders:
+            current_step = status_step_map.get(order.status, 0)
+            if order.status == 'cancelled':
+                current_step = -1
+            steps = []
+            for i, (key, label, ts_field) in enumerate(timeline_steps):
+                ts = getattr(order, ts_field, None)
+                if order.status == 'cancelled':
+                    state = 'cancelled'
+                elif i < current_step:
+                    state = 'completed'
+                elif i == current_step:
+                    state = 'current'
+                else:
+                    state = 'future'
+                steps.append({
+                    'key': key,
+                    'label': label,
+                    'timestamp': ts,
+                    'state': state
+                })
+            order_timelines.append({
+                'order': order,
+                'steps': steps,
+                'estimated_ready': order.estimated_ready_at(),
+                'is_overdue': order.is_overdue,
+                'progress_width': int(current_step / (len(timeline_steps) - 1) * 100) if len(timeline_steps) > 1 and current_step >= 0 else 0,
+            })
+    return render(request, 'orders/track.html', {
+        'orders': orders,
+        'order_timelines': order_timelines,
+        'lookup_error': lookup_error,
+        'query_order_id': order_id,
+        'query_email': email,
+    })
 
-    @property
-    def is_passport_photo(self):
-        """Check if this is a passport photo order."""
-        return self.order_type == 'passport'
 
-    @property
-    def is_scanned_document(self):
-        """Check if this is a scanned document order."""
-        return self.order_type == 'scanned'
+# ============================================================
+# HOME VIEW
+# ============================================================
+def home_view(request):
+    try:
+        total_orders = Order.objects.count()
+        stations = Station.objects.filter(is_active=True).count()
+    except Exception:
+        total_orders = 0
+        stations = 0
+    return render(request, 'home.html', {
+        'total_orders': total_orders,
+        'total_stations': stations
+    })
 
-    @property
-    def total_sheets(self):
-        """Calculate total physical sheets needed."""
-        _, effective_pages, _ = self.compute_price(
-            self.page_count, self.is_color, self.is_double_sided,
-            self.binding, 0, self.order_type, self.paper_size, self.copies
-        )
-        return effective_pages
 
-    @property
-    def effective_page_count(self):
-        """Get effective page count for display."""
-        if self.order_type == 'passport':
-            return self.copies
-        return self.page_count
-
-    # ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-    # SAVE - Only calculates price if total_price is 0
-    # ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-    def save(self, *args, **kwargs):
-        is_new = self._state.adding
-
-        # ONLY calculate price if total_price is 0 (JavaScript/View didn't provide one)
-        if self.total_price == 0:
-            self.calculate_price()
-
-        # Track old status for signal handling
-        if not is_new:
-            try:
-                old_instance = Order.objects.get(pk=self.pk)
-                self._old_status = old_instance.status
-            except Order.DoesNotExist:
-                self._old_status = None
-        else:
-            self._old_status = None
-
-        # Set cancelled timestamp
-        if self.status == 'cancelled' and not self.cancelled_at:
-            self.cancelled_at = timezone.now()
-
-        super().save(*args, **kwargs)
-
-    def __str__(self):
-        order_type_display = dict(self.ORDER_TYPE_CHOICES).get(self.order_type, 'Document')
-        return f"{order_type_display} Order #{self.id} by {self.client.username}"
+# ============================================================
+# ALL LINKS VIEW
+# ============================================================
+def all_links_view(request):
+    links_data = [
+        ('home', 'Home', 'Landing page'),
+        ('dashboard', 'Client Dashboard', 'View your past orders'),
+        ('upload', 'Upload / Place Order', 'Upload files for printing'),
+        ('track_order', 'Track Order', 'Track order status by ID or email'),
+        ('admin_dashboard', 'Admin Dashboard', 'Admin overview and management'),
+        ('agent_dashboard', 'Agent Dashboard', 'Station agent dashboard'),
+        ('live_board', 'Live Board', 'Full screen live board'),
+        ('login', 'Login', 'User login page'),
+        ('register', 'Register', 'User registration page'),
+    ]
+    links = []
+    for url_name, name, desc in links_data:
+        try:
+            url = reverse(url_name)
+        except Exception:
+            url = '#'
+        links.append({'name': name, 'url': url, 'desc': desc})
+    links.append({
+        'name': 'Django Admin',
+        'url': '/admin/',
+        'desc': 'Built-in database admin panel'
+    })
+    return render(request, 'all_links.html', {'links': links})
