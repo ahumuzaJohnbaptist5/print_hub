@@ -10,7 +10,8 @@ from django.utils.html import strip_tags
 from django.http import HttpResponseForbidden
 from django.contrib.auth import get_user_model
 
-from orders.models import Orderfrom orders.utils import apply_order_status_change, send_delayed_order_email
+from orders.models import Order
+from orders.utils import apply_order_status_change, send_delayed_order_email
 from .helpers import _user_role, _is_staff_role, is_agent_or_admin
 
 User = get_user_model()
