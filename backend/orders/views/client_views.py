@@ -58,7 +58,7 @@ def dashboard_view(request):
 
 
 # ============================================================
-# UPLOAD VIEW - FIXED WITH PASSPORT 6/12 OPTIONS
+# UPLOAD VIEW - FIXED WITH PASSPORT FORCE
 # ============================================================
 @transaction.atomic
 def upload_view(request):
@@ -145,6 +145,13 @@ def upload_view(request):
         try:
             page_count_int = int(page_count)
             copies_int = int(copies)
+            
+            # ============================================================
+            # 🆕 FORCE: If passport and copies is 1, force to 6
+            # ============================================================
+            if order_type == 'passport' and copies_int == 1:
+                copies_int = 6
+                logger.warning(f"📸 FORCED passport copies from 1 to 6")
             
             if page_count_int < 1:
                 raise ValueError("Page count must be at least 1")
