@@ -299,6 +299,21 @@ const infoTexts={
 };
 
 // ============================================================
+// 🆕 DEBUG FUNCTION
+// ============================================================
+function debugOrderType() {
+    const orderType = document.getElementById('order_type').value;
+    const mode = currentMode;
+    console.log('🔍 DEBUG:');
+    console.log('  Current Mode:', mode);
+    console.log('  Order Type Hidden Field:', orderType);
+    console.log('  Passport Data:', document.getElementById('passport-data')?.value ? 'Yes' : 'No');
+    console.log('  Scanner Data:', document.getElementById('scanner-data')?.value ? 'Yes' : 'No');
+    console.log('  File:', document.getElementById('file').files[0]?.name || 'No file');
+    return orderType;
+}
+
+// ============================================================
 // HELPER: Sync Passport Hidden Fields
 // ============================================================
 function syncPassportValues() {
@@ -381,7 +396,7 @@ function switchMode(mode){
 }
 
 // ============================================================
-// 🆕 FIXED: DIRECT CLIENT-SIDE FILE PROCESSING (No API dependency)
+// DIRECT CLIENT-SIDE FILE PROCESSING
 // ============================================================
 document.getElementById('file').addEventListener('change', function(e) {
     const file = e.target.files[0];
@@ -405,7 +420,7 @@ document.getElementById('file').addEventListener('change', function(e) {
 });
 
 // ============================================================
-// 🆕 CLIENT-SIDE FILE PROCESSING
+// CLIENT-SIDE FILE PROCESSING
 // ============================================================
 function processFileClientSide(file) {
     const ext = file.name.split('.').pop().toLowerCase();
@@ -421,7 +436,6 @@ function processFileClientSide(file) {
     let previewHtml = '';
     
     if (ext === 'pdf') {
-        // Count PDF pages
         pageCountStatus.textContent = '📄 Reading PDF...';
         const reader = new FileReader();
         reader.onload = function(e) {
@@ -432,7 +446,6 @@ function processFileClientSide(file) {
                 document.getElementById('file-pages').textContent = pageCount;
                 pageCountStatus.textContent = '✅ ' + pageCount + ' page(s) detected';
                 
-                // Get first page preview
                 pdf.getPage(1).then(function(page) {
                     const viewport = page.getViewport({scale: 0.5});
                     const canvas = document.createElement('canvas');
@@ -459,7 +472,6 @@ function processFileClientSide(file) {
         reader.readAsArrayBuffer(file);
         
     } else if (['jpg', 'jpeg', 'png'].includes(ext)) {
-        // Image preview
         pageCountStatus.textContent = '🖼️ Processing image...';
         const reader = new FileReader();
         reader.onload = function(e) {
@@ -472,7 +484,6 @@ function processFileClientSide(file) {
         reader.readAsDataURL(file);
         
     } else if (ext === 'docx') {
-        // DOCX preview
         pageCountStatus.textContent = '📝 Reading Word document...';
         const reader = new FileReader();
         reader.onload = function(e) {
@@ -499,7 +510,6 @@ function processFileClientSide(file) {
         reader.readAsArrayBuffer(file);
         
     } else if (ext === 'pptx') {
-        // PPTX preview
         pageCountStatus.textContent = '📊 Reading PowerPoint...';
         const reader = new FileReader();
         reader.onload = function(e) {
@@ -527,7 +537,6 @@ function processFileClientSide(file) {
         reader.readAsArrayBuffer(file);
         
     } else if (ext === 'txt') {
-        // Text file preview
         pageCountStatus.textContent = '📄 Reading text file...';
         const reader = new FileReader();
         reader.onload = function(e) {
@@ -548,7 +557,6 @@ function processFileClientSide(file) {
         reader.readAsText(file);
         
     } else {
-        // Unknown file type
         const estimatedPages = Math.max(1, Math.ceil(file.size / 3000));
         document.getElementById('page_count').value = estimatedPages;
         document.getElementById('file-pages').textContent = estimatedPages + ' (est.)';
@@ -559,7 +567,7 @@ function processFileClientSide(file) {
 }
 
 // ============================================================
-// 🆕 HELPER: Format File Size
+// HELPER: Format File Size
 // ============================================================
 function formatFileSize(bytes) {
     if (bytes < 1024) return bytes + ' B';
@@ -887,11 +895,35 @@ priceTriggers.forEach(t=>t.addEventListener('change',calculatePrice));
 calculatePrice();
 
 // ============================================================
-// FORM SUBMIT
+// 🆕 FORM SUBMIT WITH DEBUG
 // ============================================================
 document.getElementById('upload-form').addEventListener('submit', function(e) {
+    console.log('🚀 FORM SUBMITTED');
+    console.log('  Current Mode:', currentMode);
+    
+    // Force correct order_type based on mode
     if (currentMode === 'passport') {
         document.getElementById('order_type').value = 'passport';
+        console.log('  📸 Forcing order_type = passport');
+    } else if (currentMode === 'scanner') {
+        document.getElementById('order_type').value = 'scanned';
+        console.log('  📄 Forcing order_type = scanned');
+    } else {
+        document.getElementById('order_type').value = 'document';
+        console.log('  📄 Forcing order_type = document');
+    }
+    
+    console.log('  ✅ Final order_type:', document.getElementById('order_type').value);
+    
+    // Show all form data in console
+    const formData = new FormData(this);
+    for (let [key, value] of formData.entries()) {
+        if (key !== 'csrfmiddlewaretoken' && key !== 'passport_data' && key !== 'scanner_data') {
+            console.log(`  ${key}:`, value);
+        }
+    }
+    
+    if (currentMode === 'passport') {
         var copiesVal = document.getElementById('passport-copies').value;
         document.getElementById('page_count').value = copiesVal;
         document.getElementById('copies').value = copiesVal;
@@ -906,6 +938,7 @@ document.getElementById('upload-form').addEventListener('submit', function(e) {
         if (discountApplied) finalPrice = Math.max(0, finalPrice - discountValue);
         
         document.getElementById('calculated_price').value = finalPrice;
+        console.log('  💰 Passport final price:', finalPrice);
     } else if (currentMode === 'scanner') {
         document.getElementById('order_type').value = 'scanned';
         document.getElementById('copies').value = '1';
