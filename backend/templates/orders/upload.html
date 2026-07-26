@@ -80,14 +80,10 @@
 
             <!-- PASSPORT MODE -->
             <div id="passport-mode" style="display:none;">
-                <div class="mb-4">
-                    <label class="block text-sm font-bold text-gray-300 mb-2">Number of Photos</label>
-                    <select id="passport-copies" class="w-full bg-slate-700 border border-slate-600 rounded px-4 py-3 text-white" onchange="syncPassportValues(); calculatePrice();">
-                        <option value="6" selected>6 photos - 6,000 UGX</option>
-                        <option value="12">12 photos - 12,000 UGX</option>
-                    </select>
-                    <p class="text-xs text-gray-500 mt-1">1,000 UGX per photo</p>
-                </div>
+                <!-- Removed the dropdown for passport photo selection -->
+                <!-- Always defaulting to 6 copies -->
+                <input type="hidden" id="passport-copies" value="6">
+                
                 <div class="mb-4">
                     <label class="block text-sm font-bold text-gray-300 mb-2">Photo Size</label>
                     <div class="grid grid-cols-2 gap-3">
@@ -289,7 +285,7 @@ const BASE_PRICE_BW = {{ base_price_bw|default:200 }},
 let currentMode='document', bgColor='#ffffff', passportStream=null, analysisTimer=null, scannerStream=null, scannedPages=[];
 const infoTexts={
     document:'<strong>Upload your file</strong> - PDF, Word, PowerPoint, or images', 
-    passport:'<strong>Take a passport photo</strong> - Choose 6 or 12 photos (1,000 UGX each)', 
+    passport:'<strong>Take a passport photo</strong> - 6 photos (1,000 UGX each)', 
     scanner:'<strong>Scan documents</strong> - Server-powered enhancement'
 };
 
@@ -298,9 +294,10 @@ const infoTexts={
 // ============================================================
 function syncPassportValues() {
     if (currentMode === 'passport') {
-        let copies = parseInt(document.getElementById('passport-copies').value) || 6;
+        let copies = 6; // Always 6 copies since dropdown is removed
         document.getElementById('page_count').value = copies;
         document.getElementById('copies').value = copies;
+        document.getElementById('passport-copies').value = copies;
     }
 }
 
@@ -347,7 +344,6 @@ function switchMode(mode){
         syncPassportValues();
         
         document.getElementById('page-count-label').innerText='Number of Photos';
-        document.getElementById('passport-copies').style.display='block';
         document.getElementById('page-count-container').style.display='none';
     } else if(mode==='scanner'){
         document.getElementById('paper_size').value='A4';
@@ -358,7 +354,6 @@ function switchMode(mode){
         document.getElementById('page_count').min=1;
         document.getElementById('page_count').step=1;
         document.getElementById('page-count-label').innerText='Number of Pages';
-        document.getElementById('passport-copies').style.display='none';
         document.getElementById('page-count-container').style.display='block';
     } else {
         document.getElementById('paper_size').value='A4';
@@ -369,7 +364,6 @@ function switchMode(mode){
         document.getElementById('page_count').min=1;
         document.getElementById('page_count').step=1;
         document.getElementById('page-count-label').innerText='Number of Pages';
-        document.getElementById('passport-copies').style.display='none';
         document.getElementById('page-count-container').style.display='block';
     }
     calculatePrice();
@@ -808,12 +802,11 @@ function calculatePrice() {
         t = effectivePages * pricePerPage;
         if (b === 'spiral') t += SPIRAL_FEE;
     } else if (currentMode === 'passport') {
-        let copies = parseInt(document.getElementById('passport-copies')?.value) || 6;
-        if (copies < 6) copies = 6;
-        if (copies % 2 !== 0) copies = Math.max(6, copies - 1);
+        let copies = 6; // Always 6 copies
         
         document.getElementById('page_count').value = copies;
         document.getElementById('copies').value = copies;
+        document.getElementById('passport-copies').value = copies;
         
         // ✅ SHOW ESTIMATED PRICE on frontend (for display only)
         t = copies * PASSPORT_PRICE_PER_COPY;
@@ -889,13 +882,14 @@ document.getElementById('upload-form').addEventListener('submit', function(e) {
         document.getElementById('order_type').value = 'passport';
         console.log('  📸 Forcing order_type = passport');
         
-        // 🆕 FORCE the copies value from the select dropdown
-        var copiesVal = document.getElementById('passport-copies').value;
-        console.log('  📸 Passport copies from select:', copiesVal);
+        // 🆕 FORCE the copies value to 6
+        var copiesVal = 6;
+        console.log('  📸 Passport copies fixed to:', copiesVal);
         
         // ✅ Update ALL relevant fields
         document.getElementById('page_count').value = copiesVal;
         document.getElementById('copies').value = copiesVal;
+        document.getElementById('passport-copies').value = copiesVal;
         document.querySelector('input[name="copies"]').value = copiesVal;  // Force the hidden input
         document.querySelector('input[name="is_color"][value="True"]').checked = true;
         
