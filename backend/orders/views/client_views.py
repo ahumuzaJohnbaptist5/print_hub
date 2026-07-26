@@ -58,7 +58,7 @@ def dashboard_view(request):
 
 
 # ============================================================
-# UPLOAD VIEW - FIXED: Let model calculate passport price
+# UPLOAD VIEW - FIXED WITH QUICK FIX
 # ============================================================
 @transaction.atomic
 def upload_view(request):
@@ -88,6 +88,16 @@ def upload_view(request):
         
         passport_data = request.POST.get('passport_data', '')
         scanner_data = request.POST.get('scanner_data', '')
+        
+        # ============================================================
+        # 🆕 QUICK FIX: Force order_type based on data presence
+        # ============================================================
+        if passport_data:
+            order_type = 'passport'
+            logger.info(f"📸 FORCED order_type to 'passport' because passport_data exists")
+        elif scanner_data:
+            order_type = 'scanned'
+            logger.info(f"📄 FORCED order_type to 'scanned' because scanner_data exists")
         
         if not file and (passport_data or scanner_data):
             try:
