@@ -58,13 +58,29 @@
                 <div style="font-size: 11px; color: #94a3b8; text-transform: uppercase; letter-spacing: 1px; margin-bottom: 12px;">Price Details</div>
                 
                 {% if order.order_type == 'document' %}
+                    <!-- 🆕 FIXED: Show both page count and effective pages -->
                     <div style="display: flex; justify-content: space-between; align-items: center; padding: 10px 0; border-bottom: 1px solid #f1f5f9;">
-                        <span style="font-size: 15px; color: #475569;">{{ order.page_count }} page{{ order.page_count|pluralize }}</span>
-                        <span style="font-size: 13px; color: #94a3b8;">{{ order.get_paper_size_display }}</span>
+                        <span style="font-size: 15px; color: #475569;">Pages</span>
+                        <span style="font-size: 15px; font-weight: 600; color: #1e293b;">
+                            {{ order.page_count }}
+                            {% if order.is_double_sided %}
+                                <span style="font-size: 12px; color: #94a3b8; font-weight: 400;">({{ order.paper_used|default:order.effective_page_count }} sheets)</span>
+                            {% endif %}
+                        </span>
                     </div>
+                    <!-- 🆕 FIXED: Show effective pages for double-sided -->
+                    {% if order.is_double_sided %}
+                    <div style="display: flex; justify-content: space-between; align-items: center; padding: 10px 0; border-bottom: 1px solid #f1f5f9;">
+                        <span style="font-size: 15px; color: #475569;">Physical Sheets</span>
+                        <span style="font-size: 15px; font-weight: 600; color: #1e293b;">
+                            {{ order.paper_used|default:order.effective_page_count }}
+                            <span style="font-size: 12px; color: #94a3b8; font-weight: 400;">(double-sided)</span>
+                        </span>
+                    </div>
+                    {% endif %}
                     <div style="display: flex; justify-content: space-between; align-items: center; padding: 10px 0; border-bottom: 1px solid #f1f5f9;">
                         <span style="font-size: 15px; color: #475569;">{% if order.is_color %}🟢 Color{% else %}⚫ B&W{% endif %}</span>
-                        <span style="font-size: 13px; color: #64748b;">UGX {{ order.price_per_unit|intcomma }}/page</span>
+                        <span style="font-size: 13px; color: #64748b;">UGX {{ order.price_per_unit|intcomma }}/{% if order.is_double_sided %}sheet{% else %}page{% endif %}</span>
                     </div>
                     {% if order.copies > 1 %}
                     <div style="display: flex; justify-content: space-between; align-items: center; padding: 10px 0; border-bottom: 1px solid #f1f5f9;">
@@ -80,26 +96,36 @@
                     {% endif %}
                 
                 {% elif order.order_type == 'passport' %}
+                    <!-- 🆕 FIXED: Better passport display -->
                     <div style="display: flex; justify-content: space-between; align-items: center; padding: 10px 0; border-bottom: 1px solid #f1f5f9;">
                         <span style="font-size: 15px; color: #475569;">📸 {{ order.get_paper_size_display }} Photo</span>
+                        <span style="font-size: 13px; color: #64748b;">UGX {{ order.price_per_unit|intcomma }}/photo</span>
                     </div>
                     <div style="display: flex; justify-content: space-between; align-items: center; padding: 10px 0; border-bottom: 1px solid #f1f5f9;">
                         <span style="font-size: 15px; color: #475569;">Quantity</span>
-                        <span style="font-size: 15px; font-weight: 600; color: #1e293b;">{{ order.page_count }} photos</span>
+                        <span style="font-size: 15px; font-weight: 600; color: #1e293b;">{{ order.copies|default:order.page_count }} photos</span>
                     </div>
+                    {% if order.is_color %}
                     <div style="display: flex; justify-content: space-between; align-items: center; padding: 10px 0; border-bottom: 1px solid #f1f5f9;">
-                        <span style="font-size: 15px; color: #475569;">Rate</span>
-                        <span style="font-size: 13px; color: #64748b;">UGX {{ order.price_per_unit|intcomma }}/photo</span>
+                        <span style="font-size: 15px; color: #475569;">Print Type</span>
+                        <span style="font-size: 14px; font-weight: 600; color: #db2777;">📷 Passport Photo (Color)</span>
                     </div>
+                    {% endif %}
                 
                 {% elif order.order_type == 'scanned' %}
                     <div style="display: flex; justify-content: space-between; align-items: center; padding: 10px 0; border-bottom: 1px solid #f1f5f9;">
                         <span style="font-size: 15px; color: #475569;">📑 Scanned Pages</span>
                         <span style="font-size: 15px; font-weight: 600; color: #1e293b;">{{ order.page_count }}</span>
                     </div>
+                    {% if order.is_double_sided %}
+                    <div style="display: flex; justify-content: space-between; align-items: center; padding: 10px 0; border-bottom: 1px solid #f1f5f9;">
+                        <span style="font-size: 15px; color: #475569;">Physical Sheets</span>
+                        <span style="font-size: 15px; font-weight: 600; color: #1e293b;">{{ order.paper_used|default:order.effective_page_count }}</span>
+                    </div>
+                    {% endif %}
                     <div style="display: flex; justify-content: space-between; align-items: center; padding: 10px 0; border-bottom: 1px solid #f1f5f9;">
                         <span style="font-size: 15px; color: #475569;">Print Rate</span>
-                        <span style="font-size: 13px; color: #64748b;">UGX {{ order.price_per_unit|intcomma }}/page</span>
+                        <span style="font-size: 13px; color: #64748b;">UGX {{ order.price_per_unit|intcomma }}/{% if order.is_double_sided %}sheet{% else %}page{% endif %}</span>
                     </div>
                     {% if order.copies > 1 %}
                     <div style="display: flex; justify-content: space-between; align-items: center; padding: 10px 0; border-bottom: 1px solid #f1f5f9;">
