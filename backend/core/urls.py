@@ -44,6 +44,7 @@ urlpatterns = [
     
     # Order Details & Actions
     path('orders/<int:order_id>/receipt/', client_views.order_receipt_view, name='order_receipt'),
+    path('orders/<int:order_id>/passport-receipt/', client_views.passport_receipt_view, name='passport_receipt'),
     path('orders/<int:order_id>/payment/', client_views.payment_page_view, name='payment_page'),
     path('orders/<int:order_id>/cancel/', client_views.cancel_order_view, name='cancel_order'),
     path('orders/<int:order_id>/download/', client_views.download_order_file_view, name='download_order_file'),
