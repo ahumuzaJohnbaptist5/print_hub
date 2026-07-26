@@ -10,7 +10,7 @@ from django.urls import reverse, NoReverseMatch
 # Import views - Using modular imports
 from orders.views import (
     client_views, admin_views, agent_views, 
-    api_views, live_board_views
+    api_views, live_board_views, file_views
 )
 from accounts import views as accounts_views
 
