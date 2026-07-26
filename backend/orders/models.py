@@ -154,6 +154,13 @@ class Order(models.Model):
     cancellation_reason = models.TextField(blank=True, default='', help_text="Reason for cancellation")
     cancelled_at = models.DateTimeField(blank=True, null=True)
 
+    # ============================================================
+    # 🆕 FILE PROCESSING FIELDS
+    # ============================================================
+    file_metadata = models.JSONField(blank=True, default=dict, help_text="File metadata from processing")
+    file_preview = models.TextField(blank=True, default='', help_text="Text preview of file content")
+    file_thumbnail = models.TextField(blank=True, default='', help_text="Base64 thumbnail for images")
+
     # Pricing constants
     BASE_PRICE_BW = 200
     COLOR_SURCHARGE = 100
