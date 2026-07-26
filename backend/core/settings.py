@@ -62,6 +62,7 @@ INSTALLED_APPS = [
     'finances',
     'notifications',
     'whatsapp_bot',
+    'file_processor',
 ]
 
 MIDDLEWARE = [
