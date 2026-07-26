@@ -49,9 +49,32 @@
                     </label>
                     <div id="page-count-status" class="text-sm mt-2 text-gray-400 text-center h-5"></div>
                 </div>
+                
+                <!-- ENHANCED PREVIEW CONTAINER -->
                 <div id="preview-container" class="mb-6 hidden">
-                    <label class="block text-sm font-bold text-gray-300 mb-2">Document Preview</label>
-                    <div id="preview-content" class="border border-slate-600 rounded p-4 bg-slate-700/30 max-h-80 overflow-auto"></div>
+                    <label class="block text-sm font-bold text-gray-300 mb-2">📄 Document Preview</label>
+                    <div id="preview-content" class="border border-slate-600 rounded p-4 bg-slate-700/30 max-h-80 overflow-auto">
+                        <!-- Preview content will be inserted here -->
+                    </div>
+                    <!-- 🆕 Enhanced file info -->
+                    <div id="file-info" class="mt-3 grid grid-cols-2 gap-2 text-sm hidden">
+                        <div class="bg-slate-700/50 rounded p-2">
+                            <span class="text-gray-400">File Type:</span>
+                            <span id="file-type" class="text-white font-medium ml-2">-</span>
+                        </div>
+                        <div class="bg-slate-700/50 rounded p-2">
+                            <span class="text-gray-400">File Size:</span>
+                            <span id="file-size" class="text-white font-medium ml-2">-</span>
+                        </div>
+                        <div class="bg-slate-700/50 rounded p-2">
+                            <span class="text-gray-400">Pages/Sheets:</span>
+                            <span id="file-pages" class="text-white font-medium ml-2">-</span>
+                        </div>
+                        <div class="bg-slate-700/50 rounded p-2">
+                            <span class="text-gray-400">Status:</span>
+                            <span id="file-status" class="text-green-400 font-medium ml-2">✅ Valid</span>
+                        </div>
+                    </div>
                 </div>
             </div>
 
@@ -269,7 +292,7 @@ const BASE_PRICE_BW = {{ base_price_bw|default:200 }},
 
 let currentMode='document', bgColor='#ffffff', passportStream=null, analysisTimer=null, scannerStream=null, scannedPages=[];
 const infoTexts={
-    document:'<strong>Upload your file</strong>', 
+    document:'<strong>Upload your file</strong> - PDF, Word, PowerPoint, or images', 
     passport:'<strong>Take a passport photo</strong> - 1,000 UGX per photo (min 4)', 
     scanner:'<strong>Scan documents</strong> - Server-powered enhancement'
 };
@@ -325,7 +348,6 @@ function switchMode(mode){
         document.getElementById('double-sided-option').style.opacity='0.4';
         document.getElementById('double-sided-option').style.pointerEvents='none';
         
-        // Sync values immediately
         syncPassportValues();
         
         document.getElementById('page-count-label').innerText='Number of Photos';
@@ -358,81 +380,113 @@ function switchMode(mode){
 }
 
 // ============================================================
-// FILE UPLOAD HANDLER - Count pages automatically
+// 🆕 ENHANCED FILE UPLOAD HANDLER with Preview
 // ============================================================
 document.getElementById('file').addEventListener('change', function(e) {
     const file = e.target.files[0];
     if (!file) return;
+    
     document.getElementById('dropzone-text').innerText = file.name;
     document.getElementById('dropzone-text').classList.add('font-bold');
     const ext = file.name.split('.').pop().toLowerCase();
+    const previewContainer = document.getElementById('preview-container');
+    const previewContent = document.getElementById('preview-content');
+    const fileInfo = document.getElementById('file-info');
     
-    if (ext === 'pdf') {
-        document.getElementById('page-count-status').innerText = 'Reading PDF...';
-        const reader = new FileReader();
-        reader.onload = function(e) {
-            const typedarray = new Uint8Array(e.target.result);
-            pdfjsLib.getDocument(typedarray).promise.then(function(pdf) {
-                document.getElementById('page_count').value = pdf.numPages;
-                document.getElementById('page-count-status').innerText = pdf.numPages + ' page(s) detected';
-                document.getElementById('preview-container').classList.remove('hidden');
-                document.getElementById('preview-content').innerHTML = '<p class="text-green-400">PDF loaded: ' + pdf.numPages + ' pages</p>';
-                calculatePrice();
-            }).catch(function(err) {
-                document.getElementById('page-count-status').innerText = 'Error reading PDF. Enter pages manually.';
-            });
-        };
-        reader.readAsArrayBuffer(file);
-    } else if (ext === 'docx') {
-        document.getElementById('page-count-status').innerText = 'Reading DOCX...';
-        const reader = new FileReader();
-        reader.onload = function(e) {
-            mammoth.extractRawText({arrayBuffer: e.target.result}).then(function(result) {
-                const words = result.value.split(/\s+/).length;
-                const estimatedPages = Math.max(1, Math.ceil(words / 500));
-                document.getElementById('page_count').value = estimatedPages;
-                document.getElementById('page-count-status').innerText = '~' + estimatedPages + ' page(s) estimated (' + words + ' words)';
-                document.getElementById('preview-container').classList.remove('hidden');
-                document.getElementById('preview-content').innerHTML = '<p class="text-yellow-400">DOCX loaded: ~' + estimatedPages + ' pages</p>';
-                calculatePrice();
-            }).catch(function(err) {
-                document.getElementById('page-count-status').innerText = 'Error reading DOCX.';
-            });
-        };
-        reader.readAsArrayBuffer(file);
-    } else if (ext === 'pptx' || ext === 'ppt') {
-        document.getElementById('page-count-status').innerText = 'Reading PPTX...';
-        const reader = new FileReader();
-        reader.onload = function(e) {
-            JSZip.loadAsync(e.target.result).then(function(zip) {
-                const slides = Object.keys(zip.files).filter(name =>
-                    name.startsWith('ppt/slides/slide') && name.endsWith('.xml')
-                );
-                const estimatedPages = Math.max(1, Math.ceil(slides.length / 2));
-                document.getElementById('page_count').value = estimatedPages;
-                document.getElementById('page-count-status').innerText = '~' + estimatedPages + ' page(s) (' + slides.length + ' slides)';
-                document.getElementById('preview-container').classList.remove('hidden');
-                document.getElementById('preview-content').innerHTML = '<p class="text-yellow-400">PPTX: ' + slides.length + ' slides, ~' + estimatedPages + ' pages</p>';
-                calculatePrice();
-            }).catch(function(err) {
-                document.getElementById('page-count-status').innerText = 'Error reading PPTX.';
-            });
-        };
-        reader.readAsArrayBuffer(file);
-    } else if (['png', 'jpg', 'jpeg'].includes(ext)) {
-        document.getElementById('page_count').value = 1;
-        document.getElementById('page-count-status').innerText = '1 page (image)';
-        document.getElementById('preview-container').classList.remove('hidden');
-        document.getElementById('preview-content').innerHTML = '<img src="' + URL.createObjectURL(file) + '" class="max-h-60 mx-auto rounded">';
-        calculatePrice();
-    } else {
-        const estimatedPages = Math.max(1, Math.ceil(file.size / 3000));
-        document.getElementById('page_count').value = estimatedPages;
-        document.getElementById('page-count-status').innerText = '~' + estimatedPages + ' page(s) estimated';
-        calculatePrice();
-    }
+    // Show loading state
+    previewContainer.classList.remove('hidden');
+    previewContent.innerHTML = '<div class="text-center py-4"><div class="animate-spin w-8 h-8 border-4 border-indigo-500 border-t-transparent rounded-full mx-auto mb-2"></div><p class="text-gray-400">Processing file...</p></div>';
+    
+    // 🆕 Send file to processing API
+    const formData = new FormData();
+    formData.append('file', file);
+    
+    fetch('/file-processor/api/process-file/', {
+        method: 'POST',
+        headers: {
+            'X-CSRFToken': getCSRF(),
+        },
+        body: formData
+    })
+    .then(response => response.json())
+    .then(result => {
+        if (result.success) {
+            // Display file info
+            document.getElementById('file-type').textContent = result.info.type || 'Unknown';
+            document.getElementById('file-size').textContent = result.info.size_human || 'Unknown';
+            document.getElementById('file-pages').textContent = result.info.pages || 'N/A';
+            fileInfo.classList.remove('hidden');
+            
+            // Display preview based on file type
+            let previewHtml = '';
+            
+            if (result.preview.type === 'image' && result.preview.thumbnail) {
+                previewHtml = `<img src="${result.preview.thumbnail}" class="max-h-60 mx-auto rounded-lg border border-slate-600" alt="Preview">`;
+            } else if (result.preview.type === 'pdf') {
+                previewHtml = `
+                    <div class="text-center">
+                        <p class="text-green-400 font-bold text-lg">📄 PDF Document</p>
+                        <p class="text-gray-300">${result.preview.pages || 'Unknown'} pages</p>
+                        ${result.preview.preview ? `<div class="mt-2 bg-slate-800/50 rounded p-3 text-xs text-gray-400 max-h-40 overflow-auto">${result.preview.preview}</div>` : ''}
+                    </div>
+                `;
+            } else if (result.preview.type === 'document') {
+                previewHtml = `
+                    <div class="text-center">
+                        <p class="text-blue-400 font-bold text-lg">📝 Document</p>
+                        <div class="mt-2 bg-slate-800/50 rounded p-3 text-sm text-gray-300 max-h-40 overflow-auto">${result.preview.preview || 'No preview available'}</div>
+                    </div>
+                `;
+            } else if (result.preview.type === 'presentation') {
+                previewHtml = `
+                    <div class="text-center">
+                        <p class="text-purple-400 font-bold text-lg">📊 Presentation</p>
+                        <p class="text-gray-300">${result.preview.slides || 'Unknown'} slides</p>
+                        ${result.preview.preview ? `<div class="mt-2 bg-slate-800/50 rounded p-3 text-xs text-gray-400">${result.preview.preview}</div>` : ''}
+                    </div>
+                `;
+            } else if (result.preview.type === 'text') {
+                previewHtml = `
+                    <div class="text-center">
+                        <p class="text-gray-400 font-bold text-lg">📄 Text File</p>
+                        <div class="mt-2 bg-slate-800/50 rounded p-3 text-sm text-gray-300 max-h-40 overflow-auto whitespace-pre-wrap">${result.preview.preview || 'Empty file'}</div>
+                    </div>
+                `;
+            } else {
+                previewHtml = `<p class="text-gray-400">📎 ${result.info.name || file.name}</p>`;
+            }
+            
+            previewContent.innerHTML = previewHtml;
+            
+            // Update page count from file info if available
+            if (result.info.pages) {
+                document.getElementById('page_count').value = result.info.pages;
+            }
+            calculatePrice();
+            
+        } else {
+            // Show errors
+            previewContent.innerHTML = `
+                <div class="text-red-400 text-center py-4">
+                    <p class="font-bold">⚠️ File Processing Issues</p>
+                    <ul class="text-sm mt-2">
+                        ${(result.errors || []).map(e => `<li>• ${e}</li>`).join('')}
+                    </ul>
+                </div>
+            `;
+            fileInfo.classList.add('hidden');
+        }
+    })
+    .catch(error => {
+        console.error('Preview error:', error);
+        // Fallback to existing behavior
+        previewContent.innerHTML = '<p class="text-gray-400 text-center">Preview not available</p>';
+    });
 });
 
+// ============================================================
+// PASSPORT CAMERA FUNCTIONS
+// ============================================================
 async function startPassportCamera(){
     try{
         passportStream=await navigator.mediaDevices.getUserMedia({video:{facingMode:'user',width:640,height:480}});
@@ -516,7 +570,6 @@ async function capturePassport(){
                 document.getElementById('retake-passport').style.display='block';
                 document.getElementById('passport-data').value=data.processed_image;
                 
-                // Sync values based on selected copies
                 syncPassportValues();
                 
                 createPassportFile(data.processed_image);
@@ -557,6 +610,9 @@ function stopPassportCamera(){
     if(analysisTimer){clearInterval(analysisTimer);analysisTimer=null}
 }
 
+// ============================================================
+// SCANNER FUNCTIONS
+// ============================================================
 async function startScannerCamera(){
     try{
         scannerStream=await navigator.mediaDevices.getUserMedia({video:{facingMode:'environment',width:{ideal:1920},height:{ideal:1080}}});
@@ -641,7 +697,7 @@ function stopScannerCamera(){
 function getCSRF(){return document.querySelector('[name=csrfmiddlewaretoken]').value}
 
 // ============================================================
-// PRICE CALCULATOR - Clear if/else for each mode
+// PRICE CALCULATOR
 // ============================================================
 const pageCountInput=document.getElementById('page_count'),
       livePrice=document.getElementById('live-price'),
@@ -685,7 +741,6 @@ function calculatePrice(){
         if (copies < 4) copies = 4;
         if (copies % 2 !== 0) copies = Math.max(4, copies - 1);
         
-        // Sync hidden fields immediately to prevent mismatches
         document.getElementById('page_count').value = copies;
         document.getElementById('copies').value = copies;
         
@@ -749,7 +804,7 @@ priceTriggers.forEach(t=>t.addEventListener('change',calculatePrice));
 calculatePrice();
 
 // ============================================================
-// FORM SUBMIT - Force correct values before sending
+// FORM SUBMIT
 // ============================================================
 document.getElementById('upload-form').addEventListener('submit', function(e) {
     if (currentMode === 'passport') {
@@ -759,7 +814,6 @@ document.getElementById('upload-form').addEventListener('submit', function(e) {
         document.getElementById('copies').value = copiesVal;
         document.querySelector('input[name="is_color"][value="True"]').checked = true;
         
-        // Recalculate exact price with delivery fee & discount just in case
         let df = 0;
         if ((document.querySelector('input[name="delivery_type"]:checked')?.value || 'pickup') === 'delivery') {
             const o = deliveryZoneSelect.options[deliveryZoneSelect.selectedIndex];
