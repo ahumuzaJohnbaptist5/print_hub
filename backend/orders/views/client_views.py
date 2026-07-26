@@ -58,7 +58,7 @@ def dashboard_view(request):
 
 
 # ============================================================
-# UPLOAD VIEW - FIXED REDIRECT
+# UPLOAD VIEW - FIXED: Let model calculate passport price
 # ============================================================
 @transaction.atomic
 def upload_view(request):
@@ -153,15 +153,16 @@ def upload_view(request):
             else:
                 notes = extra_notes
 
+            # ============================================================
+            # 🆕 FIXED: Let the model calculate passport price
+            # ============================================================
             if order_type == 'passport':
                 is_color = True
                 binding = 'none'
                 is_double_sided = False
                 page_count_int = copies_int 
-                
-                passport_base_price = copies_int * Order.PASSPORT_PHOTO_PRICE
-                delivery_fee = delivery_zone.delivery_fee if delivery_zone and delivery_type == 'delivery' else 0
-                calculated_price = str(passport_base_price + delivery_fee)
+                # ✅ Set calculated_price to 0 so model calculates it
+                calculated_price = '0'
                 
             elif order_type == 'scanned':
                 binding = 'none'
@@ -193,7 +194,9 @@ def upload_view(request):
                     if 'thumbnail' in processing_result['preview']:
                         order.file_thumbnail = processing_result['preview'].get('thumbnail', '')
             
-            if calculated_price:
+            # ✅ Only set total_price if calculated_price is NOT 0
+            # For passport, calculated_price is 0, so model calculates it
+            if calculated_price and calculated_price != '0':
                 try:
                     js_price = Decimal(str(calculated_price))
                     if js_price > 0:
@@ -236,7 +239,7 @@ def upload_view(request):
 
 
 # ============================================================
-# PASSPORT RECEIPT VIEW - DIRECT (NEW)
+# PASSPORT RECEIPT VIEW - DIRECT
 # ============================================================
 @login_required
 def passport_receipt_view(request, order_id):
