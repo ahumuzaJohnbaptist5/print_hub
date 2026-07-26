@@ -19,7 +19,7 @@ from django.conf import settings
 from django.urls import reverse
 from django.utils.html import strip_tags
 
-from stations.models import Station  # <-- FIXED: Import from correct app
+from stations.models import Station
 from orders.models import Order, DeliveryZone, Announcement
 from orders.utils import apply_order_status_change
 from .helpers import (
@@ -38,6 +38,10 @@ except ImportError:
 User = get_user_model()
 logger = logging.getLogger(__name__)
 
+
+# ============================================================
+# DASHBOARD VIEW
+# ============================================================
 @login_required
 def dashboard_view(request):
     orders = Order.objects.filter(client=request.user).order_by('-created_at')
@@ -52,6 +56,10 @@ def dashboard_view(request):
         'stats': stats,
     })
 
+
+# ============================================================
+# UPLOAD VIEW
+# ============================================================
 @transaction.atomic
 def upload_view(request):
     stations = Station.objects.all()
@@ -106,7 +114,6 @@ def upload_view(request):
                 'upload_error': upload_error,
             })
         
-        # File processing - only if file_processor is available
         processing_result = None
         if FileProcessor:
             try:
@@ -179,7 +186,6 @@ def upload_view(request):
                 copies=copies_int,
             )
             
-            # Add file metadata if processing succeeded
             if processing_result and processing_result.get('success'):
                 order.file_metadata = processing_result.get('info', {})
                 if processing_result.get('preview'):
@@ -223,4 +229,248 @@ def upload_view(request):
         'upload_error': upload_error,
     })
 
-# ... rest of client_views.py (keep your existing functions)
+
+# ============================================================
+# ORDER RECEIPT VIEW - FIXED with conditional template
+# ============================================================
+@login_required
+def order_receipt_view(request, order_id):
+    if not str(order_id).isdigit():
+        return HttpResponseForbidden('Invalid order ID.')
+    order = get_object_or_404(Order.objects.select_related('station', 'delivery_zone'), id=int(order_id))
+    if not _can_view_order(request.user, order):
+        return HttpResponseForbidden('You do not have permission to view this receipt.')
+    estimated_ready = order.estimated_ready_at()
+    payment = None
+    try:
+        from payments.models import Payment
+        payment = Payment.objects.filter(order=order).first()
+    except Exception:
+        pass
+    
+    # 🆕 Choose template based on order type
+    if order.order_type == 'passport':
+        template_name = 'orders/receipt_passport.html'
+    else:
+        template_name = 'orders/receipt.html'
+    
+    return render(request, template_name, {
+        'order': order,
+        'estimated_ready': estimated_ready,
+        'payment': payment,
+    })
+
+
+# ============================================================
+# ORDER RECEIPT VIEW - FIXED with conditional template
+# ============================================================
+@login_required
+@transaction.atomic
+def cancel_order_view(request, order_id):
+    if not str(order_id).isdigit():
+        messages.error(request, 'Invalid order ID.')
+        return redirect('dashboard')
+    try:
+        order = Order.objects.select_for_update().get(id=int(order_id))
+    except Order.DoesNotExist:
+        messages.error(request, 'Order not found.')
+        return redirect('dashboard')
+    if order.client != request.user:
+        return HttpResponseForbidden('You can only cancel your own orders.')
+    if order.status not in ['pending', 'paid']:
+        messages.error(request, 'This order cannot be cancelled.')
+        return redirect('order_receipt', order_id=order.id)
+    if request.method == 'POST':
+        reason = strip_tags(request.POST.get('cancellation_reason', '').strip())
+        order.status = 'cancelled'
+        order.cancellation_reason = reason[:500] if reason else 'Cancelled by customer'
+        order.cancelled_at = timezone.now()
+        order.save(update_fields=['status', 'cancellation_reason', 'cancelled_at'])
+        messages.success(request, f'Order #{order.id} has been cancelled.')
+        return redirect('dashboard')
+    return render(request, 'orders/cancel_order.html', {'order': order})
+
+
+# ============================================================
+# MY ORDERS VIEW
+# ============================================================
+@login_required
+def my_orders_view(request):
+    orders = Order.objects.filter(
+        client=request.user
+    ).select_related('station', 'delivery_zone').order_by('-created_at')
+    for order in orders:
+        order.can_cancel = order.status in ['pending', 'paid']
+    status_filter = request.GET.get('status', '').strip()
+    if status_filter and status_filter in dict(Order.STATUS_CHOICES).keys():
+        orders = orders.filter(status=status_filter)
+    paginator = Paginator(orders, 10)
+    page_number = request.GET.get('page')
+    page_obj = paginator.get_page(page_number)
+    return render(request, 'orders/my_orders.html', {
+        'page_obj': page_obj,
+        'orders': page_obj.object_list,
+        'status_filter': status_filter,
+        'status_choices': Order.STATUS_CHOICES,
+    })
+
+
+# ============================================================
+# DOWNLOAD ORDER FILE VIEW
+# ============================================================
+@login_required
+def download_order_file_view(request, order_id):
+    if not str(order_id).isdigit():
+        return HttpResponseForbidden('Invalid order ID.')
+    order = get_object_or_404(Order, id=int(order_id))
+    user = request.user
+    if _user_role(user) not in ('admin', 'agent') and order.client != user:
+        return HttpResponseForbidden('You do not have permission to download this file.')
+    if not order.file:
+        messages.error(request, 'File not found.')
+        return redirect('dashboard')
+    import mimetypes
+    content_type, _ = mimetypes.guess_type(order.file_name)
+    response = FileResponse(order.file.open('rb'), content_type=content_type or 'application/octet-stream')
+    response['Content-Disposition'] = f'attachment; filename="{order.file_name}"'
+    return response
+
+
+# ============================================================
+# PAYMENT PAGE VIEW
+# ============================================================
+@login_required
+def payment_page_view(request, order_id):
+    if not str(order_id).isdigit():
+        return HttpResponseForbidden('Invalid order ID.')
+    order = get_object_or_404(Order.objects.select_related('station', 'delivery_zone'), id=int(order_id))
+    if order.client != request.user:
+        return HttpResponseForbidden('You can only pay for your own orders.')
+    if order.status != 'pending':
+        messages.info(request, 'This order has already been paid or is being processed.')
+        return redirect('order_receipt', order_id=order.id)
+    return render(request, 'orders/payment.html', {'order': order})
+
+
+# ============================================================
+# TRACK ORDER VIEW
+# ============================================================
+def order_track_view(request):
+    orders = None
+    lookup_error = None
+    order_id = request.GET.get('order_id', '').strip() or request.POST.get('order_id', '').strip()
+    email = request.GET.get('email', '').strip() or request.POST.get('email', '').strip()
+    
+    if order_id or email:
+        if order_id:
+            if str(order_id).isdigit():
+                orders = Order.objects.select_related('station', 'client', 'delivery_zone').filter(id=int(order_id))
+            if not orders or not orders.exists():
+                lookup_error = 'No order found with that order ID.'
+                orders = None
+        elif email:
+            try:
+                from django.core.validators import validate_email
+                validate_email(email)
+                orders = Order.objects.filter(client__email__iexact=email).select_related('station', 'client', 'delivery_zone').order_by('-created_at')
+                if not orders.exists():
+                    lookup_error = 'No orders found for that email address.'
+                    orders = None
+            except ValidationError:
+                lookup_error = 'Invalid email address.'
+    
+    timeline_steps = [
+        ('submitted', 'Submitted', 'created_at'),
+        ('paid', 'Paid', 'paid_at'),
+        ('printing', 'Printing', 'printing_at'),
+        ('in_transit', 'In Transit', 'in_transit_at'),
+        ('ready', 'Ready for Pickup', 'ready_at'),
+        ('collected', 'Collected', 'collected_at'),
+    ]
+    order_timelines = []
+    if orders:
+        status_step_map = {
+            'pending': 0, 'paid': 1, 'printing': 2,
+            'in_transit': 3, 'ready': 4, 'collected': 5
+        }
+        for order in orders:
+            current_step = status_step_map.get(order.status, 0)
+            if order.status == 'cancelled':
+                current_step = -1
+            steps = []
+            for i, (key, label, ts_field) in enumerate(timeline_steps):
+                ts = getattr(order, ts_field, None)
+                if order.status == 'cancelled':
+                    state = 'cancelled'
+                elif i < current_step:
+                    state = 'completed'
+                elif i == current_step:
+                    state = 'current'
+                else:
+                    state = 'future'
+                steps.append({
+                    'key': key,
+                    'label': label,
+                    'timestamp': ts,
+                    'state': state
+                })
+            order_timelines.append({
+                'order': order,
+                'steps': steps,
+                'estimated_ready': order.estimated_ready_at(),
+                'is_overdue': order.is_overdue,
+                'progress_width': int(current_step / (len(timeline_steps) - 1) * 100) if len(timeline_steps) > 1 and current_step >= 0 else 0,
+            })
+    return render(request, 'orders/track.html', {
+        'orders': orders,
+        'order_timelines': order_timelines,
+        'lookup_error': lookup_error,
+        'query_order_id': order_id,
+        'query_email': email,
+    })
+
+
+# ============================================================
+# HOME VIEW
+# ============================================================
+def home_view(request):
+    try:
+        total_orders = Order.objects.count()
+        stations = Station.objects.filter(is_active=True).count()
+    except Exception:
+        total_orders = 0
+        stations = 0
+    return render(request, 'home.html', {
+        'total_orders': total_orders,
+        'total_stations': stations
+    })
+
+
+# ============================================================
+# ALL LINKS VIEW
+# ============================================================
+def all_links_view(request):
+    links_data = [
+        ('home', 'Home', 'Landing page'),
+        ('dashboard', 'Client Dashboard', 'View your past orders'),
+        ('upload', 'Upload / Place Order', 'Upload files for printing'),
+        ('track_order', 'Track Order', 'Track order status by ID or email'),
+        ('admin_dashboard', 'Admin Dashboard', 'Admin overview and management'),
+        ('agent_dashboard', 'Agent Dashboard', 'Station agent dashboard'),
+        ('live_board', 'Live Board', 'Full screen live board'),
+        ('login', 'Login', 'User login page'),
+        ('register', 'Register', 'User registration page'),
+    ]
+    links = []
+    for url_name, name, desc in links_data:
+        try:
+            url = reverse(url_name)
+        except Exception:
+            url = '#'
+        links.append({'name': name, 'url': url, 'desc': desc})
+    links.append({
+        'name': 'Django Admin',
+        'url': '/admin/',
+        'desc': 'Built-in database admin panel'
+    })
+    return render(request, 'all_links.html', {'links': links})
