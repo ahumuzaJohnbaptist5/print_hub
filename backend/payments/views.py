@@ -90,7 +90,7 @@ def payment_page(request, order_id):
         # ✅ Get merchant from database - NO FALLBACK
         merchant = MerchantSettings.get_merchant(payment_method)
         if not merchant:
-           messages.error(request, f'{payment_method.upper()} merchant not configured. Please contact support.')
+            messages.error(request, f'{payment_method.upper()} merchant not configured. Please contact support.')
             return render(request, 'payments/payment_page.html', {
                 'order': order,
                 'saved_methods': saved_methods,
@@ -148,6 +148,8 @@ def payment_page(request, order_id):
     return render(request, 'payments/payment_page.html', {
         'order': order,
         'saved_methods': saved_methods,
+        'mtn_merchant': mtn_merchant,
+        'airtel_merchant': airtel_merchant,
     })
 
 
