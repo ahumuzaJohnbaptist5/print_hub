@@ -1,73 +1,80 @@
-# PrintHub - Kabale University Printing Service 
- 
-Upload documents, pay with MTN/Airtel mobile money, and pick up prints at campus stations. 
- 
-## Quick Start (Local Development) 
- 
-### 1. Clone & Setup 
-```bash 
-git clone https://github.com/ahumuzaJohnbaptist5/print_hub.git 
-cd print_hub/backend 
-python -m venv venv 
-venv\Scripts\activate 
-``` 
- 
-### 2. Install Dependencies 
-```bash 
-pip install Django djangorestframework django-cors-headers whitenoise python-dotenv Pillow 
-``` 
- 
-### 3. Environment Setup 
-Create `.env` file in `backend/`: 
-```env 
-DEBUG=True 
-DJANGO_SECRET_KEY=anything123 
-SITE_URL=http://localhost:8000 
-``` 
- 
-### 4. Run Migrations 
-```bash 
-python manage.py migrate 
-``` 
- 
-### 5. Create Superuser 
-```bash 
-python manage.py shell 
-``` 
-```python 
-from django.contrib.auth import get_user_model 
-User = get_user_model() 
-User.objects.create_superuser(username='admin', email='admin@printhub.com', password='admin123', role='admin', email_verified=True, is_staff=True, is_superuser=True) 
-exit() 
-``` 
- 
-### 6. Run Server 
-```bash 
-python manage.py runserver 
-``` 
-Open http://localhost:8000 
- 
-## Share Online 
- 
-### Cloudflare Tunnel 
-1. Download cloudflared from https://github.com/cloudflare/cloudflared/releases 
-2. Put `cloudflared.exe` on Desktop 
-3. Run: `.\cloudflared tunnel --url http://localhost:8000` 
- 
-## Features 
-- Document upload (PDF, DOCX, PPTX, TXT, images) 
-- Auto page count detection 
-- Live price calculator 
-- MTN & Airtel mobile money payments 
-- Order tracking with real-time status 
-- Agent commission system 
-- Admin financial dashboard 
-- Push notifications 
-- Dark/light theme 
-- PWA support (install as app) 
- 
-## Production 
-Hosted at https://printlink.pythonanywhere.com 
- 
-## Support 
-Email: printhub2027@gmail.com 
+# 🖨️ PrintHub - Kabale University Printing Service
+
+> Upload documents, pay with MTN/Airtel mobile money, and pick up prints at campus stations.
+
+[![Django CI](https://github.com/ahumuzaJohnbaptist5/print_hub/actions/workflows/django-ci.yml/badge.svg)](https://github.com/ahumuzaJohnbaptist5/print_hub/actions/workflows/django-ci.yml)
+[![Frontend CI](https://github.com/ahumuzaJohnbaptist5/print_hub/actions/workflows/frontend-ci.yml/badge.svg)](https://github.com/ahumuzaJohnbaptist5/print_hub/actions/workflows/frontend-ci.yml)
+[![Python Version](https://img.shields.io/badge/python-3.12-blue.svg)](https://python.org)
+[![Django Version](https://img.shields.io/badge/django-5.1-green.svg)](https://djangoproject.com)
+[![License](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
+
+## ✨ Features
+
+### 🎯 Core Features
+- **Document Upload** - PDF, DOCX, PPTX, TXT, images supported
+- **Auto Page Detection** - Intelligent page count detection
+- **Live Price Calculator** - Real-time pricing with color/double-sided options
+- **Multiple Order Types** - Documents, Passport Photos, Scanned Documents
+- **Passport Photo Studio** - Live camera capture with background replacement
+- **Scanner Mode** - Document scanning with enhancement
+
+### 💳 Payment System
+- **MTN Mobile Money** - Copy & Pay with transaction verification
+- **Airtel Money** - Full Airtel support
+- **Admin Approval Workflow** - Manual verification for security
+- **Transaction ID Extraction** - Auto-extract from SMS
+- **Payment History** - Full transaction history
+- **Saved Payment Methods** - Reuse saved numbers
+
+### 🤖 WhatsApp Bot
+- **Order Creation** - Place orders via chat
+- **Order Tracking** - Real-time status updates
+- **Admin Commands** - Revenue, active orders, approvals
+- **Agent Commands** - Earnings, station orders, status updates
+- **Group Support** - Advert broadcasts to groups
+- **File Uploads** - Send documents via WhatsApp
+
+### 📊 Admin Dashboard
+- **Order Management** - Full CRUD with bulk actions
+- **Agent Management** - Assign stations to agents
+- **Financial Dashboard** - Revenue, costs, profit analytics
+- **Paper Inventory** - Track stock levels with alerts
+- **Commission Management** - Configure agent commissions
+- **Discount Codes** - Create and manage promotions
+
+### 📱 User Features
+- **Order Tracking** - Real-time status with timeline
+- **Receipts** - Printable, shareable PDF receipts
+- **Push Notifications** - Real-time order updates
+- **Dark/Light Theme** - User preference saved
+- **PWA Support** - Install as mobile app
+- **Live Board** - Full-screen order display
+
+## 🚀 Quick Start
+
+### Local Development
+
+```bash
+# 1. Clone the repository
+git clone https://github.com/ahumuzaJohnbaptist5/print_hub.git
+cd print_hub/backend
+
+# 2. Create and activate virtual environment
+python -m venv venv
+source venv/bin/activate  # On Windows: venv\Scripts\activate
+
+# 3. Install dependencies
+pip install -r requirements.txt
+
+# 4. Create .env file
+cp .env.example .env
+# Edit .env with your settings
+
+# 5. Run migrations
+python manage.py migrate
+
+# 6. Create superuser
+python manage.py createsuperuser
+
+# 7. Run development server
+python manage.py runserver
