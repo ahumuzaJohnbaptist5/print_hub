@@ -131,3 +131,11 @@ for url_name, url_path in _placeholder_urls.items():
 if settings.DEBUG:
     urlpatterns += static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)
     urlpatterns += static(settings.STATIC_URL, document_root=settings.STATIC_ROOT)
+
+# core/urls.py - Should have this line
+    urlpatterns += [path('payments/', include('payments.urls'))]
+
+
+
+
+
