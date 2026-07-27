@@ -54,6 +54,10 @@ def payment_page(request, order_id):
     from finances.models import MerchantSettings
     mtn_merchant = MerchantSettings.objects.filter(payment_method='mtn', is_active = True).first()
     airtel_merchant = MerchantSettings.objects.filter(payment_method='airtel', is_active = True).first()
+
+    #check if merchants exist and show warning in template
+    if not mtn_merchant or not airtel_merchant:
+        messages.warning(request, 'some payment methods are not configured. Please contact printhub support.')
     
     
     if request.method == 'POST':
