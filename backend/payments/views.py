@@ -42,13 +42,19 @@ def payment_page(request, order_id):
     
     if existing_payment:
         time_diff = timezone.now() - existing_payment.created_at
-        if time_diff > timedelta(minutes=30):
+        if time_diff > timedelta(minutes=120):
             existing_payment.mark_as_expired()
         else:
             messages.info(request, 'You have a pending payment waiting for approval.')
             return redirect('payment_status', payment_id=existing_payment.id)
     
     saved_methods = PaymentMethod.objects.filter(user=request.user, is_verified=True)
+
+    #get payments from the database
+    from finances.models import MerchantSettings
+    mtn_merchant = MerchantSettings.objects.filter(payment_method='mtn', is_active = True).first()
+    airtel_merchant = MerchantSettings.objects.filter(payment_method='airtel', is_active = True).first()
+    
     
     if request.method == 'POST':
         payment_method = request.POST.get('payment_method')
@@ -73,6 +79,8 @@ def payment_page(request, order_id):
             return render(request, 'payments/payment_page.html', {
                 'order': order,
                 'saved_methods': saved_methods,
+                'mtn_merchant': mtn_merchant,
+                'airtel_merchant': airtel_merchant,
             })
         
         merchant = MerchantSettings.get_merchant(payment_method)
@@ -80,8 +88,8 @@ def payment_page(request, order_id):
             merchant_phone = merchant.merchant_phone
             merchant_name = merchant.merchant_name
         else:
-            merchant_phone = '0765511075' if payment_method == 'mtn' else '0775523720'
-            merchant_name = 'Matovu Evaristo' if payment_method == 'mtn' else 'Ezra Nasaasira'
+            merchant_phone = '0704936466' if payment_method == 'mtn' else '0704936466'
+            merchant_name = 'Tumusiime kevin' if payment_method == 'mtn' else 'Tumusiime Kevin'
         
         customer_phone = re.sub(r'[^\d+]', '', customer_phone)
         if not customer_phone.startswith('+'):
