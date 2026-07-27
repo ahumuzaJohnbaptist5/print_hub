@@ -1,5 +1,5 @@
 from django.contrib import admin
-from .models import PaperInventory, CommissionRate, FinancialRecord, AgentEarning
+from .models import PaperInventory, CommissionRate, FinancialRecord, AgentEarning, MerchantSettings
 
 admin.site.register(PaperInventory)
 admin.site.register(CommissionRate)
