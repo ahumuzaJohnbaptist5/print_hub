@@ -56,6 +56,32 @@ def handle_order_status_change(sender, instance, created, **kwargs):
     elif instance.status == 'cancelled':
         create_order_notification(instance, 'cancelled')
 
+    if not created and old_status != instance.status:
+        try:
+            from whatsapp_bot.views import send_whatsapp_message
+            phone = instance.client.phone_number
+            if phone:
+                status_emoji = {
+                    'paid': '💳',
+                    'printing': '🖨️',
+                    'ready': '✅',
+                    'collected': '📦',
+                    'cancelled': '❌'
+                }.get(instance.status, '📋')
+
+                send_whatsapp_message(
+                    phone,
+                    f"{status_emoji} *order #{instance.id} update*\n\n"
+                    f"Status: *{instance.get_status_display()}*\n"
+                    f"File: {instance.file_name}\n"
+                    f"Total: {instance.total_price:,.0f} UGX\n\n"
+                    f"Track: https://printlink.pythonanywhere.com/track/?order_id={instance.id}"
+                )
+        except Exception as e:
+            import logging
+            logging.getLogger(__name__).warning(f"WhatsApp notification failed: {e}")   
+                    
+
 
 def create_order_notification(order, status_type):
     """Create notification for order status changes."""
