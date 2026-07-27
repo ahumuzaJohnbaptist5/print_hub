@@ -176,6 +176,8 @@ class Order(models.Model):
             models.Index(fields=['created_at']),
             models.Index(fields=['status']),
             models.Index(fields=['order_type']),
+            models.Index(fields=['copies']),
+            models.index(fields=['paper_size'])
         ]
         ordering = ['-created_at']
 
