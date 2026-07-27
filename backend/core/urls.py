@@ -75,13 +75,10 @@ urlpatterns = [
 # ============================================================
 # INCLUDE OTHER APP URLS
 # ============================================================
-# ============================================================
-# INCLUDE OTHER APP URLS
-# ============================================================
-    urlpatterns += [path('finances/', include('finances.urls'))]
-    urlpatterns += [path('payments/', include('payments.urls'))]  # ✅ MUST BE HERE
-    urlpatterns += [path('notifications/', include('notifications.urls'))]
-    urlpatterns += [path('stations/', include('stations.urls'))]
+urlpatterns += [path('finances/', include('finances.urls'))]
+urlpatterns += [path('payments/', include('payments.urls'))]
+urlpatterns += [path('notifications/', include('notifications.urls'))]
+urlpatterns += [path('stations/', include('stations.urls'))]
 
 # ============================================================
 # STATIC & MEDIA FILES (Development only)
