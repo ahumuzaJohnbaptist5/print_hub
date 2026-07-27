@@ -149,9 +149,10 @@ def upload_view(request):
             # ============================================================
             # 🆕 FORCE: If passport and copies is 1, force to 6
             # ============================================================
-            if order_type == 'passport' and copies_int == 1:
-                copies_int = 6
-                logger.warning(f"📸 FORCED passport copies from 1 to 6")
+            if order_type == 'passport':
+                if copies_int < 6:
+                    copies_int = 6
+                    logger.warning(f"📸 FORCED passport copies from 1 to 6")
             
             if page_count_int < 1:
                 raise ValueError("Page count must be at least 1")
