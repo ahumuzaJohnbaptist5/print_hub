@@ -154,8 +154,14 @@
 
 <script>
     const merchantInfo = {
-        mtn: { name: '{{ default_mtn_name|default:"Tumusiime kevin" }}', phone: '{{ default_mtn_phone|default:"0704936466" }}' },
-        airtel: { name: '{{ default_airtel_name|default:"Tumusiime kevin" }}', phone: '{{ default_airtel_phone|default:"0704936466" }}' }
+       mtn : {
+           name: '{{ mtn_merchant.merchant_name }}',
+           phone: '{{mtn_merchant.merchant_phone }}'
+       },
+        airtel: {
+            name: '{{ airtel_merchant.merchant_name }}',
+            phone: '{{ airtel_merchant.merchant_phone }}'
+        }
     };
     
     function updateMerchant(method) {
