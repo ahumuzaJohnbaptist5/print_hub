@@ -5,7 +5,6 @@ from django.conf import settings
 from django.conf.urls.static import static
 from django.contrib.auth.decorators import login_required
 from django.http import HttpResponse
-from django.urls import reverse, NoReverseMatch
 
 # Import views - Using modular imports
 from orders.views import (
@@ -66,7 +65,7 @@ urlpatterns = [
     path('orders/api/process-scan/', login_required(api_views.api_process_scan), name='process_scan'),
     path('orders/api/validate-discount/', api_views.validate_discount_code, name='validate_discount_code'),
     
-    # 🆕 File Processor API - ADD THIS LINE
+    # File Processor API
     path('file-processor/', include('file_processor.urls')),
     
     # Misc
@@ -97,45 +96,8 @@ except Exception:
     pass
 
 # ============================================================
-# PLACEHOLDER ROUTES FOR MISSING URL NAMES
-# ============================================================
-_placeholder_urls = {
-    'financial_dashboard': 'finances/dashboard/',
-    'admin_approve_payments': 'admin/approve-payments/',
-    'low_stock_alerts': 'api/low-stock-alerts/',
-    'payment_status_check': 'payments/status/<int:order_id>/check/',
-    'manage_commission_rates': 'finances/commission-rates/',
-    'manage_paper_inventory': 'finances/paper-inventory/',
-    'add_expense': 'finances/add-expense/',
-    'expense_list': 'finances/expenses/',
-    'manage_discount_codes': 'finances/discount-codes/',
-    'toggle_discount_code': 'finances/discount-codes/<int:code_id>/toggle/',
-    'manage_merchant_settings': 'finances/merchant-settings/',
-    'agent_earnings': 'finances/agent-earnings/',
-    'agent_earnings_management': 'finances/agent-earnings/management/',
-    'mark_earning_paid': 'finances/agent-earnings/<int:earning_id>/pay/',
-    'export_financial_data': 'finances/export/',
-    'financial_reports': 'finances/reports/',
-    'paper_inventory_alerts': 'finances/paper-alerts/',
-}
-
-for url_name, url_path in _placeholder_urls.items():
-    try:
-        reverse(url_name)
-    except NoReverseMatch:
-        urlpatterns.append(path(url_path, _placeholder_view, name=url_name))
-
-# ============================================================
 # STATIC & MEDIA FILES (Development only)
 # ============================================================
 if settings.DEBUG:
     urlpatterns += static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)
     urlpatterns += static(settings.STATIC_URL, document_root=settings.STATIC_ROOT)
-
-# core/urls.py - Should have this line
-    urlpatterns += [path('payments/', include('payments.urls'))]
-
-
-
-
-
