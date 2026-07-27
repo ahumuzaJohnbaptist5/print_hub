@@ -62,10 +62,12 @@ def register_view(request):
                 username=username,
                 email=email,
                 password=password,
-                role='client', 
-                email_verified = true, #assuming user verification to avoid failed log in after creating an account.
-                user.save(),
-                login(request, user))
+                role='client'
+            )
+            
+            email_verified = true, #assuming user verification to avoid failed log in after creating an account.
+            user.save(),
+            login(request, user)
             
             messages.success(request, f' Welcome {user.first_name or username}! Your account is now ready.')
             return redirect(next_url)
