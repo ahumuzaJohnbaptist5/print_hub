@@ -96,7 +96,7 @@ def login_view(request):
         if not user.email_verified:
             return render(request, 'accounts/login.html',{
                 'error': 'please verify your email first. Check your spam folder for the verification link.'
-            }]
+            })
 
         
         login(request, user)
