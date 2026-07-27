@@ -62,10 +62,11 @@ def register_view(request):
                 username=username,
                 email=email,
                 password=password,
-                role='client',
+                role='client', 
+                email_verified= true, #assuming user verification to avoid failed log in after creating an account.
             )
             
-            messages.success(request, 'Account created successfully!')
+            messages.success(request, f{user.first_name or username, ' Your Account has been successfully created !'})
             return redirect(next_url)
         except Exception as e:
             return render(request, 'accounts/register.html', {'error': f'Registration failed: {str(e)}'})
@@ -73,7 +74,7 @@ def register_view(request):
     return render(request, 'accounts/register.html')
 
 
-@ratelimit(key='ip', rate='5/5m', method='POST')  # <-- ADD THIS
+@ratelimit(key='ip', rate='5/5m', method='POST')  
 def login_view(request):
     next_url = request.GET.get('next', 'dashboard')
     
@@ -87,7 +88,14 @@ def login_view(request):
         user = authenticate(username=username, password=password)
 
         if user is None:
-            return render(request, 'accounts/login.html', {'error': 'Invalid credentials'})
+            return render(request, 'accounts/login.html', {'error': 'Invalid credentials, make sure your account is created'})
+
+        #for emailverification
+        if not user.email_verified:
+            return render(request, 'accounts/login.html',{
+                'error': 'please verify your email first. Check your spam folder for the verification link.'
+            }]
+
         
         login(request, user)
         messages.success(request, f'Welcome back, {user.first_name or username}!')
