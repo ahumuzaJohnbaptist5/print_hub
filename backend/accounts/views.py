@@ -63,10 +63,12 @@ def register_view(request):
                 email=email,
                 password=password,
                 role='client', 
-                email_verified= true, #assuming user verification to avoid failed log in after creating an account.
+                email_verified = true, #assuming user verification to avoid failed log in after creating an account.
+                user.save()
+                login(request, user)
             )
             
-            messages.success(request, f{user.first_name or username, ' Your Account has been successfully created !'})
+            messages.success(request, f' Welcome {user.first_name or username}! Your account is now ready.')
             return redirect(next_url)
         except Exception as e:
             return render(request, 'accounts/register.html', {'error': f'Registration failed: {str(e)}'})
