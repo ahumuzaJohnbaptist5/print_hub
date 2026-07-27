@@ -20,3 +20,8 @@ python-docx
 python-pptx
 Pillow
 reportlab
+
+# Additional for production
+django-redis>=5.4.0
+redis>=5.0.0
+gunicorn>=21.2.0
