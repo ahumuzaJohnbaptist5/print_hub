@@ -82,12 +82,3 @@ def referral_history(request):
         'status_filter': status_filter,
         'status_choices': Referral.STATUS_CHOICES,
     })
-
-# ✅ Optional API endpoints (can be added later)
-# @login_required
-# def referral_stats_api(request):
-#     ... 
-
-# @login_required
-# def apply_referral_discount_view(request):
-#     ...
