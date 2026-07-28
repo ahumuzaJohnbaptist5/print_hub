@@ -63,6 +63,7 @@ INSTALLED_APPS = [
     'notifications',
     'whatsapp_bot',
     'file_processor',
+    'referrals',
 ]
 
 MIDDLEWARE = [
@@ -266,3 +267,14 @@ CACHES = {
         'LOCATION': 'rate-limit-cache',
     }
 }
+
+# Referral Settings
+REFERRAL_BONUS_AMOUNT = 2000  # UGX
+REFERRAL_ORDER_BONUS = 1000   # UGX
+
+
+
+
+
+
+
