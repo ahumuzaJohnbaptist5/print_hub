@@ -46,6 +46,9 @@ def register_view(request):
         username = request.POST.get('username')
         email = request.POST.get('email')
         password = request.POST.get('password')
+        
+        # 🆕 Get referral code from request
+        referral_code = request.POST.get('referral_code') or request.GET.get('ref')
 
         if not username or not email or not password:
             return render(request, 'accounts/register.html', {'error': 'All fields are required'})
@@ -64,6 +67,15 @@ def register_view(request):
                 password=password,
                 role='client'
             )
+            
+            # 🆕 Process referral if code exists
+            if referral_code:
+                try:
+                    from referrals.utils import process_referral_signup
+                    process_referral_signup(request, user)
+                except Exception as e:
+                    # Don't fail registration if referral fails
+                    print(f"Referral processing failed: {e}")
             
             login(request, user)
             
