@@ -1,0 +1,55 @@
+{% extends 'base.html' %}
+
+{% block title %}Invite Friends - PrintHub{% endblock %}
+
+{% block content %}
+<div class="max-w-2xl mx-auto px-4 py-12">
+    <div class="flex justify-between items-center mb-8">
+        <div>
+            <h1 class="text-3xl font-bold text-white">📤 Invite Friends</h1>
+            <p class="text-gray-400 mt-1">Share your referral link and earn rewards</p>
+        </div>
+        <a href="{% url 'referrals:dashboard' %}" class="text-gray-400 hover:text-white text-sm">
+            ← Back to Dashboard
+        </a>
+    </div>
+
+    <!-- Quick Share -->
+    <div class="bg-white/5 border border-white/10 rounded-2xl p-6 mb-6">
+        <h2 class="text-lg font-bold text-white mb-4">Quick Share</h2>
+        <div class="flex gap-3">
+            <input type="text" id="referral-link" value="{{ referral_link }}" class="flex-1 bg-slate-800 border border-white/10 rounded-xl px-4 py-3 text-white font-mono text-sm" readonly>
+            <button onclick="copyReferralLink()" class="bg-indigo-600 hover:bg-indigo-700 text-white px-6 py-3 rounded-xl font-semibold transition-all">
+                📋 Copy
+            </button>
+        </div>
+    </div>
+
+    <!-- Send Invite -->
+    <div class="bg-white/5 border border-white/10 rounded-2xl p-6">
+        <h2 class="text-lg font-bold text-white mb-4">Send Invite</h2>
+        <form method="POST" class="space-y-4">
+            {% csrf_token %}
+            
+            <div>
+                <label class="block text-gray-300 text-sm font-medium mb-2">Send Via</label>
+                <div class="grid grid-cols-3 gap-3">
+                    <label class="cursor-pointer">
+                        <input type="radio" name="method" value="whatsapp" checked class="peer sr-only">
+                        <div class="border-2 border-white/10 rounded-xl p-3 text-center peer-checked:border-green-500 peer-checked:bg-green-500/10 transition-all">
+                            <span class="text-2xl">💬</span>
+                            <p class="text-white text-sm font-semibold">WhatsApp</p>
+                        </div>
+                    </label>
+                    <label class="cursor-pointer">
+                        <input type="radio" name="method" value="email" class="peer sr-only">
+                        <div class="border-2 border-white/10 rounded-xl p-3 text-center peer-checked:border-blue-500 peer-checked:bg-blue-500/10 transition-all">
+                            <span class="text-2xl">📧</span>
+                            <p class="text-white text-sm font-semibold">Email</p>
+                        </div>
+                    </label>
+                    <label class="cursor-pointer">
+                        <input type="radio" name="method" value="copy" class="peer sr-only">
+                        <div class="border-2 border-white/10 rounded-xl p-3 text-center peer-checked:border-purple-500 peer-checked:bg-purple-500/10 transition-all">
+                            <span class="text-2xl">📋</span>
+                            <p class="text-white text-sm font-sem
