@@ -80,6 +80,7 @@ urlpatterns += [path('payments/', include('payments.urls'))]
 urlpatterns += [path('notifications/', include('notifications.urls'))]
 #stations.urls doesn't exist yet - uncomment when created
 urlpatterns += [path('stations/', include('stations.urls'))]
+urlpatterns += [path('referrals/', include('referrals.urls'))]
 
 # ============================================================
 # STATIC & MEDIA FILES (Development only)
