@@ -91,9 +91,6 @@ def login_view(request):
         if user is None:
             return render(request, 'accounts/login.html', {'error': 'Invalid credentials, make sure your account is created'})
 
-        # ✅ REMOVED: email_verified check - users can login immediately
-        # No email verification required
-        
         login(request, user)
         messages.success(request, f'Welcome back, {user.first_name or username}!')
         return redirect(next_url)
