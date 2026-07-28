@@ -20,8 +20,8 @@ class CustomUser(AbstractUser):
     )
     
     # ✅ ADD THESE TWO FIELDS
-    email_verified = models.BooleanField(default=False)
-    email_verification_token = models.UUIDField(default=uuid.uuid4, editable=False, unique=True)
+   # email_verified = models.BooleanField(default=False)
+    #email_verification_token = models.UUIDField(default=uuid.uuid4, editable=False, unique=True)
 
     def __str__(self):
         return self.username
