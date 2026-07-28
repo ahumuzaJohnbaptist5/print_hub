@@ -10,7 +10,7 @@ def generate_referral_link(user):
     """Generate full referral link for a user"""
     from .models import ReferralCode
     code = ReferralCode.get_or_create_for_user(user)
-    return f"{settings.SITE_URL}/auth/register/?ref={code.code}"
+    return f"{settings.SITE_URL}/register/?ref={code.code}"
 
 def get_referral_code_from_request(request):
     """Extract referral code from request"""
