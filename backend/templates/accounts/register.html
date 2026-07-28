@@ -37,6 +37,7 @@
                     <input 
                         type="text" 
                         name="username" 
+                        value="{{ request.GET.username }}"
                         class="w-full bg-white/10 border border-white/10 rounded-xl px-4 py-3 text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-blue-500"
                         required
                     />
@@ -61,12 +62,26 @@
                         required
                     />
                 </div>
+
+                <!-- 🆕 Referral Code Field -->
+                <div>
+                    <label class="block text-sm font-medium text-gray-300 mb-2">Referral Code (Optional)</label>
+                    <input 
+                        type="text" 
+                        name="referral_code" 
+                        value="{{ request.GET.ref }}"
+                        class="w-full bg-white/10 border border-white/10 rounded-xl px-4 py-3 text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                        placeholder="Enter referral code if you have one"
+                    />
+                    <p class="text-gray-500 text-xs mt-1">🎁 Get a welcome bonus when you use a referral code!</p>
+                </div>
+
                 <button 
-    type="submit" 
-    class="w-full bg-blue-600 text-white font-bold py-3 rounded-xl hover:bg-blue-700 hover:shadow-lg hover:shadow-blue-600/30 transition-all hover:-translate-y-1"
->
-    Create Account
-</button>
+                    type="submit" 
+                    class="w-full bg-blue-600 text-white font-bold py-3 rounded-xl hover:bg-blue-700 hover:shadow-lg hover:shadow-blue-600/30 transition-all hover:-translate-y-1"
+                >
+                    Create Account
+                </button>
                 
             </form>
             
