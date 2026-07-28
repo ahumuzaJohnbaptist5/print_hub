@@ -65,7 +65,7 @@ def register_view(request):
                 role='client'
             )
             
-            email_verified = True, #assuming user verification to avoid failed log in after creating an account.
+            user.email_verified = True, #assuming user verification to avoid failed log in after creating an account.
             user.save(),
             login(request, user)
             
