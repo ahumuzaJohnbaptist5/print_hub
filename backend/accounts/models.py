@@ -1,5 +1,6 @@
 from django.contrib.auth.models import AbstractUser
 from django.db import models
+import uuid  # ✅ ADD THIS
 
 
 class CustomUser(AbstractUser):
@@ -17,6 +18,10 @@ class CustomUser(AbstractUser):
         on_delete=models.SET_NULL,
         related_name='agents',
     )
+    
+    # ✅ ADD THESE TWO FIELDS
+    email_verified = models.BooleanField(default=False)
+    email_verification_token = models.UUIDField(default=uuid.uuid4, editable=False, unique=True)
 
     def __str__(self):
         return self.username
