@@ -2,7 +2,7 @@ from django.shortcuts import render, redirect
 from django.contrib.auth import get_user_model, authenticate, login, logout
 from django.contrib.auth.decorators import login_required
 from django.contrib import messages
-from django_ratelimit.decorators import ratelimit  # <-- ADD THIS
+from django_ratelimit.decorators import ratelimit
 from stations.models import Station
 from orders.models import Order
 
@@ -35,7 +35,7 @@ def profile_view(request):
     })
 
 
-@ratelimit(key='ip', rate='3/10m', method='POST')  # <-- ADD THIS
+@ratelimit(key='ip', rate='3/10m', method='POST')
 def register_view(request):
     next_url = request.GET.get('next', 'dashboard')
     
@@ -65,11 +65,9 @@ def register_view(request):
                 role='client'
             )
             
-            user.email_verified = True, #assuming user verification to avoid failed log in after creating an account.
-            user.save(),
             login(request, user)
             
-            messages.success(request, f' Welcome {user.first_name or username}! Your account is now ready.')
+            messages.success(request, f'🎉 Welcome {user.first_name or username}! Your account is now ready.')
             return redirect(next_url)
         except Exception as e:
             return render(request, 'accounts/register.html', {'error': f'Registration failed: {str(e)}'})
@@ -77,7 +75,7 @@ def register_view(request):
     return render(request, 'accounts/register.html')
 
 
-@ratelimit(key='ip', rate='5/5m', method='POST')  
+@ratelimit(key='ip', rate='5/5m', method='POST')
 def login_view(request):
     next_url = request.GET.get('next', 'dashboard')
     
@@ -93,12 +91,8 @@ def login_view(request):
         if user is None:
             return render(request, 'accounts/login.html', {'error': 'Invalid credentials, make sure your account is created'})
 
-        #for emailverification
-        if not user.email_verified:
-            return render(request, 'accounts/login.html',{
-                'error': 'please verify your email first. Check your spam folder for the verification link.'
-            })
-
+        # ✅ REMOVED: email_verified check - users can login immediately
+        # No email verification required
         
         login(request, user)
         messages.success(request, f'Welcome back, {user.first_name or username}!')
