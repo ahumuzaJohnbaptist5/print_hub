@@ -151,6 +151,15 @@ class Order(models.Model):
     agent_commission = models.DecimalField(max_digits=10, decimal_places=2, default=0, help_text="Commission paid to agent")
     profit = models.DecimalField(max_digits=10, decimal_places=2, default=0, help_text="Net profit for this order")
     notes = models.TextField(blank=True, default='', help_text="Internal notes about this order")
+    
+    # 🆕 Referral discount field
+    referral_discount_applied = models.DecimalField(
+        max_digits=10, 
+        decimal_places=2, 
+        default=0,
+        help_text="Discount applied from referral bonuses"
+    )
+    
     cancellation_reason = models.TextField(blank=True, default='', help_text="Reason for cancellation")
     cancelled_at = models.DateTimeField(blank=True, null=True)
 
