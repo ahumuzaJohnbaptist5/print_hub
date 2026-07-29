@@ -1,0 +1,37 @@
+# render.yaml
+services:
+  - type: web
+    name: printhub
+    env: python
+    buildCommand: |
+      cd backend
+      pip install -r requirements.txt
+      python manage.py collectstatic --noinput
+    startCommand: |
+      cd backend
+      gunicorn core.wsgi:application
+    envVars:
+      - key: DATABASE_URL
+        fromDatabase:
+          name: printhub_db
+          property: connectionString
+      - key: SECRET_KEY
+        generateValue: true
+      - key: DEBUG
+        value: "False"
+      - key: ALLOWED_HOSTS
+        value: "printhub.onrender.com,.onrender.com"
+      - key: CSRF_TRUSTED_ORIGINS
+        value: "https://printhub.onrender.com"
+      - key: RATELIMIT_ENABLE
+        value: "True"
+      - key: SITE_URL
+        value: "https://printhub.onrender.com"
+      - key: PYTHON_VERSION
+        value: "3.12.9"
+
+databases:
+  - name: printhub_db
+    databaseName: printhub
+    user: printhub_user
+    plan: free
