@@ -66,7 +66,7 @@ urlpatterns = [
     path('orders/api/validate-discount/', api_views.validate_discount_code, name='validate_discount_code'),
     
     # File Processor API
-    path('file-processor/', include('file_processor.urls')),
+   # path('file-processor/', include('file_processor.urls')),
     
     # Misc
     path('all-links/', client_views.all_links_view, name='all_links'),
