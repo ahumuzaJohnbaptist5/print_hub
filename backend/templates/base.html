@@ -164,10 +164,16 @@
                                 <a href="{% url 'admin_dashboard' %}" class="text-gray-300 hover:text-white px-3 py-2 rounded-md text-sm font-medium hover:bg-white/10">Admin</a>
                                 <a href="{% url 'financial_dashboard' %}" class="text-gray-300 hover:text-white px-3 py-2 rounded-md text-sm font-medium hover:bg-white/10">Finances</a>
                             {% endif %}
-                            <!-- 🆕 REFERRAL LINK ADDED HERE -->
+                            <!-- 🆕 REFERRAL LINK - Shows for ALL logged-in users -->
                             <a href="{% url 'referrals:dashboard' %}" class="text-gray-300 hover:text-white px-3 py-2 rounded-md text-sm font-medium hover:bg-white/10">
-                                🎯 Refer
+                                Refer & Earn
                             </a>
+                            <!-- 🆕 WALLET LINK - Coming soon! (Placeholder) -->
+                            <!-- 
+                            <a href="{% url 'wallet:dashboard' %}" class="text-gray-300 hover:text-white px-3 py-2 rounded-md text-sm font-medium hover:bg-white/10">
+                                Wallet
+                            </a>
+                            -->
                             <form method="POST" action="{% url 'logout' %}" class="inline">
                                 {% csrf_token %}
                                 <button type="submit" class="text-gray-400 hover:text-white px-3 py-2 rounded-md text-sm font-medium hover:bg-white/10">Logout</button>
@@ -193,10 +199,16 @@
                         <a href="{% url 'admin_dashboard' %}" class="block px-3 py-2 rounded-md text-base font-medium text-gray-300 hover:text-white hover:bg-white/10">Admin Dashboard</a>
                         <a href="{% url 'financial_dashboard' %}" class="block px-3 py-2 rounded-md text-base font-medium text-gray-300 hover:text-white hover:bg-white/10">Finances</a>
                     {% endif %}
-                    <!-- 🆕 REFERRAL LINK ADDED HERE -->
+                    <!-- 🆕 REFERRAL LINK - Shows for ALL logged-in users -->
                     <a href="{% url 'referrals:dashboard' %}" class="block px-3 py-2 rounded-md text-base font-medium text-gray-300 hover:text-white hover:bg-white/10">
-                        🎯 Refer
+                        Refer & Earn
                     </a>
+                    <!-- 🆕 WALLET LINK - Coming soon! (Placeholder) -->
+                    <!-- 
+                    <a href="{% url 'wallet:dashboard' %}" class="block px-3 py-2 rounded-md text-base font-medium text-gray-300 hover:text-white hover:bg-white/10">
+                        Wallet
+                    </a>
+                    -->
                     <form method="POST" action="{% url 'logout' %}">
                         {% csrf_token %}
                         <button type="submit" class="block w-full text-left px-3 py-2 rounded-md text-base font-medium text-red-400 hover:text-red-300 hover:bg-white/10">Logout</button>
