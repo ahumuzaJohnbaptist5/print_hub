@@ -18,7 +18,7 @@ def get_referral_code_from_request(request):
 
 def process_referral_signup(request, user):
     """Process referral when a new user signs up"""
-    from .models import Referral, ReferralCode
+    from .models import Referral, ReferralCode, ReferralBonus
     
     code = get_referral_code_from_request(request)
     if not code:
@@ -44,6 +44,24 @@ def process_referral_signup(request, user):
         referral_code=referral_code,
         status='registered',
         expires_at=timezone.now() + timezone.timedelta(days=30)
+    )
+    
+    # ✅ CREATE BONUS FOR REFERRER
+    ReferralBonus.objects.create(
+        user=referral_code.user,
+        bonus_type='referral',
+        amount=REFERRAL_BONUS_AMOUNT,
+        description=f'Referral bonus for {user.username} signing up',
+        expires_at=timezone.now() + timezone.timedelta(days=90)
+    )
+    
+    # ✅ CREATE BONUS FOR REFEREE
+    ReferralBonus.objects.create(
+        user=user,
+        bonus_type='referral',
+        amount=REFERRAL_BONUS_AMOUNT / 2,
+        description=f'Welcome bonus for joining through {referral_code.user.username}',
+        expires_at=timezone.now() + timezone.timedelta(days=90)
     )
     
     # Send notification to referrer
