@@ -18,7 +18,7 @@ def get_referral_code_from_request(request):
 
 def process_referral_signup(request, user):
     """Process referral when a new user signs up"""
-    from .models import Referral, ReferralCode
+    from .models import Referral, ReferralCode, ReferralBonus  # ✅ Added ReferralBonus
     
     code = get_referral_code_from_request(request)
     if not code:
