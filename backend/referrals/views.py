@@ -1,5 +1,3 @@
-cd ~/print_hub/backend
-cat > referrals/views.py << 'EOF'
 from django.shortcuts import render, redirect
 from django.contrib.auth.decorators import login_required
 from django.contrib import messages
@@ -100,4 +98,3 @@ def referral_stats_api(request):
         }
     }
     return JsonResponse(data)
-EOF
