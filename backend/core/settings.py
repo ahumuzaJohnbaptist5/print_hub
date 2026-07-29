@@ -1,6 +1,6 @@
 # core/settings.py
 import os
-import dj_database_url  # ⭐ ADD THIS
+import dj_database_url
 from pathlib import Path
 from dotenv import load_dotenv
 
@@ -24,11 +24,11 @@ ALLOWED_HOSTS = [
     'printlink.pythonanywhere.com',
     'www.printlink.pythonanywhere.com',
     '.trycloudflare.com',
-    '.onrender.com',  # ⭐ ADD THIS
-    'printhub.onrender.com',  # ⭐ ADD THIS
+    '.onrender.com',
+    'print-hub-jbfe.onrender.com',  # ⭐ YOUR ACTUAL RENDER URL
 ]
 
-SITE_URL = os.environ.get('SITE_URL', 'https://printlink.pythonanywhere.com')
+SITE_URL = os.environ.get('SITE_URL', 'https://print-hub-jbfe.onrender.com')
 
 # CSRF Settings - ⭐ UPDATED FOR RENDER
 CSRF_TRUSTED_ORIGINS = [
@@ -37,8 +37,8 @@ CSRF_TRUSTED_ORIGINS = [
     'http://localhost:8000',
     'http://127.0.0.1:8000',
     'https://*.pythonanywhere.com',
-    'https://*.onrender.com',  # ⭐ ADD THIS
-    'https://printhub.onrender.com',  # ⭐ ADD THIS
+    'https://*.onrender.com',
+    'https://print-hub-jbfe.onrender.com',  # ⭐ YOUR ACTUAL RENDER URL
 ]
 CSRF_COOKIE_SECURE = True
 CSRF_COOKIE_HTTPONLY = True
@@ -68,7 +68,7 @@ INSTALLED_APPS = [
     'finances',
     'notifications',
     'whatsapp_bot',
-    #'core.file_processor',  # ⭐ FIXED: Changed from 'file_processor'
+    # 'core.file_processor',  # ⭐ DISABLED for Render
     'referrals',
 ]
 
@@ -97,7 +97,7 @@ TEMPLATES = [
                 'django.template.context_processors.request',
                 'django.contrib.auth.context_processors.auth',
                 'django.contrib.messages.context_processors.messages',
-                'orders.context_processors.announcement',
+                # 'orders.context_processors.announcement',  # ⭐ TEMPORARILY DISABLED
             ],
         },
     },
@@ -105,14 +105,22 @@ TEMPLATES = [
 
 WSGI_APPLICATION = 'core.wsgi.application'
 
-# ⭐ UPDATED DATABASE - Supports both SQLite and PostgreSQL
+# ⭐ IMPROVED DATABASE CONFIGURATION
 DATABASES = {
     'default': dj_database_url.config(
         default=f'sqlite:///{BASE_DIR / "db.sqlite3"}',
         conn_max_age=600,
         conn_health_checks=True,
+        ssl_require=False,  # SQLite doesn't need SSL
     )
 }
+
+# ⭐ FALLBACK: If DATABASE_URL is not set, use SQLite
+if not os.environ.get('DATABASE_URL'):
+    DATABASES['default'] = {
+        'ENGINE': 'django.db.backends.sqlite3',
+        'NAME': BASE_DIR / 'db.sqlite3',
+    }
 
 # Cache
 CACHES = {
@@ -122,18 +130,6 @@ CACHES = {
     }
 }
 
-# Redis Cache (for production)
-# Uncomment when Redis is available
-# CACHES = {
-#     'default': {
-#         'BACKEND': 'django_redis.cache.RedisCache',
-#         'LOCATION': os.environ.get('REDIS_URL', 'redis://localhost:6379/1'),
-#         'OPTIONS': {
-#             'CLIENT_CLASS': 'django_redis.client.DefaultClient',
-#         }
-#     }
-# }
-
 # CORS - ⭐ UPDATED FOR RENDER
 CORS_ALLOW_ALL_ORIGINS = False
 CORS_ALLOW_CREDENTIALS = True
@@ -142,8 +138,8 @@ CORS_ALLOWED_ORIGINS = [
     'http://localhost:8000',
     'https://printlink.pythonanywhere.com',
     'https://*.pythonanywhere.com',
-    'https://*.onrender.com',  # ⭐ ADD THIS
-    'https://printhub.onrender.com',  # ⭐ ADD THIS
+    'https://*.onrender.com',
+    'https://print-hub-jbfe.onrender.com',  # ⭐ YOUR ACTUAL RENDER URL
 ]
 
 # REST Framework
@@ -210,7 +206,7 @@ SPIRAL_BINDING_FEE = 1000
 # PythonAnywhere proxy fix
 SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')
 
-# ⭐ ADDED: Production security settings
+# ⭐ Production security settings
 SECURE_SSL_REDIRECT = not DEBUG
 SECURE_BROWSER_XSS_FILTER = True
 SECURE_CONTENT_TYPE_NOSNIFF = True
