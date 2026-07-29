@@ -1,5 +1,6 @@
 # core/settings.py
 import os
+import dj_database_url  # ⭐ ADD THIS
 from pathlib import Path
 from dotenv import load_dotenv
 
@@ -15,27 +16,32 @@ SECRET_KEY = os.environ.get('DJANGO_SECRET_KEY', 'django-insecure-dev-fallback-k
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = os.environ.get('DEBUG', 'False').lower() == 'true'
 
+# ⭐ UPDATED FOR RENDER
 ALLOWED_HOSTS = [
     'localhost',
     '127.0.0.1',
-    '.pythonanywhere.com',  # This matches any subdomain on pythonanywhere
+    '.pythonanywhere.com',
     'printlink.pythonanywhere.com',
     'www.printlink.pythonanywhere.com',
     '.trycloudflare.com',
+    '.onrender.com',  # ⭐ ADD THIS
+    'printhub.onrender.com',  # ⭐ ADD THIS
 ]
 
 SITE_URL = os.environ.get('SITE_URL', 'https://printlink.pythonanywhere.com')
 
-# CSRF Settings
+# CSRF Settings - ⭐ UPDATED FOR RENDER
 CSRF_TRUSTED_ORIGINS = [
     'https://printlink.pythonanywhere.com',
     'http://printlink.pythonanywhere.com',
     'http://localhost:8000',
     'http://127.0.0.1:8000',
     'https://*.pythonanywhere.com',
+    'https://*.onrender.com',  # ⭐ ADD THIS
+    'https://printhub.onrender.com',  # ⭐ ADD THIS
 ]
-CSRF_COOKIE_SECURE = True  # Changed to True for production
-CSRF_COOKIE_HTTPONLY = True  # Changed to True for security
+CSRF_COOKIE_SECURE = True
+CSRF_COOKIE_HTTPONLY = True
 CSRF_COOKIE_SAMESITE = 'Lax'
 
 # Session Security
@@ -62,7 +68,7 @@ INSTALLED_APPS = [
     'finances',
     'notifications',
     'whatsapp_bot',
-    'file_processor',
+    'core.file_processor',  # ⭐ FIXED: Changed from 'file_processor'
     'referrals',
 ]
 
@@ -99,30 +105,20 @@ TEMPLATES = [
 
 WSGI_APPLICATION = 'core.wsgi.application'
 
-# Database - SQLite (PythonAnywhere default)
+# ⭐ UPDATED DATABASE - Supports both SQLite and PostgreSQL
 DATABASES = {
-    'default': {
-        'ENGINE': 'django.db.backends.sqlite3',
-        'NAME': BASE_DIR / 'db.sqlite3',
-    }
+    'default': dj_database_url.config(
+        default=f'sqlite:///{BASE_DIR / "db.sqlite3"}',
+        conn_max_age=600,
+        conn_health_checks=True,
+    )
 }
 
-# Optional: Use MySQL if you have it on PythonAnywhere
-# DATABASES = {
-#     'default': {
-#         'ENGINE': 'django.db.backends.mysql',
-#         'NAME': 'your_username$printhub',
-#         'USER': 'your_username',
-#         'PASSWORD': 'your_password',
-#         'HOST': 'your_username.mysql.pythonanywhere-services.com',
-#     }
-# }
-
-# Cache
 # Cache
 CACHES = {
     'default': {
         'BACKEND': 'django.core.cache.backends.locmem.LocMemCache',
+        'LOCATION': 'rate-limit-cache',
     }
 }
 
@@ -138,7 +134,7 @@ CACHES = {
 #     }
 # }
 
-# CORS
+# CORS - ⭐ UPDATED FOR RENDER
 CORS_ALLOW_ALL_ORIGINS = False
 CORS_ALLOW_CREDENTIALS = True
 CORS_ALLOWED_ORIGINS = [
@@ -146,6 +142,8 @@ CORS_ALLOWED_ORIGINS = [
     'http://localhost:8000',
     'https://printlink.pythonanywhere.com',
     'https://*.pythonanywhere.com',
+    'https://*.onrender.com',  # ⭐ ADD THIS
+    'https://printhub.onrender.com',  # ⭐ ADD THIS
 ]
 
 # REST Framework
@@ -212,6 +210,12 @@ SPIRAL_BINDING_FEE = 1000
 # PythonAnywhere proxy fix
 SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')
 
+# ⭐ ADDED: Production security settings
+SECURE_SSL_REDIRECT = not DEBUG
+SECURE_BROWSER_XSS_FILTER = True
+SECURE_CONTENT_TYPE_NOSNIFF = True
+X_FRAME_OPTIONS = 'DENY'
+
 # Push Notifications (VAPID)
 VAPID_PRIVATE_KEY = os.getenv('VAPID_PRIVATE_KEY', '')
 VAPID_PUBLIC_KEY = os.getenv('VAPID_PUBLIC_KEY', '')
@@ -229,13 +233,13 @@ LOGGING = {
     'version': 1,
     'disable_existing_loggers': False,
     'handlers': {
+        'console': {
+            'class': 'logging.StreamHandler',
+        },
         'file': {
             'level': 'INFO',
             'class': 'logging.FileHandler',
             'filename': BASE_DIR / 'logs' / 'django.log',
-        },
-        'console': {
-            'class': 'logging.StreamHandler',
         },
     },
     'root': {
@@ -249,32 +253,12 @@ LOGS_DIR = BASE_DIR / 'logs'
 if not LOGS_DIR.exists():
     LOGS_DIR.mkdir(parents=True)
 
-
-
-
-
 # ============================================================
 # RATE LIMITING
 # ============================================================
 RATELIMIT_ENABLE = True
 RATELIMIT_USE_CACHE = 'default'
 
-# Override cache for rate limiting (using memory cache for PythonAnywhere)
-# If you upgrade to Redis later, you can change this
-CACHES = {
-    'default': {
-        'BACKEND': 'django.core.cache.backends.locmem.LocMemCache',
-        'LOCATION': 'rate-limit-cache',
-    }
-}
-
 # Referral Settings
 REFERRAL_BONUS_AMOUNT = 2000  # UGX
 REFERRAL_ORDER_BONUS = 1000   # UGX
-
-
-
-
-
-
-
