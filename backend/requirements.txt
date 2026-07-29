@@ -9,19 +9,14 @@ python-dotenv
 cloudinary
 django-cloudinary-storage
 Pillow
-django-ratelimit  # <-- ADD THIS
+django-ratelimit
 django-allauth
-
-
-# Add to requirements.txt
 python-magic
 PyPDF2
 python-docx
 python-pptx
-Pillow
 reportlab
-
-# Additional for production
 django-redis>=5.4.0
 redis>=5.0.0
-gunicorn>=21.2.0
+django-storages
+boto3
