@@ -29,11 +29,11 @@ from .helpers import (
 )
 
 # Import file processor - wrap in try/except to avoid breaking if not installed
-try:
-    from file_processor.processors import FileProcessor
-except ImportError:
-    FileProcessor = None
-    print("Warning: file_processor not available")
+#try:
+##    from file_processor.processors import FileProcessor
+#except ImportError:
+  #  FileProcessor = None
+  #  print("Warning: file_processor not available")
 
 User = get_user_model()
 logger = logging.getLogger(__name__)
