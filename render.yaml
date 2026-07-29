@@ -35,3 +35,13 @@ databases:
     databaseName: printhub
     user: printhub_user
     plan: free
+
+buildCommand: |
+    cd backend
+    pip install -r requirements.txt
+    python manage.py migrate --noinput
+    python manage.py collectstatic --noinput
+
+
+
+
