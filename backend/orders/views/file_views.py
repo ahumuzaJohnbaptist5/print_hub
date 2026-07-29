@@ -5,7 +5,7 @@ from django.http import JsonResponse
 from django.contrib.auth.decorators import login_required
 from django.views.decorators.csrf import csrf_exempt
 from orders.models import Order
-from file_processor.processors import FileProcessor
+#from file_processor.processors import FileProcessor
 from file_processor.utils import get_file_size_human
 
 logger = logging.getLogger(__name__)
