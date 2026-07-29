@@ -68,7 +68,7 @@ INSTALLED_APPS = [
     'finances',
     'notifications',
     'whatsapp_bot',
-    'core.file_processor',  # ⭐ FIXED: Changed from 'file_processor'
+    #'core.file_processor',  # ⭐ FIXED: Changed from 'file_processor'
     'referrals',
 ]
 
