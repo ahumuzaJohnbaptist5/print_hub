@@ -1,310 +1,100 @@
-{% load static %}
-<!DOCTYPE html>
-<html lang="en" data-theme="dark">
-<head>
-   <meta charset="UTF-8">
-<!-- Open Graph / WhatsApp / Facebook -->
-<meta property="og:title" content="PrintHub — Kabale University Printing">
-<meta property="og:description" content="Upload your documents, pay with MTN or Airtel, and pick up at your nearest campus station. Fast, reliable printing for students.">
-<meta property="og:image" content="https://printlink.pythonanywhere.com/orders/live-board-preview.png">
-<meta property="og:image:width" content="1200">
-<meta property="og:image:height" content="630">
-<meta property="og:url" content="https://printlink.pythonanywhere.com">
-<meta property="og:type" content="website">
-<meta property="og:site_name" content="PrintHub">
+from django.shortcuts import render, redirect
+from django.contrib.auth.decorators import login_required
+from django.contrib import messages
+from django.core.paginator import Paginator
+from django.db.models import Sum, Q
+from django.http import JsonResponse
+from .models import Referral, ReferralCode, ReferralBonus
+from .utils import generate_referral_link
 
-<!-- Twitter Card -->
-<meta name="twitter:card" content="summary_large_image">
-<meta name="twitter:title" content="PrintHub — Kabale University Printing">
-<meta name="twitter:description" content="Upload your documents, pay with MTN or Airtel, and pick up at your nearest campus station. Fast, reliable printing for students.">
-<meta name="twitter:image" content="https://printlink.pythonanywhere.com/orders/live-board-preview.png">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>{% block title %}PrintHub{% endblock %}</title>
+@login_required
+def referral_dashboard(request):
+    user = request.user
+    code = ReferralCode.get_or_create_for_user(user)
+    referral_link = generate_referral_link(user)
     
-    <link rel="manifest" href="/static/manifest.json">
-    <meta name="theme-color" content="#0f172a" id="meta-theme-color">
-    <meta name="apple-mobile-web-app-capable" content="yes">
-    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-    <meta name="apple-mobile-web-app-title" content="PrintHub">
-    <link rel="apple-touch-icon" href="/static/icons/icon.svg">
+    referrals = Referral.objects.filter(referrer=user)
     
-    <script src="https://cdn.tailwindcss.com"></script>
-    <script>
-        tailwind.config = { darkMode: 'class' };
-        (function() {
-            const saved = localStorage.getItem('theme') || 'dark';
-            document.documentElement.setAttribute('data-theme', saved);
-            if (saved === 'dark') { document.documentElement.classList.add('dark'); }
-            else { document.documentElement.classList.remove('dark'); }
-            document.getElementById('meta-theme-color').setAttribute('content', saved === 'dark' ? '#0f172a' : '#f8fafc');
-        })();
-    </script>
-    <style>
-        select option { background: #1e293b !important; color: #e2e8f0 !important; }
+    stats = {
+        'total_referrals': referrals.count(),
+        'registered': referrals.filter(status='registered').count(),
+        'completed': referrals.filter(status='completed').count(),
+        'pending': referrals.filter(status='pending').count(),
+    }
+    
+    bonuses = ReferralBonus.objects.filter(user=user)
+    bonus_stats = bonuses.aggregate(
+        total_earned=Sum('amount'),
+        total_used=Sum('amount', filter=Q(is_used=True)),
+        total_available=Sum('amount', filter=Q(is_used=False)),
+        bonus_count=Sum('id'),
+    )
+    
+    recent_referrals = referrals.select_related('referee').order_by('-created_at')[:10]
+    recent_bonuses = bonuses.order_by('-created_at')[:10]
+    
+    return render(request, 'referrals/dashboard.html', {
+        'referral_code': code.code,
+        'referral_link': referral_link,
+        'stats': stats,
+        'recent_referrals': recent_referrals,
+        'recent_bonuses': recent_bonuses,
+        'bonus_stats': bonus_stats,
+    })
+
+@login_required
+def referral_invite(request):
+    user = request.user
+    referral_link = generate_referral_link(user)
+    code = ReferralCode.get_or_create_for_user(user)
+    
+    if request.method == 'POST':
+        method = request.POST.get('method')
+        recipient = request.POST.get('recipient')
+        message = request.POST.get('message', '')
         
-        .theme-toggle-btn {
-            background: transparent; border: 1px solid #64748b; color: #e2e8f0;
-            width: 36px; height: 36px; border-radius: 50%; cursor: pointer;
-            font-size: 16px; display: flex; align-items: center; justify-content: center;
-            transition: all 0.2s; flex-shrink: 0;
-        }
-        .theme-toggle-btn:hover { border-color: #818cf8; color: #818cf8; }
+        if method == 'copy':
+            messages.success(request, 'Referral link copied to clipboard!')
         
-        html[data-theme="light"] body { color: #1e293b !important; }
-        html[data-theme="light"] .bg-slate-900 { background-color: #f8fafc !important; }
-        html[data-theme="light"] .bg-slate-800 { background-color: #ffffff !important; }
-        html[data-theme="light"] .bg-slate-800\/50 { background-color: rgba(255,255,255,0.95) !important; }
-        html[data-theme="light"] .bg-slate-800\/80 { background-color: rgba(255,255,255,0.95) !important; }
-        html[data-theme="light"] .bg-slate-800\/95 { background-color: rgba(255,255,255,0.95) !important; }
-        html[data-theme="light"] .bg-slate-700 { background: #e2e8f0 !important; }
-        html[data-theme="light"] .bg-slate-700\/50 { background: rgba(226,232,240,0.5) !important; }
-        html[data-theme="light"] .bg-slate-900\/50 { background: rgba(248,250,252,0.5) !important; }
-        html[data-theme="light"] .bg-white\/5 { background: #f1f5f9 !important; }
-        html[data-theme="light"] .bg-white\/10 { background: #e2e8f0 !important; }
-        html[data-theme="light"] .bg-black\/20 { background: rgba(0,0,0,0.05) !important; }
-        html[data-theme="light"] .bg-black\/70 { background: rgba(0,0,0,0.3) !important; }
-        html[data-theme="light"] .border-white\/10 { border-color: #e2e8f0 !important; }
-        html[data-theme="light"] .border-white\/20 { border-color: #cbd5e1 !important; }
-        html[data-theme="light"] .border-white\/5 { border-color: #f1f5f9 !important; }
-        html[data-theme="light"] .border-slate-600 { border-color: #cbd5e1 !important; }
-        html[data-theme="light"] .border-slate-700 { border-color: #e2e8f0 !important; }
-        html[data-theme="light"] .text-white { color: #1e293b !important; }
-        html[data-theme="light"] .text-gray-200 { color: #334155 !important; }
-        html[data-theme="light"] .text-gray-300 { color: #475569 !important; }
-        html[data-theme="light"] .text-gray-400 { color: #64748b !important; }
-        html[data-theme="light"] .text-gray-500 { color: #94a3b8 !important; }
-        html[data-theme="light"] .text-slate-400 { color: #64748b !important; }
-        html[data-theme="light"] .text-green-300 { color: #16a34a !important; }
-        html[data-theme="light"] .text-green-400 { color: #16a34a !important; }
-        html[data-theme="light"] .text-yellow-300 { color: #d97706 !important; }
-        html[data-theme="light"] .text-yellow-400 { color: #d97706 !important; }
-        html[data-theme="light"] .text-blue-300 { color: #2563eb !important; }
-        html[data-theme="light"] .text-blue-400 { color: #2563eb !important; }
-        html[data-theme="light"] .text-red-300 { color: #dc2626 !important; }
-        html[data-theme="light"] .text-red-400 { color: #dc2626 !important; }
-        html[data-theme="light"] .text-purple-300 { color: #7c3aed !important; }
-        html[data-theme="light"] .text-purple-400 { color: #7c3aed !important; }
-        html[data-theme="light"] .text-orange-300 { color: #ea580c !important; }
-        html[data-theme="light"] .text-orange-400 { color: #ea580c !important; }
-        html[data-theme="light"] .text-indigo-400 { color: #4f46e5 !important; }
-        html[data-theme="light"] .text-teal-300 { color: #0d9488 !important; }
-        html[data-theme="light"] .text-teal-400 { color: #0d9488 !important; }
-        html[data-theme="light"] .text-cyan-400 { color: #0891b2 !important; }
-        html[data-theme="light"] .hover\:bg-white\/5:hover { background: #f1f5f9 !important; }
-        html[data-theme="light"] .hover\:bg-white\/10:hover { background: #e2e8f0 !important; }
-        html[data-theme="light"] .hover\:bg-white\/20:hover { background: #cbd5e1 !important; }
-        html[data-theme="light"] .hover\:bg-slate-700\/30:hover { background: rgba(226,232,240,0.5) !important; }
-        html[data-theme="light"] .hover\:bg-slate-600:hover { background: #cbd5e1 !important; }
-        html[data-theme="light"] .hover\:bg-slate-500:hover { background: #94a3b8 !important; }
-        html[data-theme="light"] .hover\:text-white:hover { color: #0f172a !important; }
-        html[data-theme="light"] .hover\:text-indigo-300:hover { color: #6366f1 !important; }
-        html[data-theme="light"] .divide-white\/10 > * { border-color: #e2e8f0 !important; }
-        html[data-theme="light"] .divide-white\/5 > * { border-color: #f1f5f9 !important; }
-        html[data-theme="light"] .divide-slate-700 > * { border-color: #e2e8f0 !important; }
-        html[data-theme="light"] .shadow { box-shadow: 0 1px 3px rgba(0,0,0,0.1) !important; }
-        html[data-theme="light"] select option { background: #ffffff !important; color: #1e293b !important; }
-        html[data-theme="light"] .theme-toggle-btn { border-color: #94a3b8; color: #475569; }
-    </style>
-</head>
-<body class="bg-slate-900 min-h-screen overflow-x-hidden text-white">
+        return redirect('referrals:dashboard')
+    
+    return render(request, 'referrals/invite.html', {
+        'referral_link': referral_link,
+        'referral_code': code.code,
+    })
 
-    <nav class="bg-slate-800/50 backdrop-blur-md border-b border-white/10 sticky top-0 z-50 relative">
-        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-            <div class="flex justify-between items-center h-16">
-                <div class="flex-shrink-0 flex items-center">
-                    <a href="/" class="flex items-center space-x-2">
-                        <img src="{% static 'icons/icon.svg' %}" alt="PrintHub Logo" class="h-10 w-10 object-contain">
-                        <span class="text-white font-bold text-xl">PrintHub</span>
-                    </a>
-                </div>
-                <div class="flex items-center space-x-2">
-                    <button class="theme-toggle-btn" onclick="toggleTheme()" title="Toggle theme" id="themeBtn">&#9788;</button>
-                    
-                    {% if user.is_authenticated %}
-                    <div class="relative" id="notification-bell">
-                        <button onclick="toggleNotifications()" class="text-gray-300 hover:text-white p-2 rounded-md hover:bg-white/10 transition-colors relative">
-                            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9"/></svg>
-                            <span id="notification-badge" class="hidden absolute -top-1 -right-1 bg-red-500 text-white text-xs rounded-full w-5 h-5 flex items-center justify-center font-bold">0</span>
-                        </button>
-                        <div id="notification-dropdown" class="hidden absolute right-0 mt-2 w-[calc(100vw-32px)] max-w-sm bg-slate-800 border border-slate-700 rounded shadow z-50 max-h-80 overflow-y-auto">
-                            <div class="p-3 border-b border-slate-700 flex justify-between items-center">
-                                <span class="text-white font-bold text-sm">Notifications</span>
-                                <button onclick="markAllRead()" class="text-blue-400 hover:text-blue-300 text-xs">Mark all read</button>
-                            </div>
-                            <div id="notification-list" class="divide-y divide-slate-700"><div class="p-4 text-center text-gray-500 text-sm">No new notifications</div></div>
-                        </div>
-                    </div>
-                    {% endif %}
-                    
-                    <a href="{% url 'upload' %}" class="md:hidden bg-blue-600 text-white px-3 py-1.5 rounded text-sm font-medium flex items-center space-x-1">
-                        <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12"/></svg>
-                        <span>Upload</span>
-                    </a>
+@login_required
+def referral_history(request):
+    user = request.user
+    status_filter = request.GET.get('status', '')
+    
+    referrals = Referral.objects.filter(referrer=user).select_related('referee')
+    
+    if status_filter:
+        referrals = referrals.filter(status=status_filter)
+    
+    paginator = Paginator(referrals, 20)
+    page_number = request.GET.get('page')
+    page_obj = paginator.get_page(page_number)
+    
+    return render(request, 'referrals/referral_history.html', {
+        'page_obj': page_obj,
+        'referrals': page_obj.object_list,
+        'status_filter': status_filter,
+        'status_choices': Referral.STATUS_CHOICES,
+    })
 
-                    <div class="md:hidden flex items-center">
-                        <button id="mobile-menu-btn" type="button" class="text-gray-300 hover:text-white focus:outline-none p-2 rounded-md hover:bg-white/10 transition-colors">
-                            <span class="sr-only">Open main menu</span>
-                            <svg id="hamburger-icon" class="block h-6 w-6" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"/></svg>
-                            <svg id="close-icon" class="hidden h-6 w-6" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
-                        </button>
-                    </div>
-
-                    <div class="hidden md:flex items-center space-x-3">
-                        <a href="{% url 'upload' %}" class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded text-sm font-medium flex items-center space-x-2 transition-all">
-                            <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/></svg>
-                            <span>Place an Order</span>
-                        </a>
-                        {% if user.is_authenticated %}
-                            <a href="{% url 'dashboard' %}" class="text-gray-300 hover:text-white px-3 py-2 rounded-md text-sm font-medium hover:bg-white/10">My Orders</a>
-                            {% if user.is_staff or user.role == 'agent' %}
-                                <a href="{% url 'agent_dashboard' %}" class="text-gray-300 hover:text-white px-3 py-2 rounded-md text-sm font-medium hover:bg-white/10">Agent</a>
-                                <a href="{% url 'admin_approve_payments' %}" class="text-gray-300 hover:text-white px-3 py-2 rounded-md text-sm font-medium hover:bg-white/10">Payments</a>
-                            {% endif %}
-                            {% if user.is_staff or user.role == 'admin' %}
-                                <a href="{% url 'admin_dashboard' %}" class="text-gray-300 hover:text-white px-3 py-2 rounded-md text-sm font-medium hover:bg-white/10">Admin</a>
-                                <a href="{% url 'financial_dashboard' %}" class="text-gray-300 hover:text-white px-3 py-2 rounded-md text-sm font-medium hover:bg-white/10">Finances</a>
-                            {% endif %}
-                            <a href="{% url 'referrals:dashboard' %}" class="text-gray-300 hover:text-white px-3 py-2 rounded-md text-sm font-medium hover:bg-white/10">
-                                Refer & Earn
-                            </a>
-                            <form method="POST" action="{% url 'logout' %}" class="inline">
-                                {% csrf_token %}
-                                <button type="submit" class="text-gray-400 hover:text-white px-3 py-2 rounded-md text-sm font-medium hover:bg-white/10">Logout</button>
-                            </form>
-                        {% else %}
-                            <a href="{% url 'track_order' %}" class="text-gray-300 hover:text-white px-3 py-2 rounded-md text-sm font-medium hover:bg-white/10">Track Order</a>
-                            <a href="{% url 'login' %}" class="text-gray-300 hover:text-white px-3 py-2 rounded-md text-sm font-medium hover:bg-white/10">Login</a>
-                            <a href="{% url 'register' %}" class="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700 transition-all text-sm font-medium">Register</a>
-                        {% endif %}
-                    </div>
-                </div>
-            </div>
-        </div>
-        <div id="mobile-menu" class="hidden md:hidden absolute top-16 left-0 w-full bg-slate-800/95 backdrop-blur-md border-b border-white/10 shadow">
-            <div class="px-4 pt-2 pb-4 space-y-2">
-                {% if user.is_authenticated %}
-                    <a href="{% url 'dashboard' %}" class="block px-3 py-2 rounded-md text-base font-medium text-gray-300 hover:text-white hover:bg-white/10">My Orders</a>
-                    {% if user.is_staff or user.role == 'agent' %}
-                        <a href="{% url 'agent_dashboard' %}" class="block px-3 py-2 rounded-md text-base font-medium text-gray-300 hover:text-white hover:bg-white/10">Agent Dashboard</a>
-                        <a href="{% url 'admin_approve_payments' %}" class="block px-3 py-2 rounded-md text-base font-medium text-gray-300 hover:text-white hover:bg-white/10">Payments</a>
-                    {% endif %}
-                    {% if user.is_staff or user.role == 'admin' %}
-                        <a href="{% url 'admin_dashboard' %}" class="block px-3 py-2 rounded-md text-base font-medium text-gray-300 hover:text-white hover:bg-white/10">Admin Dashboard</a>
-                        <a href="{% url 'financial_dashboard' %}" class="block px-3 py-2 rounded-md text-base font-medium text-gray-300 hover:text-white hover:bg-white/10">Finances</a>
-                    {% endif %}
-                    <a href="{% url 'referrals:dashboard' %}" class="block px-3 py-2 rounded-md text-base font-medium text-gray-300 hover:text-white hover:bg-white/10">
-                        Refer & Earn
-                    </a>
-                    <form method="POST" action="{% url 'logout' %}">
-                        {% csrf_token %}
-                        <button type="submit" class="block w-full text-left px-3 py-2 rounded-md text-base font-medium text-red-400 hover:text-red-300 hover:bg-white/10">Logout</button>
-                    </form>
-                {% else %}
-                    <a href="{% url 'track_order' %}" class="block px-3 py-2 rounded-md text-base font-medium text-gray-300 hover:text-white hover:bg-white/10">Track Order</a>
-                    <a href="{% url 'login' %}" class="block px-3 py-2 rounded-md text-base font-medium text-gray-300 hover:text-white hover:bg-white/10">Login</a>
-                    <a href="{% url 'register' %}" class="block px-3 py-2 rounded-md text-base font-medium text-white bg-blue-600 hover:bg-blue-700 text-center mt-2">Register</a>
-                {% endif %}
-            </div>
-        </div>
-    </nav>
-
-    {% if messages %}
-    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 mt-4">
-        {% for message in messages %}
-        <div class="px-4 py-3 rounded mb-4 text-sm {% if message.tags == 'success' %}bg-green-500/20 border border-green-500/50 text-green-300{% elif message.tags == 'error' %}bg-red-500/20 border border-red-500/50 text-red-300{% else %}bg-blue-500/20 border border-blue-500/50 text-blue-300{% endif %}">{{ message }}</div>
-        {% endfor %}
-    </div>
-    {% endif %}
-
-    <main class="min-h-[calc(100vh-4rem)]">{% block content %}{% endblock %}</main>
-
-    <footer class="bg-slate-800/50 backdrop-blur-md border-t border-white/10 mt-20">
-        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8"><p class="text-center text-gray-400 text-sm">&copy; 2026 PrintHub. All rights reserved.</p></div>
-    </footer>
-
-    <div id="pwa-install-banner" class="hidden fixed bottom-0 left-0 right-0 bg-slate-800 border-t border-slate-700 p-4 z-50">
-        <div class="max-w-7xl mx-auto flex items-center justify-between">
-            <div class="flex items-center gap-3">
-                <img src="{% static 'icons/icon.svg' %}" alt="PrintHub Logo" class="h-10 w-auto object-contain">
-                <div>
-                    <p class="text-white font-medium text-sm">Install PrintHub</p>
-                    <p class="text-gray-400 text-xs">Add to your home screen</p>
-                </div>
-            </div>
-            <div class="flex gap-2">
-                <button onclick="dismissPWA()" class="text-gray-400 hover:text-white text-sm px-3 py-1">Later</button>
-                <button onclick="installPWA()" class="bg-indigo-600 hover:bg-indigo-500 text-white text-sm font-bold px-4 py-2 rounded">Install</button>
-            </div>
-        </div>
-    </div>
-
-    <script>
-        function toggleTheme() {
-            const html = document.documentElement;
-            const btn = document.getElementById('themeBtn');
-            const current = html.getAttribute('data-theme');
-            const next = current === 'dark' ? 'light' : 'dark';
-            html.setAttribute('data-theme', next);
-            if (next === 'dark') { html.classList.add('dark'); } else { html.classList.remove('dark'); }
-            btn.innerHTML = next === 'dark' ? '&#9788;' : '&#9790;';
-            localStorage.setItem('theme', next);
-            document.getElementById('meta-theme-color').setAttribute('content', next === 'dark' ? '#0f172a' : '#f8fafc');
+@login_required
+def referral_stats_api(request):
+    """API endpoint for referral stats"""
+    user = request.user
+    bonuses = ReferralBonus.objects.filter(user=user)
+    
+    data = {
+        'bonuses': {
+            'total_earned': str(bonuses.aggregate(total=Sum('amount'))['total'] or 0),
+            'total_used': str(bonuses.filter(is_used=True).aggregate(total=Sum('amount'))['total'] or 0),
+            'available': str(bonuses.filter(is_used=False).aggregate(total=Sum('amount'))['total'] or 0),
         }
-        (function(){document.getElementById('themeBtn').innerHTML=(localStorage.getItem('theme')||'dark')==='dark'?'&#9788;':'&#9790;';})();
-        
-        document.addEventListener('DOMContentLoaded',function(){
-            const btn=document.getElementById('mobile-menu-btn'),menu=document.getElementById('mobile-menu'),hi=document.getElementById('hamburger-icon'),ci=document.getElementById('close-icon');
-            if(btn)btn.addEventListener('click',function(){menu.classList.toggle('hidden');hi.classList.toggle('hidden');ci.classList.toggle('hidden');});
-        });
-
-        function playNotificationSound() {
-            try {
-                const ctx = new (window.AudioContext || window.webkitAudioContext)();
-                const o = ctx.createOscillator();
-                const g = ctx.createGain();
-                o.connect(g); g.connect(ctx.destination);
-                o.type = 'sine';
-                o.frequency.setValueAtTime(800, ctx.currentTime);
-                o.frequency.setValueAtTime(1000, ctx.currentTime + 0.1);
-                g.gain.setValueAtTime(0.3, ctx.currentTime);
-                g.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + 0.3);
-                o.start(ctx.currentTime); o.stop(ctx.currentTime + 0.3);
-            } catch(e) {}
-        }
-
-        let prevCount = 0;
-        function toggleNotifications(){const d=document.getElementById('notification-dropdown');d.classList.toggle('hidden');if(!d.classList.contains('hidden'))fetchNotifications();}
-        function fetchNotifications(){fetch('/notifications/api/').then(r=>r.json()).then(d=>{const b=document.getElementById('notification-badge'),l=document.getElementById('notification-list');if(d.unread_count>0){b.textContent=d.unread_count;b.classList.remove('hidden');if(d.unread_count>prevCount)playNotificationSound();}else{b.classList.add('hidden');}prevCount=d.unread_count;if(d.notifications.length===0){l.innerHTML='<div class="p-4 text-center text-gray-500 text-sm">No new notifications</div>';return;}l.innerHTML=d.notifications.map(n=>`<a href="${n.link||'#'}" onclick="markRead(${n.id})" class="block p-3 hover:bg-slate-700/50 transition cursor-pointer"><p class="text-white text-sm font-medium">${n.title}</p><p class="text-gray-400 text-xs mt-1">${n.message}</p><p class="text-gray-500 text-xs mt-1">${n.created}</p></a>`).join('');});}
-        function markRead(id){fetch('/notifications/mark-read/'+id+'/',{method:'POST',headers:{'X-CSRFToken':getCookie('csrftoken')}});}
-        function markAllRead(){fetch('/notifications/mark-all-read/',{method:'POST',headers:{'X-CSRFToken':getCookie('csrftoken')}}).then(()=>{document.getElementById('notification-badge').classList.add('hidden');document.getElementById('notification-list').innerHTML='<div class="p-4 text-center text-gray-500 text-sm">No new notifications</div>';});}
-        function getCookie(n){let v='; '+document.cookie;let p=v.split('; '+n+'=');if(p.length===2)return p.pop().split(';').shift();}
-        setInterval(fetchNotifications,15000);fetchNotifications();
-        document.addEventListener('click',function(e){const b=document.getElementById('notification-bell');if(b&&!b.contains(e.target))document.getElementById('notification-dropdown').classList.add('hidden');});
-
-        async function subscribeToPush() {
-            try {
-                const data = await fetch('/notifications/api/').then(r => r.json());
-                const vapidKey = data.vapid_public_key;
-                if (!vapidKey) return;
-                const registration = await navigator.serviceWorker.ready;
-                let subscription = await registration.pushManager.getSubscription();
-                if (!subscription) {
-                    subscription = await registration.pushManager.subscribe({userVisibleOnly: true, applicationServerKey: vapidKey});
-                }
-                await fetch('/notifications/push/subscribe/', {method:'POST',headers:{'Content-Type':'application/json','X-CSRFToken':getCookie('csrftoken')},body:JSON.stringify({subscription:subscription.toJSON()})});
-            } catch(e) {}
-        }
-        
-        {% if user.is_authenticated %}
-        if ('serviceWorker' in navigator && 'PushManager' in window) { subscribeToPush(); }
-        {% endif %}
-
-        let deferredPrompt;
-        window.addEventListener('beforeinstallprompt',(e)=>{e.preventDefault();deferredPrompt=e;document.getElementById('pwa-install-banner').classList.remove('hidden');});
-        function installPWA(){if(deferredPrompt){deferredPrompt.prompt();deferredPrompt.userChoice.then(()=>{deferredPrompt=null;document.getElementById('pwa-install-banner').classList.add('hidden');});}}
-        function dismissPWA(){document.getElementById('pwa-install-banner').classList.add('hidden');}
-        window.addEventListener('appinstalled',()=>{document.getElementById('pwa-install-banner').classList.add('hidden');deferredPrompt=null;});
-        if('serviceWorker' in navigator)navigator.serviceWorker.register('/sw.js');
-    </script>
-</body>
-</html>
+    }
+    return JsonResponse(data)
