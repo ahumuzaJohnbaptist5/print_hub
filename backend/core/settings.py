@@ -14,9 +14,9 @@ load_dotenv(BASE_DIR / '.env')
 SECRET_KEY = os.environ.get('DJANGO_SECRET_KEY', 'django-insecure-dev-fallback-key')
 
 # SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = os.environ.get('DEBUG', 'False').lower() == 'true'
+DEBUG = os.environ.get('DEBUG', 'True').lower() == 'true'  # ⭐ FORCED True for local
 
-# ⭐ UPDATED FOR RENDER
+# ⭐ UPDATED FOR LOCAL + RENDER
 ALLOWED_HOSTS = [
     'localhost',
     '127.0.0.1',
@@ -25,12 +25,12 @@ ALLOWED_HOSTS = [
     'www.printlink.pythonanywhere.com',
     '.trycloudflare.com',
     '.onrender.com',
-    'print-hub-jbfe.onrender.com',  # ⭐ YOUR ACTUAL RENDER URL
+    'print-hub-jbfe.onrender.com',
 ]
 
-SITE_URL = os.environ.get('SITE_URL', 'https://print-hub-jbfe.onrender.com')
+SITE_URL = os.environ.get('SITE_URL', 'http://localhost:8000')  # ⭐ Changed to HTTP for local
 
-# CSRF Settings - ⭐ UPDATED FOR RENDER
+# CSRF Settings - ⭐ DISABLED SSL FOR LOCAL
 CSRF_TRUSTED_ORIGINS = [
     'https://printlink.pythonanywhere.com',
     'http://printlink.pythonanywhere.com',
@@ -38,15 +38,15 @@ CSRF_TRUSTED_ORIGINS = [
     'http://127.0.0.1:8000',
     'https://*.pythonanywhere.com',
     'https://*.onrender.com',
-    'https://print-hub-jbfe.onrender.com',  # ⭐ YOUR ACTUAL RENDER URL
+    'https://print-hub-jbfe.onrender.com',
 ]
-CSRF_COOKIE_SECURE = True
-CSRF_COOKIE_HTTPONLY = True
+CSRF_COOKIE_SECURE = False  # ⭐ Changed to False for local
+CSRF_COOKIE_HTTPONLY = False  # ⭐ Changed to False for local
 CSRF_COOKIE_SAMESITE = 'Lax'
 
-# Session Security
-SESSION_COOKIE_SECURE = True
-SESSION_COOKIE_HTTPONLY = True
+# Session Security - ⭐ DISABLED SSL FOR LOCAL
+SESSION_COOKIE_SECURE = False  # ⭐ Changed to False for local
+SESSION_COOKIE_HTTPONLY = False  # ⭐ Changed to False for local
 SESSION_COOKIE_SAMESITE = 'Lax'
 
 # Application definition
@@ -69,7 +69,7 @@ INSTALLED_APPS = [
     'notifications',
     'whatsapp_bot',
     # 'core.file_processor',  # ⭐ DISABLED for Render
-    'referrals',
+    'referrals',  # ⭐ DISABLED for now
 ]
 
 MIDDLEWARE = [
@@ -111,7 +111,7 @@ DATABASES = {
         default=f'sqlite:///{BASE_DIR / "db.sqlite3"}',
         conn_max_age=600,
         conn_health_checks=True,
-        ssl_require=False,  # SQLite doesn't need SSL
+        ssl_require=False,
     )
 }
 
@@ -130,16 +130,17 @@ CACHES = {
     }
 }
 
-# CORS - ⭐ UPDATED FOR RENDER
-CORS_ALLOW_ALL_ORIGINS = False
+# CORS - ⭐ UPDATED FOR LOCAL
+CORS_ALLOW_ALL_ORIGINS = True  # ⭐ Changed to True for local testing
 CORS_ALLOW_CREDENTIALS = True
 CORS_ALLOWED_ORIGINS = [
     'http://localhost:5173',
     'http://localhost:8000',
+    'http://127.0.0.1:8000',
     'https://printlink.pythonanywhere.com',
     'https://*.pythonanywhere.com',
     'https://*.onrender.com',
-    'https://print-hub-jbfe.onrender.com',  # ⭐ YOUR ACTUAL RENDER URL
+    'https://print-hub-jbfe.onrender.com',
 ]
 
 # REST Framework
@@ -203,14 +204,12 @@ BASE_PRICE_BW = 200
 COLOR_SURCHARGE = 100
 SPIRAL_BINDING_FEE = 1000
 
-# PythonAnywhere proxy fix
-SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')
-
-# ⭐ Production security settings
-SECURE_SSL_REDIRECT = not DEBUG
-SECURE_BROWSER_XSS_FILTER = True
-SECURE_CONTENT_TYPE_NOSNIFF = True
-X_FRAME_OPTIONS = 'DENY'
+# ⭐ SECURITY SETTINGS - ALL DISABLED FOR LOCAL
+SECURE_PROXY_SSL_HEADER = None  # ⭐ Set to None for local
+SECURE_SSL_REDIRECT = False  # ⭐ Force False
+SECURE_BROWSER_XSS_FILTER = False  # ⭐ Disabled for local
+SECURE_CONTENT_TYPE_NOSNIFF = False  # ⭐ Disabled for local
+X_FRAME_OPTIONS = 'DENY'  # ⭐ Keep this
 
 # Push Notifications (VAPID)
 VAPID_PRIVATE_KEY = os.getenv('VAPID_PRIVATE_KEY', '')
@@ -252,7 +251,7 @@ if not LOGS_DIR.exists():
 # ============================================================
 # RATE LIMITING
 # ============================================================
-RATELIMIT_ENABLE = True
+RATELIMIT_ENABLE = False  # ⭐ Disabled for local testing
 RATELIMIT_USE_CACHE = 'default'
 
 # Referral Settings

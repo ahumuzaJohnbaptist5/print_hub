@@ -28,12 +28,13 @@ from .helpers import (
     _get_tracked_orders, send_order_confirmation_email, send_cancellation_email
 )
 
-# Import file processor - wrap in try/except to avoid breaking if not installed
-#try:
-##    from file_processor.processors import FileProcessor
-#except ImportError:
-  #  FileProcessor = None
-  #  print("Warning: file_processor not available")
+# ============================================================
+# 🚫 FILE PROCESSOR - COMPLETELY DISABLED
+# ============================================================
+# The file_processor app is disabled for local testing and Render deployment.
+# Set FileProcessor to None so all checks pass without errors.
+FileProcessor = None
+print("⚠️ file_processor is DISABLED - file processing skipped")
 
 User = get_user_model()
 logger = logging.getLogger(__name__)
@@ -58,7 +59,7 @@ def dashboard_view(request):
 
 
 # ============================================================
-# UPLOAD VIEW - FIXED WITH PASSPORT FORCE
+# UPLOAD VIEW - WITH FILE PROCESSOR DISABLED
 # ============================================================
 @transaction.atomic
 def upload_view(request):
@@ -90,7 +91,7 @@ def upload_view(request):
         scanner_data = request.POST.get('scanner_data', '')
         
         # ============================================================
-        # 🆕 FORCE: order_type based on data presence
+        # FORCE: order_type based on data presence
         # ============================================================
         if passport_data:
             order_type = 'passport'
@@ -124,15 +125,12 @@ def upload_view(request):
                 'upload_error': upload_error,
             })
         
+        # ============================================================
+        # 🚫 FILE PROCESSING - SKIPPED (FileProcessor is disabled)
+        # ============================================================
         processing_result = None
-        if FileProcessor:
-            try:
-                processor = FileProcessor(file, file.name)
-                processing_result = processor.process()
-                if processing_result['success']:
-                    logger.info(f"File processed successfully: {file.name}")
-            except Exception as e:
-                logger.error(f"File processing error: {e}")
+        # FileProcessor is disabled - skipping file processing
+        logger.info("📄 File processing skipped (FileProcessor disabled)")
             
         station = None
         if station_id and station_id.isdigit():
@@ -147,12 +145,12 @@ def upload_view(request):
             copies_int = int(copies)
             
             # ============================================================
-            # 🆕 FORCE: If passport and copies is 1, force to 6
+            # FORCE: If passport and copies is less than 6, force to 6
             # ============================================================
             if order_type == 'passport':
                 if copies_int < 6:
                     copies_int = 6
-                    logger.warning(f"📸 FORCED passport copies from 1 to 6")
+                    logger.warning(f"📸 FORCED passport copies from {copies} to 6")
             
             if page_count_int < 1:
                 raise ValueError("Page count must be at least 1")
@@ -172,15 +170,13 @@ def upload_view(request):
                 notes = extra_notes
 
             # ============================================================
-            # 🆕 PASSPORT: Let the model calculate price (6 or 12 photos)
+            # PASSPORT: Let the model calculate price
             # ============================================================
             if order_type == 'passport':
                 is_color = True
                 binding = 'none'
                 is_double_sided = False
-                # page_count = copies (6 or 12)
                 page_count_int = copies_int
-                # ✅ Set calculated_price to 0 so model calculates it
                 calculated_price = '0'
                 logger.info(f"📸 PASSPORT ORDER: copies={copies_int}, page_count={page_count_int}")
                 
@@ -207,14 +203,10 @@ def upload_view(request):
                 copies=copies_int,
             )
             
-            if processing_result and processing_result.get('success'):
-                order.file_metadata = processing_result.get('info', {})
-                if processing_result.get('preview'):
-                    order.file_preview = processing_result['preview'].get('preview', '')
-                    if 'thumbnail' in processing_result['preview']:
-                        order.file_thumbnail = processing_result['preview'].get('thumbnail', '')
+            # Skip file metadata processing (FileProcessor disabled)
+            # order.file_metadata, order.file_preview, order.file_thumbnail remain empty
             
-            # ✅ Only set total_price if calculated_price is NOT 0
+            # Only set total_price if calculated_price is NOT 0
             if calculated_price and calculated_price != '0':
                 try:
                     js_price = Decimal(str(calculated_price))
@@ -225,7 +217,7 @@ def upload_view(request):
                     
             order.save()
             
-            logger.info(f"📸 PASSPORT SAVED: order #{order.id}, copies={order.copies}, page_count={order.page_count}, total_price={order.total_price}")
+            logger.info(f"✅ ORDER SAVED: order #{order.id}, copies={order.copies}, page_count={order.page_count}, total_price={order.total_price}")
             
             try:
                 send_order_confirmation_email(order)
@@ -260,7 +252,7 @@ def upload_view(request):
 
 
 # ============================================================
-# PASSPORT RECEIPT VIEW - DIRECT
+# PASSPORT RECEIPT VIEW
 # ============================================================
 @login_required
 def passport_receipt_view(request, order_id):
@@ -286,7 +278,7 @@ def passport_receipt_view(request, order_id):
 
 
 # ============================================================
-# ORDER RECEIPT VIEW - FOR DOCUMENTS
+# ORDER RECEIPT VIEW
 # ============================================================
 @login_required
 def order_receipt_view(request, order_id):

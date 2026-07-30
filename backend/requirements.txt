@@ -1,22 +1,64 @@
+# ============================================================
+# Core Django Framework
+# ============================================================
 Django>=5.1,<5.2
 djangorestframework
 django-cors-headers
 dj-database-url
-psycopg2-binary
+
+# ============================================================
+# Server & Static Files
+# ============================================================
 gunicorn
 whitenoise
 python-dotenv
+
+# ============================================================
+# Cloud Storage & Image Hosting
+# ============================================================
 cloudinary
 django-cloudinary-storage
+django-storages
+boto3
+
+# ============================================================
+# Image & File Processing
+# ============================================================
 Pillow
-django-ratelimit
-django-allauth
-python-magic
 PyPDF2
 python-docx
 python-pptx
 reportlab
+
+# ============================================================
+# Rate Limiting & Caching
+# ============================================================
+django-ratelimit
 django-redis>=5.4.0
 redis>=5.0.0
-django-storages
-boto3
+
+# ============================================================
+# Authentication
+# ============================================================
+django-allauth
+
+# ============================================================
+# File Detection (Windows compatible)
+# ============================================================
+python-magic-bin
+
+# ============================================================
+# HTML/XML Parsing
+# ============================================================
+beautifulsoup4
+soupsieve
+
+# ============================================================
+# HTTP Requests & Utilities
+# ============================================================
+requests
+urllib3
+certifi
+charset-normalizer
+idna
+six

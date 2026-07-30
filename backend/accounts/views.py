@@ -1,3 +1,4 @@
+# accounts/views.py
 from django.shortcuts import render, redirect
 from django.contrib.auth import get_user_model, authenticate, login, logout
 from django.contrib.auth.decorators import login_required
@@ -19,14 +20,12 @@ def profile_view(request):
         request.user.last_name = request.POST.get('last_name', '').strip()
         request.user.phone_number = request.POST.get('phone_number', '').strip()
         
+        # ✅ Cleaner station assignment
         station_id = request.POST.get('station')
-        if station_id:
-            request.user.station_id = station_id
-        else:
-            request.user.station = None
+        request.user.station_id = station_id if station_id else None
             
         request.user.save()
-        messages.success(request, 'Profile updated successfully!')
+        messages.success(request, '✅ Profile updated successfully!')
         return redirect('profile')
 
     return render(request, 'accounts/profile.html', {
@@ -46,21 +45,18 @@ def register_view(request):
         username = request.POST.get('username')
         email = request.POST.get('email')
         password = request.POST.get('password')
-        
-        # 🆕 Get referral code from request
         referral_code = request.POST.get('referral_code') or request.GET.get('ref')
 
         if not username or not email or not password:
-            return render(request, 'accounts/register.html', {'error': 'All fields are required'})
+            return render(request, 'accounts/register.html', {'error': '⚠️ All fields are required'})
 
         if User.objects.filter(username=username).exists():
-            return render(request, 'accounts/register.html', {'error': 'Username already exists'})
+            return render(request, 'accounts/register.html', {'error': '⚠️ Username already exists'})
 
         if User.objects.filter(email=email).exists():
-            return render(request, 'accounts/register.html', {'error': 'Email already exists'})
+            return render(request, 'accounts/register.html', {'error': '⚠️ Email already exists'})
 
         try:
-            # Clean registration without email verification
             user = User.objects.create_user(
                 username=username,
                 email=email,
@@ -68,21 +64,28 @@ def register_view(request):
                 role='client'
             )
             
-            # 🆕 Process referral if code exists
+            # Process referral if code exists
+            referral_processed = False
             if referral_code:
                 try:
                     from referrals.utils import process_referral_signup
                     process_referral_signup(request, user)
+                    referral_processed = True
                 except Exception as e:
-                    # Don't fail registration if referral fails
-                    print(f"Referral processing failed: {e}")
+                    print(f"⚠️ Referral processing failed: {e}")
             
             login(request, user)
             
-            messages.success(request, f'🎉 Welcome {user.first_name or username}! Your account is now ready.')
+            # ✅ Better welcome message
+            msg = f'🎉 Welcome {user.first_name or username}! Your account is now ready.'
+            if referral_processed:
+                msg += ' 🎁 Referral bonus applied!'
+            messages.success(request, msg)
+            
             return redirect(next_url)
+            
         except Exception as e:
-            return render(request, 'accounts/register.html', {'error': f'Registration failed: {str(e)}'})
+            return render(request, 'accounts/register.html', {'error': f'❌ Registration failed: {str(e)}'})
 
     return render(request, 'accounts/register.html')
 
@@ -101,10 +104,13 @@ def login_view(request):
         user = authenticate(username=username, password=password)
 
         if user is None:
-            return render(request, 'accounts/login.html', {'error': 'Invalid credentials, make sure your account is created'})
+            return render(request, 'accounts/login.html', {'error': '❌ Invalid credentials. Please check your username and password.'})
+        
+        if not user.is_active:
+            return render(request, 'accounts/login.html', {'error': '⚠️ Your account has been disabled. Please contact support.'})
 
         login(request, user)
-        messages.success(request, f'Welcome back, {user.first_name or username}!')
+        messages.success(request, f' Welcome back, {user.first_name or username}!')
         return redirect(next_url)
 
     return render(request, 'accounts/login.html')
@@ -112,5 +118,5 @@ def login_view(request):
 
 def logout_view(request):
     logout(request)
-    messages.success(request, 'You have been logged out.')
+    messages.success(request, ' You have been logged out.')
     return redirect('home')
