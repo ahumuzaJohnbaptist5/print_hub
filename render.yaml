@@ -2,13 +2,12 @@ services:
   - type: web
     name: printhub
     env: python
+    rootDir: backend  # ⭐ ADD THIS - tells Render to use the backend folder as root
     buildCommand: |
-      cd backend
       pip install -r requirements.txt
       python manage.py migrate --noinput
       python manage.py collectstatic --noinput
     startCommand: |
-      cd backend
       gunicorn core.wsgi:application
     envVars:
       - key: DATABASE_URL
