@@ -1,5 +1,6 @@
 import os
 import django
+import traceback
 
 # Setup Django environment
 os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'core.settings')
@@ -10,22 +11,22 @@ from django.contrib.auth import get_user_model
 User = get_user_model()
 
 username = 'superadmin'
-email = 'superadmin@example.com'
-password = 'MyStrongPassword123!' # Change this to your desired password
+email = 'scholargrant22@gmail.com'
+password = 'Ihategoogle@12' 
 
 if not User.objects.filter(username=username).exists():
     try:
-        # We pass extra fields that your CustomUser model likely requires
+        # Removed email_verified. Django will handle standard superuser creation.
         user = User.objects.create_superuser(
-            username=username,
-            email=email,
-            password=password,
-            email_verified=True,  # Added based on your migration name
-            # station_id=None     # Uncomment and adjust if 'station' is strictly required
+            username=username, 
+            email=email, 
+            password=password
         )
         print(f"✅ SUCCESS: Superuser '{username}' created successfully!")
     except Exception as e:
-        print(f"❌ FAILED to create superuser. Error: {e}")
-        print("👉 Check the error above. You may need to add a missing field to this script.")
+        print(f"❌ FAILED to create superuser.")
+        print(f"Error details: {e}")
+        print("Full Traceback:")
+        traceback.print_exc()
 else:
-    print(f"ℹ️ Superuser '{username}' already exists.")
+    print(f"ℹ️ INFO: Superuser '{username}' already exists in the database.")
