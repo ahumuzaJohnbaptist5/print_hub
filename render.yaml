@@ -2,35 +2,26 @@ services:
   - type: web
     name: printhub
     env: python
-    rootDir: backend  # ⭐ ADD THIS - tells Render to use the backend folder as root
+    rootDir: backend
     buildCommand: |
       pip install -r requirements.txt
       python manage.py migrate --noinput
       python manage.py collectstatic --noinput
-    startCommand: |
-      gunicorn core.wsgi:application
+    startCommand: gunicorn core.wsgi:application
     envVars:
-      - key: DATABASE_URL
-        fromDatabase:
-          name: printhub_db
-          property: connectionString
-      - key: SECRET_KEY
-        generateValue: true
+      - key: PYTHON_VERSION
+        value: "3.12.9"
       - key: DEBUG
         value: "False"
+      - key: SECRET_KEY
+        generateValue: true
       - key: ALLOWED_HOSTS
-        value: "printhub.onrender.com,.onrender.com"
+        value: "localhost,127.0.0.1,.onrender.com,printhub.onrender.com,printhub.onderd.com"
       - key: CSRF_TRUSTED_ORIGINS
+        value: "https://printhub.onrender.com,https://printhub.onderd.com"
+      - key: CORS_ALLOWED_ORIGINS
+        value: "http://localhost:5173,http://localhost:8000,https://print-hub-sigma.vercel.app,https://printhub.onrender.com,https://printhub.onderd.com"
+      - key: SITE_URL
         value: "https://printhub.onrender.com"
       - key: RATELIMIT_ENABLE
         value: "True"
-      - key: SITE_URL
-        value: "https://printhub.onrender.com"
-      - key: PYTHON_VERSION
-        value: "3.12.9"
-
-databases:
-  - name: printhub_db
-    databaseName: printhub
-    user: printhub_user
-    plan: free
