@@ -1,0 +1,71 @@
+<!-- templates/components/chat_widget.html -->
+<div id="ph-chat-widget" class="fixed bottom-6 right-6 z-50 flex flex-col items-end">
+    
+    <!-- Chat Window (Hidden by default) -->
+    <div id="ph-chat-window" class="hidden mb-4 w-80 sm:w-96 h-[500px] bg-slate-900 border border-slate-700 rounded-2xl shadow-2xl flex flex-col overflow-hidden transition-all duration-300 transform origin-bottom-right">
+        
+        <!-- Header -->
+        <div class="bg-gradient-to-r from-blue-600 to-indigo-700 p-4 flex items-center justify-between">
+            <div class="flex items-center gap-3">
+                <div class="w-10 h-10 bg-white/20 rounded-full flex items-center justify-center">
+                    <svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 10h.01M12 10h.01M16 10h.01M9 16H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-5l-5 5v-5z"></path></svg>
+                </div>
+                <div>
+                    <h3 class="text-white font-bold text-sm">PrintHub Assistant</h3>
+                    <p class="text-blue-200 text-xs flex items-center gap-1">
+                        <span class="w-2 h-2 bg-green-400 rounded-full animate-pulse"></span> Online now
+                    </p>
+                </div>
+            </div>
+            <button id="ph-chat-close" class="text-white/80 hover:text-white">
+                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
+            </button>
+        </div>
+
+        <!-- Message Area -->
+        <div id="ph-chat-messages" class="flex-1 p-4 overflow-y-auto space-y-4 bg-slate-800/50">
+            <!-- Bot Welcome Message -->
+            <div class="flex gap-2 items-start">
+                <div class="w-8 h-8 rounded-full bg-indigo-600 flex items-center justify-center text-xs font-bold text-white shrink-0">AI</div>
+                <div class="bg-slate-700 text-slate-200 p-3 rounded-lg rounded-tl-none max-w-[80%] text-sm">
+                    👋 Hi! I'm the PrintHub Assistant. Need help with an order or want a quick price quote?
+                </div>
+            </div>
+            
+            <!-- Quick Action Chips -->
+            <div id="ph-quick-replies" class="flex flex-wrap gap-2 pl-10">
+                <button class="ph-chip px-3 py-1.5 bg-slate-700 hover:bg-slate-600 text-slate-200 text-xs rounded-full border border-slate-600 transition">📍 Track my order</button>
+                <button class="ph-chip px-3 py-1.5 bg-slate-700 hover:bg-slate-600 text-slate-200 text-xs rounded-full border border-slate-600 transition">💰 Get a price quote</button>
+                <button class="ph-chip px-3 py-1.5 bg-slate-700 hover:bg-slate-600 text-slate-200 text-xs rounded-full border border-slate-600 transition">📞 Talk to human</button>
+            </div>
+        </div>
+
+        <!-- Typing Indicator (Hidden by default) -->
+        <div id="ph-typing-indicator" class="hidden px-4 py-2 bg-slate-800/50">
+            <div class="flex gap-2 items-center">
+                <div class="w-8 h-8 rounded-full bg-indigo-600 flex items-center justify-center text-xs font-bold text-white shrink-0">AI</div>
+                <div class="flex gap-1 bg-slate-700 p-3 rounded-lg rounded-tl-none">
+                    <div class="w-2 h-2 bg-slate-400 rounded-full animate-bounce" style="animation-delay: 0ms"></div>
+                    <div class="w-2 h-2 bg-slate-400 rounded-full animate-bounce" style="animation-delay: 150ms"></div>
+                    <div class="w-2 h-2 bg-slate-400 rounded-full animate-bounce" style="animation-delay: 300ms"></div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Input Area -->
+        <div class="p-3 bg-slate-900 border-t border-slate-700">
+            <form id="ph-chat-form" class="flex items-center gap-2">
+                <input type="text" id="ph-chat-input" placeholder="Type your message..." class="flex-1 bg-slate-800 text-white text-sm rounded-lg px-4 py-2 border border-slate-700 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent" autocomplete="off">
+                <button type="submit" class="p-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg transition">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8"></path></svg>
+                </button>
+            </form>
+        </div>
+    </div>
+
+    <!-- Floating Action Button (FAB) -->
+    <button id="ph-chat-toggle" class="w-14 h-14 bg-gradient-to-r from-blue-600 to-indigo-700 hover:from-blue-700 hover:to-indigo-800 text-white rounded-full shadow-lg flex items-center justify-center transition-transform hover:scale-105 focus:outline-none focus:ring-4 focus:ring-indigo-500/50">
+        <svg id="ph-icon-chat" class="w-7 h-7" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 10h.01M12 10h.01M16 10h.01M9 16H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-5l-5 5v-5z"></path></svg>
+        <svg id="ph-icon-close" class="w-7 h-7 hidden" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
+    </button>
+</div>
