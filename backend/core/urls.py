@@ -5,6 +5,8 @@ from django.conf import settings
 from django.conf.urls.static import static
 from django.contrib.auth.decorators import login_required
 from django.http import HttpResponse
+from django.contrib.sitemaps.views import sitemap
+from django.views.generic import TemplateView
 
 # Import views - Using modular imports
 from orders.views import (
@@ -12,6 +14,19 @@ from orders.views import (
     api_views, live_board_views
 )
 from accounts import views as accounts_views
+
+# ============================================================
+# SITEMAP IMPORTS
+# ============================================================
+# Create sitemaps dictionary with all sitemaps
+sitemaps = {
+    'static': 'core.sitemap.StaticSitemap',
+    'orders': 'core.sitemap.OrderSitemap', 
+    'stations': 'core.sitemap.StationSitemap',
+}
+
+# We'll use lazy imports to avoid circular dependencies
+# The actual sitemap classes will be imported when needed
 
 # ============================================================
 # PLACEHOLDER VIEW FOR UNDER CONSTRUCTION PAGES
@@ -66,12 +81,37 @@ urlpatterns = [
     path('orders/api/validate-discount/', api_views.validate_discount_code, name='validate_discount_code'),
     
     # File Processor API
-   # path('file-processor/', include('file_processor.urls')),
-    #recover passwords
+    # path('file-processor/', include('file_processor.urls')),
+    
+    # Recover passwords
     path('auth/', include('django.contrib.auth.urls')),
+    
+    # Assistant
     path('api/assistant/', include('assistant.urls')),
     
-    # Misc
+    # ============================================================
+    # SEO URLS - Robots.txt and Sitemap
+    # ============================================================
+    # Robots.txt - Served as plain text
+    path('robots.txt', 
+         TemplateView.as_view(template_name='robots.txt', content_type='text/plain'),
+         name='robots'),
+    
+    # Main sitemap
+    path('sitemap.xml', 
+         sitemap, 
+         {'sitemaps': sitemaps},
+         name='sitemap'),
+    
+    # Individual sitemap sections
+    path('sitemap-<section>.xml', 
+         sitemap, 
+         {'sitemaps': sitemaps},
+         name='sitemap_section'),
+    
+    # ============================================================
+    # MISC
+    # ============================================================
     path('all-links/', client_views.all_links_view, name='all_links'),
 ]
 
@@ -82,9 +122,7 @@ urlpatterns += [path('finances/', include('finances.urls'))]
 urlpatterns += [path('payments/', include('payments.urls'))]
 urlpatterns += [path('notifications/', include('notifications.urls'))]
 urlpatterns += [path('stations/', include('stations.urls'))]
-urlpatterns += [path('referrals/', include('referrals.urls'))]  # ✅ ADDED
-
-
+urlpatterns += [path('referrals/', include('referrals.urls'))]
 
 # ============================================================
 # STATIC & MEDIA FILES (Development only)
