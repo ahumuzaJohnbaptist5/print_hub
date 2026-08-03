@@ -69,6 +69,7 @@ urlpatterns = [
    # path('file-processor/', include('file_processor.urls')),
     #recover passwords
     path('auth/', include('django.contrib.auth.urls')),
+    path('api/assistant/', include('assistant.urls')),
     
     # Misc
     path('all-links/', client_views.all_links_view, name='all_links'),
