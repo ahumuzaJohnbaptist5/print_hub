@@ -98,25 +98,28 @@
         html[data-theme="light"] .theme-toggle-btn { border-color: #94a3b8; color: #475569; }
 
         #printhub-chat-widget { position: fixed; bottom: 24px; right: 24px; z-index: 9998; font-family: system-ui, -apple-system, sans-serif; }
-        #chat-bubble { width: 60px; height: 60px; border-radius: 50%; background-color: #2563eb; color: white; border: none; cursor: pointer; box-shadow: 0 4px 12px rgba(0,0,0,0.15); font-size: 28px; display: flex; align-items: center; justify-content: center; transition: transform 0.2s; }
-        #chat-bubble:hover { transform: scale(1.05); }
-        #chat-window { position: absolute; bottom: 80px; right: 0; width: 360px; height: 500px; background: #1e293b; border-radius: 16px; box-shadow: 0 10px 25px rgba(0,0,0,0.3); display: flex; flex-direction: column; overflow: hidden; border: 1px solid #334155; }
+        #chat-bubble { width: 52px; height: 52px; border-radius: 50%; background-color: #2563eb; color: white; border: none; cursor: pointer; box-shadow: 0 4px 12px rgba(0,0,0,0.2); display: flex; align-items: center; justify-content: center; transition: transform 0.2s, box-shadow 0.2s; }
+        #chat-bubble:hover { transform: scale(1.08); box-shadow: 0 6px 20px rgba(37, 99, 235, 0.4); }
+        #chat-bubble svg { width: 26px; height: 26px; }
+        #chat-window { position: absolute; bottom: 70px; right: 0; width: 360px; height: 520px; background: #1e293b; border-radius: 16px; box-shadow: 0 10px 40px rgba(0,0,0,0.4); display: flex; flex-direction: column; overflow: hidden; border: 1px solid #334155; animation: slideUp 0.2s ease-out; }
+        @keyframes slideUp { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
         .chat-header { background: #2563eb; color: white; padding: 16px; display: flex; justify-content: space-between; align-items: center; }
-        #chat-close { background: none; border: none; color: white; font-size: 24px; cursor: pointer; }
+        #chat-close { background: rgba(255,255,255,0.2); border: none; color: white; cursor: pointer; width: 32px; height: 32px; border-radius: 50%; display: flex; align-items: center; justify-content: center; transition: background 0.2s; }
+        #chat-close:hover { background: rgba(255,255,255,0.3); }
         #chat-messages { flex: 1; padding: 16px; overflow-y: auto; background: #0f172a; display: flex; flex-direction: column; gap: 12px; }
-        .chat-msg { padding: 10px 14px; border-radius: 12px; max-width: 85%; word-wrap: break-word; white-space: pre-wrap; font-size: 14px; line-height: 1.4; }
+        .chat-msg { padding: 10px 14px; border-radius: 12px; max-width: 85%; word-wrap: break-word; white-space: pre-wrap; font-size: 14px; line-height: 1.5; }
         .chat-msg.user { background: #2563eb; color: white; align-self: flex-end; border-bottom-right-radius: 2px; }
         .chat-msg.bot { background: #1e293b; color: #e2e8f0; align-self: flex-start; border: 1px solid #334155; border-bottom-left-radius: 2px; }
         .chat-input-area { display: flex; padding: 12px; border-top: 1px solid #334155; gap: 8px; background: #1e293b; }
         #chat-input { flex: 1; padding: 10px; border: 1px solid #475569; border-radius: 8px; outline: none; background: #0f172a; color: #e2e8f0; }
         #chat-input::placeholder { color: #64748b; }
         #chat-input:focus { border-color: #3b82f6; }
-        #chat-send, .file-upload-btn { padding: 0 14px; background: #2563eb; color: white; border: none; border-radius: 8px; cursor: pointer; font-weight: 500; display: flex; align-items: center; }
+        #chat-send, .file-upload-btn { padding: 0 14px; background: #2563eb; color: white; border: none; border-radius: 8px; cursor: pointer; font-weight: 500; display: flex; align-items: center; transition: background 0.2s; }
         #chat-send:hover { background: #1d4ed8; }
         .file-upload-btn { background: #334155; color: #cbd5e1; font-size: 18px; padding: 0 12px; }
         .file-upload-btn:hover { background: #475569; }
 
-        html[data-theme="light"] #chat-window { background: #ffffff; border-color: #cbd5e1; box-shadow: 0 10px 25px rgba(0,0,0,0.1); }
+        html[data-theme="light"] #chat-window { background: #ffffff; border-color: #cbd5e1; box-shadow: 0 10px 40px rgba(0,0,0,0.15); }
         html[data-theme="light"] #chat-messages { background: #f8fafc; }
         html[data-theme="light"] .chat-msg.bot { background: #ffffff; color: #1e293b; border-color: #e2e8f0; }
         html[data-theme="light"] .chat-input-area { background: #ffffff; border-color: #e2e8f0; }
@@ -162,7 +165,7 @@
                     </a>
 
                     {% if user.is_authenticated %}
-                    <button onclick="openChat()" class="md:hidden text-gray-300 hover:text-white p-2 rounded-md hover:bg-white/10 transition-colors" aria-label="Help">
+                    <button onclick="openChat(event)" class="md:hidden text-gray-300 hover:text-white p-2 rounded-md hover:bg-white/10 transition-colors" aria-label="Help">
                         <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8.228 9c.549-1.165 2.03-2 3.772-2 2.21 0 4 1.343 4 3 0 1.4-1.278 2.575-3.006 2.907-.542.104-.994.54-.994 1.093m0 3h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
                     </button>
                     {% endif %}
@@ -181,7 +184,7 @@
                             <span>Place an Order</span>
                         </a>
                         {% if user.is_authenticated %}
-                            <button onclick="openChat()" class="text-gray-300 hover:text-white px-3 py-2 rounded-md text-sm font-medium hover:bg-white/10 flex items-center space-x-1">
+                            <button onclick="openChat(event)" class="text-gray-300 hover:text-white px-3 py-2 rounded-md text-sm font-medium hover:bg-white/10 flex items-center space-x-1">
                                 <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8.228 9c.549-1.165 2.03-2 3.772-2 2.21 0 4 1.343 4 3 0 1.4-1.278 2.575-3.006 2.907-.542.104-.994.54-.994 1.093m0 3h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
                                 <span>Help</span>
                             </button>
@@ -212,7 +215,7 @@
             <div class="px-4 pt-2 pb-4 space-y-2">
                 {% if user.is_authenticated %}
                     <a href="{% url 'dashboard' %}" class="block px-3 py-2 rounded-md text-base font-medium text-gray-300 hover:text-white hover:bg-white/10">My Orders</a>
-                    <button onclick="openChat(); document.getElementById('mobile-menu').classList.add('hidden');" class="block w-full text-left px-3 py-2 rounded-md text-base font-medium text-gray-300 hover:text-white hover:bg-white/10">Help Assistant</button>
+                    <button onclick="openChat(event); document.getElementById('mobile-menu').classList.add('hidden');" class="block w-full text-left px-3 py-2 rounded-md text-base font-medium text-gray-300 hover:text-white hover:bg-white/10">Help Assistant</button>
                     {% if user.is_staff or user.role == 'agent' %}
                         <a href="{% url 'agent_dashboard' %}" class="block px-3 py-2 rounded-md text-base font-medium text-gray-300 hover:text-white hover:bg-white/10">Agent Dashboard</a>
                         <a href="{% url 'admin_approve_payments' %}" class="block px-3 py-2 rounded-md text-base font-medium text-gray-300 hover:text-white hover:bg-white/10">Payments</a>
@@ -267,11 +270,20 @@
 
     {% if user.is_authenticated %}
     <div id="printhub-chat-widget">
-        <button id="chat-bubble" aria-label="Open Chat Assistant">💬</button>
+        <button id="chat-bubble" aria-label="Open assistant" title="Need help?">
+            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.8" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M8.625 12a.375.375 0 11-.75 0 .375.375 0 01.75 0zm0 0H8.25m4.125 0a.375.375 0 11-.75 0 .375.375 0 01.75 0zm0 0H12m4.125 0a.375.375 0 11-.75 0 .375.375 0 01.75 0zm0 0h-.375M21 12c0 4.556-4.03 8.25-9 8.25a9.764 9.764 0 01-2.555-.337A5.972 5.972 0 015.41 20.97a5.969 5.969 0 01-.474-.065 4.48 4.48 0 00.978-2.025c.09-.457-.133-.901-.467-1.226C3.93 16.178 3 14.189 3 12c0-4.556 4.03-8.25 9-8.25s9 3.694 9 8.25z" />
+            </svg>
+        </button>
+
         <div id="chat-window" class="hidden">
             <div class="chat-header">
                 <strong>PrintHub Assistant</strong>
-                <button id="chat-close" aria-label="Close">&times;</button>
+                <button id="chat-close" aria-label="Close" onclick="closeChat(event)">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+                    </svg>
+                </button>
             </div>
             <div id="chat-messages"></div>
             <div class="chat-input-area">
@@ -355,118 +367,165 @@
 
     {% if user.is_authenticated %}
     <script>
-        const bubble = document.getElementById('chat-bubble');
-        const chatWindow = document.getElementById('chat-window');
-        const closeBtn = document.getElementById('chat-close');
-        const messagesEl = document.getElementById('chat-messages');
-        const inputEl = document.getElementById('chat-input');
-        const sendBtn = document.getElementById('chat-send');
-        const fileInput = document.getElementById('chat-file-upload');
+        (function() {
+            const bubble = document.getElementById('chat-bubble');
+            const chatWindow = document.getElementById('chat-window');
+            const closeBtn = document.getElementById('chat-close');
+            const messagesEl = document.getElementById('chat-messages');
+            const inputEl = document.getElementById('chat-input');
+            const sendBtn = document.getElementById('chat-send');
+            const fileInput = document.getElementById('chat-file-upload');
 
-        function openChat() {
-            if (!chatWindow) return;
-            if (messagesEl.children.length === 0) {
-                addMessage('bot', "👋 Hi! I'm the PrintHub Assistant.\n\nI can help you place orders, track status, and check prices.\n\n*Try typing:*\n• *Order 50 Color*\n• *Track 12*\n• *Pricing*\n\nType *Help* to see all commands.");
-            }
-            chatWindow.classList.remove('hidden');
-            inputEl.focus();
-        }
+            if (!chatWindow || !messagesEl) return;
 
-        function closeChat() {
-            if (!chatWindow) return;
-            chatWindow.classList.add('hidden');
-        }
-
-        bubble.addEventListener('click', openChat);
-        closeBtn.addEventListener('click', closeChat);
-
-        function addMessage(sender, text) {
-            const msgDiv = document.createElement('div');
-            msgDiv.className = `chat-msg ${sender}`;
-            if (sender === 'bot') {
-                text = text.replace(/\*(.*?)\*/g, '<strong>$1</strong>');
-                msgDiv.innerHTML = text;
-            } else {
-                msgDiv.textContent = text;
-            }
-            messagesEl.appendChild(msgDiv);
-            messagesEl.scrollTop = messagesEl.scrollHeight;
-            return msgDiv;
-        }
-
-        async function sendText() {
-            const text = inputEl.value.trim();
-            if (!text) return;
-
-            addMessage('user', text);
-            inputEl.value = '';
-            const loadingMsg = addMessage('bot', '...');
+            const storageKey = 'printhub_assistant_{{ user.pk|escapejs }}';
+            let history = [];
 
             try {
-                const res = await fetch('/api/assistant/chat/', {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                        'X-CSRFToken': getCookie('csrftoken')
-                    },
-                    body: JSON.stringify({ message: text })
+                history = JSON.parse(localStorage.getItem(storageKey) || '[]');
+                if (!Array.isArray(history)) history = [];
+            } catch (e) {
+                history = [];
+            }
+
+            function escapeHtml(text) {
+                return String(text).replace(/[&<>"']/g, function(c) {
+                    return {'&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;'}[c];
                 });
-                
-                loadingMsg.remove();
-                const data = await res.json();
-                
-                if (res.status === 401 || res.status === 403) {
-                    addMessage('bot', "🔒 Please log in to use the assistant.");
+            }
+
+            function formatBotText(text) {
+                return escapeHtml(text).replace(/\*(.*?)\*/g, '<strong>$1</strong>');
+            }
+
+            function renderMessage(sender, text) {
+                const msgDiv = document.createElement('div');
+                msgDiv.className = `chat-msg ${sender}`;
+                if (sender === 'bot') {
+                    msgDiv.innerHTML = formatBotText(text);
                 } else {
-                    addMessage('bot', data.text || "Sorry, I didn't catch that.");
+                    msgDiv.textContent = text;
                 }
-            } catch (err) {
-                loadingMsg.remove();
-                addMessage('bot', '⚠️ Network error. Please check your connection.');
+                messagesEl.appendChild(msgDiv);
+                messagesEl.scrollTop = messagesEl.scrollHeight;
+                return msgDiv;
             }
-        }
 
-        async function sendFile(file) {
-            addMessage('user', `📎 Uploading ${file.name}...`);
-            const loadingMsg = addMessage('bot', 'Processing file...');
-            
-            const formData = new FormData();
-            formData.append('file', file);
+            function saveHistory() {
+                try {
+                    localStorage.setItem(storageKey, JSON.stringify(history.slice(-100)));
+                } catch (e) {}
+            }
 
-            try {
-                const res = await fetch('/api/assistant/upload/', {
-                    method: 'POST',
-                    headers: { 'X-CSRFToken': getCookie('csrftoken') },
-                    body: formData
+            function pushMessage(sender, text) {
+                history.push({ sender: sender, text: text });
+                saveHistory();
+                return renderMessage(sender, text);
+            }
+
+            function renderAllMessages() {
+                messagesEl.innerHTML = '';
+                history.forEach(function(item) {
+                    renderMessage(item.sender, item.text);
                 });
-                
-                loadingMsg.remove();
-                const data = await res.json();
-                addMessage('bot', data.text || 'File uploaded successfully!');
-            } catch (err) {
-                loadingMsg.remove();
-                addMessage('bot', '⚠️ Upload failed. Please try again.');
             }
-        }
 
-        sendBtn.addEventListener('click', sendText);
-        inputEl.addEventListener('keypress', (e) => { if (e.key === 'Enter') sendText(); });
-        fileInput.addEventListener('change', (e) => {
-            if (e.target.files.length > 0) {
-                sendFile(e.target.files[0]);
-                e.target.value = ''; 
-            }
-        });
+            renderAllMessages();
 
-        document.addEventListener('click', function(e) {
-            const widget = document.getElementById('printhub-chat-widget');
-            if (widget && !widget.contains(e.target) && !chatWindow.classList.contains('hidden')) {
-                if (!e.target.closest('button[onclick*="openChat()"]')) {
-                    closeChat();
+            window.openChat = function(e) {
+                if (e && e.stopPropagation) e.stopPropagation();
+                if (history.length === 0) {
+                    pushMessage('bot', "👋 Hi! I'm the PrintHub Assistant.\n\nI can help you place orders, track status, and check prices.\n\n*Try typing:*\n• *Order 50 Color*\n• *Track 12*\n• *Pricing*\n\nType *Help* to see all commands.");
+                }
+                chatWindow.classList.remove('hidden');
+                if (inputEl) inputEl.focus();
+            };
+
+            window.closeChat = function(e) {
+                if (e && e.stopPropagation) e.stopPropagation();
+                chatWindow.classList.add('hidden');
+            };
+
+            if (bubble) bubble.addEventListener('click', window.openChat);
+            if (closeBtn) closeBtn.addEventListener('click', window.closeChat);
+
+            async function sendText() {
+                if (!inputEl) return;
+                const text = inputEl.value.trim();
+                if (!text) return;
+
+                pushMessage('user', text);
+                inputEl.value = '';
+                const loadingMsg = renderMessage('bot', '...');
+
+                try {
+                    const res = await fetch('/api/assistant/chat/', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                            'X-CSRFToken': getCookie('csrftoken')
+                        },
+                        body: JSON.stringify({ message: text })
+                    });
+                    
+                    loadingMsg.remove();
+                    const data = await res.json();
+                    
+                    if (res.status === 401 || res.status === 403) {
+                        pushMessage('bot', "🔒 Please log in to use the assistant.");
+                    } else {
+                        pushMessage('bot', data.text || "Sorry, I didn't catch that.");
+                    }
+                } catch (err) {
+                    loadingMsg.remove();
+                    pushMessage('bot', '⚠️ Network error. Please check your connection.');
                 }
             }
-        });
+
+            async function sendFile(file) {
+                pushMessage('user', `📎 Uploading ${file.name}...`);
+                const loadingMsg = renderMessage('bot', 'Processing file...');
+                
+                const formData = new FormData();
+                formData.append('file', file);
+
+                try {
+                    const res = await fetch('/api/assistant/upload/', {
+                        method: 'POST',
+                        headers: { 'X-CSRFToken': getCookie('csrftoken') },
+                        body: formData
+                    });
+                    
+                    loadingMsg.remove();
+                    const data = await res.json();
+                    pushMessage('bot', data.text || 'File uploaded successfully!');
+                } catch (err) {
+                    loadingMsg.remove();
+                    pushMessage('bot', '⚠️ Upload failed. Please try again.');
+                }
+            }
+
+            if (sendBtn) sendBtn.addEventListener('click', sendText);
+            if (inputEl) inputEl.addEventListener('keypress', (e) => { if (e.key === 'Enter') sendText(); });
+            if (fileInput) {
+                fileInput.addEventListener('change', (e) => {
+                    if (e.target.files.length > 0) {
+                        sendFile(e.target.files[0]);
+                        e.target.value = ''; 
+                    }
+                });
+            }
+
+            document.addEventListener('click', function(e) {
+                const widget = document.getElementById('printhub-chat-widget');
+                if (widget && !widget.contains(e.target) && !chatWindow.classList.contains('hidden')) {
+                    if (!e.target.closest('button[onclick*="openChat"]')) {
+                        window.closeChat();
+                    }
+                }
+            });
+        })();
     </script>
-    {% endif %} <!-- 🔒 CRITICAL: THIS MUST BE HERE -->
+    {% endif %}
 </body>
 </html>
