@@ -3,7 +3,7 @@
 {% block title %}Login - PrintHub{% endblock %}
 
 {% block content %}
-<div class="relative min-h-[calc(100vh-4rem)] overflow-hidden">
+<div class="relative min-h-[calc(100vh-4rem)] overflow-hidden flex items-center justify-center">
     <!-- Background Image -->
     <div class="absolute inset-0 z-0">
         <img 
@@ -19,17 +19,22 @@
     <div class="absolute bottom-0 right-0 w-96 h-96 bg-purple-600 rounded-full mix-blend-multiply filter blur-3xl opacity-20 animate-blob animation-delay-2000"></div>
 
     <!-- Content -->
-    <div class="relative z-10 max-w-md mx-auto px-4 py-20">
+    <div class="relative z-10 max-w-md w-full mx-4">
         <div class="bg-white/5 border border-white/10 backdrop-blur-md rounded-3xl p-8 shadow-2xl">
             <h2 class="text-3xl font-bold text-white text-center mb-6">Welcome Back</h2>
             
-            {% if error %}
-            <div class="bg-red-500/20 border border-red-500/50 text-red-300 px-4 py-3 rounded-xl mb-4">
+            <!-- Django Form Errors (Fallback) -->
+            {% if form.non_field_errors %}
+            <div class="bg-red-500/20 border border-red-500/50 text-red-300 px-4 py-3 rounded-xl mb-4 text-sm">
+                {{ form.non_field_errors }}
+            </div>
+            {% elif error %}
+            <div class="bg-red-500/20 border border-red-500/50 text-red-300 px-4 py-3 rounded-xl mb-4 text-sm">
                 {{ error }}
             </div>
             {% endif %}
             
-            <form method="POST" class="space-y-6">
+            <form method="POST" class="space-y-6" action="{% url 'login' %}">
                 {% csrf_token %}
                 
                 <div>
@@ -37,7 +42,8 @@
                     <input 
                         type="text" 
                         name="username" 
-                        class="w-full bg-white/10 border border-white/10 rounded-xl px-4 py-3 text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                        autocomplete="username"
+                        class="w-full bg-white/10 border border-white/10 rounded-xl px-4 py-3 text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-blue-500 transition-all"
                         required
                     />
                 </div>
@@ -47,23 +53,44 @@
                     <input 
                         type="password" 
                         name="password" 
-                        class="w-full bg-white/10 border border-white/10 rounded-xl px-4 py-3 text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                        autocomplete="current-password"
+                        class="w-full bg-white/10 border border-white/10 rounded-xl px-4 py-3 text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-blue-500 transition-all"
                         required
                     />
+                    <!-- 🆕 Forgot Password Link (Now that SMTP is set up!) -->
+                    <div class="flex justify-end mt-2">
+                        <a href="{% url 'password_reset' %}" class="text-xs text-blue-400 hover:text-blue-300 transition-colors">Forgot Password?</a>
+                    </div>
                 </div>
+                
                 <button 
-    type="submit" 
-    class="w-full bg-blue-600 text-white font-bold py-3 rounded-xl hover:bg-blue-700 hover:shadow-lg hover:shadow-blue-600/30 transition-all hover:-translate-y-1"
->
-    Sign In
-</button>
-               
+                    type="submit" 
+                    class="w-full bg-blue-600 text-white font-bold py-3 rounded-xl hover:bg-blue-700 hover:shadow-lg hover:shadow-blue-600/30 transition-all hover:-translate-y-1 active:translate-y-0"
+                >
+                    Sign In
+                </button>
             </form>
             
             <p class="text-center text-gray-400 text-sm mt-6">
-                Don't have an account? <a href="{% url 'register' %}" class="text-blue-400 hover:text-blue-300 font-semibold">Sign Up</a>
+                Don't have an account? <a href="{% url 'register' %}" class="text-blue-400 hover:text-blue-300 font-semibold transition-colors">Sign Up</a>
             </p>
         </div>
     </div>
 </div>
+
+<!-- 🆕 Add this style block to make the blobs actually move! -->
+<style>
+    @keyframes blob {
+        0% { transform: translate(0px, 0px) scale(1); }
+        33% { transform: translate(30px, -50px) scale(1.1); }
+        66% { transform: translate(-20px, 20px) scale(0.9); }
+        100% { transform: translate(0px, 0px) scale(1); }
+    }
+    .animate-blob {
+        animation: blob 7s infinite;
+    }
+    .animation-delay-2000 {
+        animation-delay: 2s;
+    }
+</style>
 {% endblock %}
