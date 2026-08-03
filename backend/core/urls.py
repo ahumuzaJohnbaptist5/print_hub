@@ -67,6 +67,8 @@ urlpatterns = [
     
     # File Processor API
    # path('file-processor/', include('file_processor.urls')),
+    #recover passwords
+    path('auth/', include('django.contrib.auth.urls')),
     
     # Misc
     path('all-links/', client_views.all_links_view, name='all_links'),
@@ -80,6 +82,8 @@ urlpatterns += [path('payments/', include('payments.urls'))]
 urlpatterns += [path('notifications/', include('notifications.urls'))]
 urlpatterns += [path('stations/', include('stations.urls'))]
 urlpatterns += [path('referrals/', include('referrals.urls'))]  # ✅ ADDED
+
+
 
 # ============================================================
 # STATIC & MEDIA FILES (Development only)
