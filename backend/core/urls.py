@@ -5,7 +5,6 @@ from django.conf import settings
 from django.conf.urls.static import static
 from django.contrib.auth.decorators import login_required
 from django.http import HttpResponse
-from django.contrib.sitemaps.views import sitemap
 from django.views.generic import TemplateView
 
 # Import views - Using modular imports
@@ -16,17 +15,18 @@ from orders.views import (
 from accounts import views as accounts_views
 
 # ============================================================
-# SITEMAP IMPORTS
+# SITEMAP - Lazy import to avoid circular imports
 # ============================================================
-# Create sitemaps dictionary with all sitemaps
-sitemaps = {
-    'static': 'core.sitemap.StaticSitemap',
-    'orders': 'core.sitemap.OrderSitemap', 
-    'stations': 'core.sitemap.StationSitemap',
-}
-
-# We'll use lazy imports to avoid circular dependencies
-# The actual sitemap classes will be imported when needed
+def get_sitemaps():
+    """Lazy load sitemaps to avoid AppRegistryNotReady errors"""
+    from django.contrib.sitemaps.views import sitemap
+    from .views_sitemap import StaticSitemap, OrderSitemap, StationSitemap
+    
+    return {
+        'static': StaticSitemap,
+        'orders': OrderSitemap,
+        'stations': StationSitemap,
+    }
 
 # ============================================================
 # PLACEHOLDER VIEW FOR UNDER CONSTRUCTION PAGES
@@ -80,9 +80,6 @@ urlpatterns = [
     path('orders/api/process-scan/', login_required(api_views.api_process_scan), name='process_scan'),
     path('orders/api/validate-discount/', api_views.validate_discount_code, name='validate_discount_code'),
     
-    # File Processor API
-    # path('file-processor/', include('file_processor.urls')),
-    
     # Recover passwords
     path('auth/', include('django.contrib.auth.urls')),
     
@@ -97,23 +94,35 @@ urlpatterns = [
          TemplateView.as_view(template_name='robots.txt', content_type='text/plain'),
          name='robots'),
     
-    # Main sitemap
-    path('sitemap.xml', 
-         sitemap, 
-         {'sitemaps': sitemaps},
-         name='sitemap'),
-    
-    # Individual sitemap sections
-    path('sitemap-<section>.xml', 
-         sitemap, 
-         {'sitemaps': sitemaps},
-         name='sitemap_section'),
-    
-    # ============================================================
-    # MISC
-    # ============================================================
+    # Misc
     path('all-links/', client_views.all_links_view, name='all_links'),
 ]
+
+# ============================================================
+# SITEMAP URLS - Added after apps are loaded
+# ============================================================
+# We need to add sitemap URLs using a different approach
+# because sitemap requires apps to be loaded
+
+# Option 1: Add sitemap URLs using a function that's called later
+def add_sitemap_urls():
+    """Add sitemap URLs dynamically after apps are loaded"""
+    from django.contrib.sitemaps.views import sitemap
+    from .views_sitemap import StaticSitemap, OrderSitemap, StationSitemap
+    
+    sitemaps = {
+        'static': StaticSitemap,
+        'orders': OrderSitemap,
+        'stations': StationSitemap,
+    }
+    
+    return [
+        path('sitemap.xml', sitemap, {'sitemaps': sitemaps}, name='sitemap'),
+        path('sitemap-<section>.xml', sitemap, {'sitemaps': sitemaps}, name='sitemap_section'),
+    ]
+
+# Add sitemap URLs to urlpatterns
+urlpatterns += add_sitemap_urls()
 
 # ============================================================
 # INCLUDE OTHER APP URLS
