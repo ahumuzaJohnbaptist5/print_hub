@@ -1,0 +1,24 @@
+# templates/robots.txt
+User-agent: *
+Allow: /
+Disallow: /admin/
+Disallow: /api/
+Disallow: /accounts/
+Disallow: /payments/
+Disallow: /whatsapp/
+Disallow: /webhook/
+
+# Allow Google to crawl important pages
+Allow: /upload/
+Allow: /dashboard/
+Allow: /pricing/
+Allow: /stations/
+
+# Sitemap location
+Sitemap: {{ sitemap_url }}
+
+# Crawl delay for slower pages
+Crawl-delay: 2
+
+# Host (optional but recommended)
+Host: {{ site_url }}
