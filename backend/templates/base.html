@@ -3,7 +3,6 @@
 <html lang="en" data-theme="dark">
 <head>
    <meta charset="UTF-8">
-<!-- Open Graph / WhatsApp / Facebook -->
 <meta property="og:title" content="PrintHub — Kabale University Printing">
 <meta property="og:description" content="Upload your documents, pay with MTN or Airtel, and pick up at your nearest campus station. Fast, reliable printing for students.">
 <meta property="og:image" content="https://printlink.pythonanywhere.com/orders/live-board-preview.png">
@@ -12,8 +11,6 @@
 <meta property="og:url" content="https://printlink.pythonanywhere.com">
 <meta property="og:type" content="website">
 <meta property="og:site_name" content="PrintHub">
-
-<!-- Twitter Card -->
 <meta name="twitter:card" content="summary_large_image">
 <meta name="twitter:title" content="PrintHub — Kabale University Printing">
 <meta name="twitter:description" content="Upload your documents, pay with MTN or Airtel, and pick up at your nearest campus station. Fast, reliable printing for students.">
@@ -43,15 +40,8 @@
     </script>
     <style>
         select option { background: #1e293b !important; color: #e2e8f0 !important; }
-        
-        .theme-toggle-btn {
-            background: transparent; border: 1px solid #64748b; color: #e2e8f0;
-            width: 36px; height: 36px; border-radius: 50%; cursor: pointer;
-            font-size: 16px; display: flex; align-items: center; justify-content: center;
-            transition: all 0.2s; flex-shrink: 0;
-        }
+        .theme-toggle-btn { background: transparent; border: 1px solid #64748b; color: #e2e8f0; width: 36px; height: 36px; border-radius: 50%; cursor: pointer; font-size: 16px; display: flex; align-items: center; justify-content: center; transition: all 0.2s; flex-shrink: 0; }
         .theme-toggle-btn:hover { border-color: #818cf8; color: #818cf8; }
-        
         html[data-theme="light"] body { color: #1e293b !important; }
         html[data-theme="light"] .bg-slate-900 { background-color: #f8fafc !important; }
         html[data-theme="light"] .bg-slate-800 { background-color: #ffffff !important; }
@@ -107,70 +97,25 @@
         html[data-theme="light"] select option { background: #ffffff !important; color: #1e293b !important; }
         html[data-theme="light"] .theme-toggle-btn { border-color: #94a3b8; color: #475569; }
 
-        /* ══════════════════════════════════════════════════════════════ */
-        /* PRINTHUB WEB ASSISTANT WIDGET STYLES                         */
-        /* ══════════════════════════════════════════════════════════════ */
-        #printhub-chat-widget {
-            position: fixed;
-            bottom: 24px;
-            right: 24px;
-            z-index: 9998; 
-            font-family: system-ui, -apple-system, sans-serif;
-        }
-        #chat-bubble {
-            width: 60px; height: 60px; border-radius: 50%;
-            background-color: #2563eb; color: white; border: none;
-            cursor: pointer; box-shadow: 0 4px 12px rgba(0,0,0,0.15);
-            font-size: 28px; display: flex; align-items: center; justify-content: center;
-            transition: transform 0.2s;
-        }
+        #printhub-chat-widget { position: fixed; bottom: 24px; right: 24px; z-index: 9998; font-family: system-ui, -apple-system, sans-serif; }
+        #chat-bubble { width: 60px; height: 60px; border-radius: 50%; background-color: #2563eb; color: white; border: none; cursor: pointer; box-shadow: 0 4px 12px rgba(0,0,0,0.15); font-size: 28px; display: flex; align-items: center; justify-content: center; transition: transform 0.2s; }
         #chat-bubble:hover { transform: scale(1.05); }
-        #chat-window {
-            position: absolute; bottom: 80px; right: 0;
-            width: 360px; height: 500px; background: #1e293b; 
-            border-radius: 16px; box-shadow: 0 10px 25px rgba(0,0,0,0.3);
-            display: flex; flex-direction: column; overflow: hidden;
-            border: 1px solid #334155; 
-        }
-        .chat-header {
-            background: #2563eb; color: white; padding: 16px;
-            display: flex; justify-content: space-between; align-items: center;
-        }
+        #chat-window { position: absolute; bottom: 80px; right: 0; width: 360px; height: 500px; background: #1e293b; border-radius: 16px; box-shadow: 0 10px 25px rgba(0,0,0,0.3); display: flex; flex-direction: column; overflow: hidden; border: 1px solid #334155; }
+        .chat-header { background: #2563eb; color: white; padding: 16px; display: flex; justify-content: space-between; align-items: center; }
         #chat-close { background: none; border: none; color: white; font-size: 24px; cursor: pointer; }
-        #chat-messages {
-            flex: 1; padding: 16px; overflow-y: auto; background: #0f172a; 
-            display: flex; flex-direction: column; gap: 12px;
-        }
-        .chat-msg {
-            padding: 10px 14px; border-radius: 12px; max-width: 85%;
-            word-wrap: break-word; white-space: pre-wrap; font-size: 14px; line-height: 1.4;
-        }
-        .chat-msg.user {
-            background: #2563eb; color: white; align-self: flex-end;
-            border-bottom-right-radius: 2px;
-        }
-        .chat-msg.bot {
-            background: #1e293b; color: #e2e8f0; align-self: flex-start;
-            border: 1px solid #334155; border-bottom-left-radius: 2px;
-        }
-        .chat-input-area {
-            display: flex; padding: 12px; border-top: 1px solid #334155; gap: 8px; background: #1e293b;
-        }
-        #chat-input {
-            flex: 1; padding: 10px; border: 1px solid #475569; border-radius: 8px; outline: none;
-            background: #0f172a; color: #e2e8f0;
-        }
+        #chat-messages { flex: 1; padding: 16px; overflow-y: auto; background: #0f172a; display: flex; flex-direction: column; gap: 12px; }
+        .chat-msg { padding: 10px 14px; border-radius: 12px; max-width: 85%; word-wrap: break-word; white-space: pre-wrap; font-size: 14px; line-height: 1.4; }
+        .chat-msg.user { background: #2563eb; color: white; align-self: flex-end; border-bottom-right-radius: 2px; }
+        .chat-msg.bot { background: #1e293b; color: #e2e8f0; align-self: flex-start; border: 1px solid #334155; border-bottom-left-radius: 2px; }
+        .chat-input-area { display: flex; padding: 12px; border-top: 1px solid #334155; gap: 8px; background: #1e293b; }
+        #chat-input { flex: 1; padding: 10px; border: 1px solid #475569; border-radius: 8px; outline: none; background: #0f172a; color: #e2e8f0; }
         #chat-input::placeholder { color: #64748b; }
         #chat-input:focus { border-color: #3b82f6; }
-        #chat-send, .file-upload-btn {
-            padding: 0 14px; background: #2563eb; color: white; border: none;
-            border-radius: 8px; cursor: pointer; font-weight: 500; display: flex; align-items: center;
-        }
+        #chat-send, .file-upload-btn { padding: 0 14px; background: #2563eb; color: white; border: none; border-radius: 8px; cursor: pointer; font-weight: 500; display: flex; align-items: center; }
         #chat-send:hover { background: #1d4ed8; }
         .file-upload-btn { background: #334155; color: #cbd5e1; font-size: 18px; padding: 0 12px; }
         .file-upload-btn:hover { background: #475569; }
 
-        /* Light Theme Overrides for Chat Widget */
         html[data-theme="light"] #chat-window { background: #ffffff; border-color: #cbd5e1; box-shadow: 0 10px 25px rgba(0,0,0,0.1); }
         html[data-theme="light"] #chat-messages { background: #f8fafc; }
         html[data-theme="light"] .chat-msg.bot { background: #ffffff; color: #1e293b; border-color: #e2e8f0; }
@@ -230,4 +175,269 @@
                             <span>Place an Order</span>
                         </a>
                         {% if user.is_authenticated %}
-                            <a href="{% url 'dashboard' %}" class="text-gray-300 hover:text-white px-3 py-2 rounded-md text-sm font-medium hover:bg-white/10">My Orders
+                            <a href="{% url 'dashboard' %}" class="text-gray-300 hover:text-white px-3 py-2 rounded-md text-sm font-medium hover:bg-white/10">My Orders</a>
+                            {% if user.is_staff or user.role == 'agent' %}
+                                <a href="{% url 'agent_dashboard' %}" class="text-gray-300 hover:text-white px-3 py-2 rounded-md text-sm font-medium hover:bg-white/10">Agent</a>
+                                <a href="{% url 'admin_approve_payments' %}" class="text-gray-300 hover:text-white px-3 py-2 rounded-md text-sm font-medium hover:bg-white/10">Payments</a>
+                            {% endif %}
+                            {% if user.is_staff or user.role == 'admin' %}
+                                <a href="{% url 'admin_dashboard' %}" class="text-gray-300 hover:text-white px-3 py-2 rounded-md text-sm font-medium hover:bg-white/10">Admin</a>
+                                <a href="{% url 'financial_dashboard' %}" class="text-gray-300 hover:text-white px-3 py-2 rounded-md text-sm font-medium hover:bg-white/10">Finances</a>
+                            {% endif %}
+                            <a href="{% url 'referrals:dashboard' %}" class="text-gray-300 hover:text-white px-3 py-2 rounded-md text-sm font-medium hover:bg-white/10">Refer & Earn</a>
+                            <form method="POST" action="{% url 'logout' %}" class="inline">
+                                {% csrf_token %}
+                                <button type="submit" class="text-gray-400 hover:text-white px-3 py-2 rounded-md text-sm font-medium hover:bg-white/10">Logout</button>
+                            </form>
+                        {% else %}
+                            <a href="{% url 'track_order' %}" class="text-gray-300 hover:text-white px-3 py-2 rounded-md text-sm font-medium hover:bg-white/10">Track Order</a>
+                            <a href="{% url 'login' %}" class="text-gray-300 hover:text-white px-3 py-2 rounded-md text-sm font-medium hover:bg-white/10">Login</a>
+                            <a href="{% url 'register' %}" class="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700 transition-all text-sm font-medium">Register</a>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div id="mobile-menu" class="hidden md:hidden absolute top-16 left-0 w-full bg-slate-800/95 backdrop-blur-md border-b border-white/10 shadow">
+            <div class="px-4 pt-2 pb-4 space-y-2">
+                {% if user.is_authenticated %}
+                    <a href="{% url 'dashboard' %}" class="block px-3 py-2 rounded-md text-base font-medium text-gray-300 hover:text-white hover:bg-white/10">My Orders</a>
+                    {% if user.is_staff or user.role == 'agent' %}
+                        <a href="{% url 'agent_dashboard' %}" class="block px-3 py-2 rounded-md text-base font-medium text-gray-300 hover:text-white hover:bg-white/10">Agent Dashboard</a>
+                        <a href="{% url 'admin_approve_payments' %}" class="block px-3 py-2 rounded-md text-base font-medium text-gray-300 hover:text-white hover:bg-white/10">Payments</a>
+                    {% endif %}
+                    {% if user.is_staff or user.role == 'admin' %}
+                        <a href="{% url 'admin_dashboard' %}" class="block px-3 py-2 rounded-md text-base font-medium text-gray-300 hover:text-white hover:bg-white/10">Admin Dashboard</a>
+                        <a href="{% url 'financial_dashboard' %}" class="block px-3 py-2 rounded-md text-base font-medium text-gray-300 hover:text-white hover:bg-white/10">Finances</a>
+                    {% endif %}
+                    <a href="{% url 'referrals:dashboard' %}" class="block px-3 py-2 rounded-md text-base font-medium text-gray-300 hover:text-white hover:bg-white/10">Refer & Earn</a>
+                    <form method="POST" action="{% url 'logout' %}">
+                        {% csrf_token %}
+                        <button type="submit" class="block w-full text-left px-3 py-2 rounded-md text-base font-medium text-red-400 hover:text-red-300 hover:bg-white/10">Logout</button>
+                    </form>
+                {% else %}
+                    <a href="{% url 'track_order' %}" class="block px-3 py-2 rounded-md text-base font-medium text-gray-300 hover:text-white hover:bg-white/10">Track Order</a>
+                    <a href="{% url 'login' %}" class="block px-3 py-2 rounded-md text-base font-medium text-gray-300 hover:text-white hover:bg-white/10">Login</a>
+                    <a href="{% url 'register' %}" class="block px-3 py-2 rounded-md text-base font-medium text-white bg-blue-600 hover:bg-blue-700 text-center mt-2">Register</a>
+                {% endif %}
+            </div>
+        </div>
+    </nav>
+
+    {% if messages %}
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 mt-4">
+        {% for message in messages %}
+        <div class="px-4 py-3 rounded mb-4 text-sm {% if message.tags == 'success' %}bg-green-500/20 border border-green-500/50 text-green-300{% elif message.tags == 'error' %}bg-red-500/20 border border-red-500/50 text-red-300{% else %}bg-blue-500/20 border border-blue-500/50 text-blue-300{% endif %}">{{ message }}</div>
+        {% endfor %}
+    </div>
+    {% endif %}
+
+    <main class="min-h-[calc(100vh-4rem)]">{% block content %}{% endblock %}</main>
+
+    <footer class="bg-slate-800/50 backdrop-blur-md border-t border-white/10 mt-20">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8"><p class="text-center text-gray-400 text-sm">&copy; 2026 PrintHub. All rights reserved.</p></div>
+    </footer>
+
+    <div id="pwa-install-banner" class="hidden fixed bottom-0 left-0 right-0 bg-slate-800 border-t border-slate-700 p-4 z-50">
+        <div class="max-w-7xl mx-auto flex items-center justify-between">
+            <div class="flex items-center gap-3">
+                <img src="{% static 'icon.svg' %}" alt="PrintHub Logo" class="h-10 w-auto object-contain">
+                <div>
+                    <p class="text-white font-medium text-sm">Install PrintHub</p>
+                    <p class="text-gray-400 text-xs">Add to your home screen</p>
+                </div>
+            </div>
+            <div class="flex gap-2">
+                <button onclick="dismissPWA()" class="text-gray-400 hover:text-white text-sm px-3 py-1">Later</button>
+                <button onclick="installPWA()" class="bg-indigo-600 hover:bg-indigo-500 text-white text-sm font-bold px-4 py-2 rounded">Install</button>
+            </div>
+        </div>
+    </div>
+
+    {% if user.is_authenticated %}
+    <div id="printhub-chat-widget">
+        <button id="chat-bubble" aria-label="Open Chat Assistant">💬</button>
+        <div id="chat-window" class="hidden">
+            <div class="chat-header">
+                <strong>PrintHub Assistant</strong>
+                <button id="chat-close" aria-label="Close">&times;</button>
+            </div>
+            <div id="chat-messages"></div>
+            <div class="chat-input-area">
+                <label for="chat-file-upload" class="file-upload-btn" title="Upload File">📎</label>
+                <input type="file" id="chat-file-upload" hidden accept=".pdf,.doc,.docx,.jpg,.jpeg,.png">
+                <input type="text" id="chat-input" placeholder="Type 'Order 50 Color' or 'Track 12'...">
+                <button id="chat-send">Send</button>
+            </div>
+        </div>
+    </div>
+    {% endif %}
+
+    <script>
+        function toggleTheme() {
+            const html = document.documentElement;
+            const btn = document.getElementById('themeBtn');
+            const current = html.getAttribute('data-theme');
+            const next = current === 'dark' ? 'light' : 'dark';
+            html.setAttribute('data-theme', next);
+            if (next === 'dark') { html.classList.add('dark'); } else { html.classList.remove('dark'); }
+            btn.innerHTML = next === 'dark' ? '&#9788;' : '&#9790;';
+            localStorage.setItem('theme', next);
+            document.getElementById('meta-theme-color').setAttribute('content', next === 'dark' ? '#0f172a' : '#f8fafc');
+        }
+        (function(){document.getElementById('themeBtn').innerHTML=(localStorage.getItem('theme')||'dark')==='dark'?'&#9788;':'&#9790;';})();
+        
+        document.addEventListener('DOMContentLoaded',function(){
+            const btn=document.getElementById('mobile-menu-btn'),menu=document.getElementById('mobile-menu'),hi=document.getElementById('hamburger-icon'),ci=document.getElementById('close-icon');
+            if(btn)btn.addEventListener('click',function(){menu.classList.toggle('hidden');hi.classList.toggle('hidden');ci.classList.toggle('hidden');});
+        });
+
+        function playNotificationSound() {
+            try {
+                const ctx = new (window.AudioContext || window.webkitAudioContext)();
+                const o = ctx.createOscillator();
+                const g = ctx.createGain();
+                o.connect(g); g.connect(ctx.destination);
+                o.type = 'sine';
+                o.frequency.setValueAtTime(800, ctx.currentTime);
+                o.frequency.setValueAtTime(1000, ctx.currentTime + 0.1);
+                g.gain.setValueAtTime(0.3, ctx.currentTime);
+                g.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + 0.3);
+                o.start(ctx.currentTime); o.stop(ctx.currentTime + 0.3);
+            } catch(e) {}
+        }
+
+        let prevCount = 0;
+        function toggleNotifications(){const d=document.getElementById('notification-dropdown');d.classList.toggle('hidden');if(!d.classList.contains('hidden'))fetchNotifications();}
+        function fetchNotifications(){fetch('/notifications/api/').then(r=>r.json()).then(d=>{const b=document.getElementById('notification-badge'),l=document.getElementById('notification-list');if(d.unread_count>0){b.textContent=d.unread_count;b.classList.remove('hidden');if(d.unread_count>prevCount)playNotificationSound();}else{b.classList.add('hidden');}prevCount=d.unread_count;if(d.notifications.length===0){l.innerHTML='<div class="p-4 text-center text-gray-500 text-sm">No new notifications</div>';return;}l.innerHTML=d.notifications.map(n=>`<a href="${n.link||'#'}" onclick="markRead(${n.id})" class="block p-3 hover:bg-slate-700/50 transition cursor-pointer"><p class="text-white text-sm font-medium">${n.title}</p><p class="text-gray-400 text-xs mt-1">${n.message}</p><p class="text-gray-500 text-xs mt-1">${n.created}</p></a>`).join('');});}
+        function markRead(id){fetch('/notifications/mark-read/'+id+'/',{method:'POST',headers:{'X-CSRFToken':getCookie('csrftoken')}});}
+        function markAllRead(){fetch('/notifications/mark-all-read/',{method:'POST',headers:{'X-CSRFToken':getCookie('csrftoken')}}).then(()=>{document.getElementById('notification-badge').classList.add('hidden');document.getElementById('notification-list').innerHTML='<div class="p-4 text-center text-gray-500 text-sm">No new notifications</div>';});}
+        function getCookie(n){let v='; '+document.cookie;let p=v.split('; '+n+'=');if(p.length===2)return p.pop().split(';').shift();}
+        setInterval(fetchNotifications,15000);fetchNotifications();
+        document.addEventListener('click',function(e){const b=document.getElementById('notification-bell');if(b&&!b.contains(e.target))document.getElementById('notification-dropdown').classList.add('hidden');});
+
+        async function subscribeToPush() {
+            try {
+                const data = await fetch('/notifications/api/').then(r => r.json());
+                const vapidKey = data.vapid_public_key;
+                if (!vapidKey) return;
+                const registration = await navigator.serviceWorker.ready;
+                let subscription = await registration.pushManager.getSubscription();
+                if (!subscription) {
+                    subscription = await registration.pushManager.subscribe({userVisibleOnly: true, applicationServerKey: vapidKey});
+                }
+                await fetch('/notifications/push/subscribe/', {method:'POST',headers:{'Content-Type':'application/json','X-CSRFToken':getCookie('csrftoken')},body:JSON.stringify({subscription:subscription.toJSON()})});
+            } catch(e) {}
+        }
+        
+        {% if user.is_authenticated %}
+        if ('serviceWorker' in navigator && 'PushManager' in window) { subscribeToPush(); }
+        {% endif %}
+
+        let deferredPrompt;
+        window.addEventListener('beforeinstallprompt',(e)=>{e.preventDefault();deferredPrompt=e;document.getElementById('pwa-install-banner').classList.remove('hidden');});
+        function installPWA(){if(deferredPrompt){deferredPrompt.prompt();deferredPrompt.userChoice.then(()=>{deferredPrompt=null;document.getElementById('pwa-install-banner').classList.add('hidden');});}}
+        function dismissPWA(){document.getElementById('pwa-install-banner').classList.add('hidden');}
+        window.addEventListener('appinstalled',()=>{document.getElementById('pwa-install-banner').classList.add('hidden');deferredPrompt=null;});
+        if('serviceWorker' in navigator)navigator.serviceWorker.register('/sw.js');
+    </script>
+
+    {% if user.is_authenticated %}
+    <script>
+        const bubble = document.getElementById('chat-bubble');
+        const chatWindow = document.getElementById('chat-window');
+        const closeBtn = document.getElementById('chat-close');
+        const messagesEl = document.getElementById('chat-messages');
+        const inputEl = document.getElementById('chat-input');
+        const sendBtn = document.getElementById('chat-send');
+        const fileInput = document.getElementById('chat-file-upload');
+
+        bubble.addEventListener('click', () => {
+            chatWindow.classList.toggle('hidden');
+            if (!chatWindow.classList.contains('hidden') && messagesEl.children.length === 0) {
+                addMessage('bot', "👋 Hi! I'm the PrintHub Assistant.\n\nType *Help* for commands, or try:\n• *Order 50 Color Spiral*\n• *Track 12*\n• *Pricing*");
+            }
+        });
+        closeBtn.addEventListener('click', () => chatWindow.classList.add('hidden'));
+
+        function addMessage(sender, text) {
+            const msgDiv = document.createElement('div');
+            msgDiv.className = `chat-msg ${sender}`;
+            if (sender === 'bot') {
+                text = text.replace(/\*(.*?)\*/g, '<strong>$1</strong>');
+                msgDiv.innerHTML = text;
+            } else {
+                msgDiv.textContent = text;
+            }
+            messagesEl.appendChild(msgDiv);
+            messagesEl.scrollTop = messagesEl.scrollHeight;
+            return msgDiv;
+        }
+
+        async function sendText() {
+            const text = inputEl.value.trim();
+            if (!text) return;
+
+            addMessage('user', text);
+            inputEl.value = '';
+            const loadingMsg = addMessage('bot', '...');
+
+            try {
+                const res = await fetch('/api/assistant/chat/', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-CSRFToken': getCookie('csrftoken')
+                    },
+                    body: JSON.stringify({ message: text })
+                });
+                
+                loadingMsg.remove();
+                const data = await res.json();
+                
+                if (res.status === 401 || res.status === 403) {
+                    addMessage('bot', "🔒 Please log in to use the assistant.");
+                } else {
+                    addMessage('bot', data.text || "Sorry, I didn't catch that.");
+                }
+            } catch (err) {
+                loadingMsg.remove();
+                addMessage('bot', '⚠️ Network error. Please check your connection.');
+            }
+        }
+
+        async function sendFile(file) {
+            addMessage('user', `📎 Uploading ${file.name}...`);
+            const loadingMsg = addMessage('bot', 'Processing file...');
+            
+            const formData = new FormData();
+            formData.append('file', file);
+
+            try {
+                const res = await fetch('/api/assistant/upload/', {
+                    method: 'POST',
+                    headers: { 'X-CSRFToken': getCookie('csrftoken') },
+                    body: formData
+                });
+                
+                loadingMsg.remove();
+                const data = await res.json();
+                addMessage('bot', data.text || 'File uploaded successfully!');
+            } catch (err) {
+                loadingMsg.remove();
+                addMessage('bot', '⚠️ Upload failed. Please try again.');
+            }
+        }
+
+        sendBtn.addEventListener('click', sendText);
+        inputEl.addEventListener('keypress', (e) => { if (e.key === 'Enter') sendText(); });
+        fileInput.addEventListener('change', (e) => {
+            if (e.target.files.length > 0) {
+                sendFile(e.target.files[0]);
+                e.target.value = ''; 
+            }
+        });
+    </script>
+    {% endif %} <!-- 🔒 CRITICAL: THIS MUST BE HERE -->
+</body>
+</html>
