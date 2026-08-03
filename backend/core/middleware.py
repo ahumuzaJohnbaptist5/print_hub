@@ -15,9 +15,16 @@ from django.utils.deprecation import MiddlewareMixin
 class GlobalRateLimitMiddleware(MiddlewareMixin):
     """
     Middleware to apply rate limiting to all API endpoints
+    
+    Features:
+    - Admin/Staff bypass (developers never get locked out)
+    - Path-specific rate limits
+    - Atomic cache increments
+    - Proxy IP resolution (X-Forwarded-For)
+    - SEO crawler whitelist
     """
-
-    # Paths to exclude from rate limiting
+    
+    # ⭐ NEW: Paths to exclude from rate limiting entirely
     EXCLUDED_PATHS = [
         r'^/admin/',
         r'^/static/',
@@ -25,19 +32,39 @@ class GlobalRateLimitMiddleware(MiddlewareMixin):
         r'^/favicon.ico',
         r'^/sw.js',
         r'^/manifest.json',
+        r'^/health/',          # ⭐ NEW: Render health checks
+        r'^/robots.txt',       # ⭐ NEW: Google SEO crawlers
+        r'^/sitemap.xml',      # ⭐ NEW: Google SEO crawlers
+        r'^/.well-known/',     # ⭐ NEW: SSL verification
     ]
 
-    # Different rate limits for different path patterns
+    # ⭐ UPDATED: Different rate limits for different path patterns
     # Format: (regex pattern, rate, bucket_name)
     PATH_RATES = [
-        (r'^/api/', '100/1m', 'api'),
+        # API endpoints - generous for Live Board and chat
+        (r'^/api/', '120/1m', 'api'),           # ⭐ UPDATED: 120 from 100
+        (r'^/api/assistant/', '120/1m', 'assistant'), # ⭐ NEW: Chatbot endpoint
+        
+        # Authentication - strict to prevent brute force
         (r'^/auth/', '20/5m', 'auth'),
-        (r'^/payments/', '10/5m', 'payments'),
-        (r'^/orders/upload/', '10/1h', 'upload'),
-        (r'^/whatsapp/', '50/5m', 'whatsapp'),
+        (r'^/login/', '20/5m', 'auth'),
+        (r'^/register/', '10/5m', 'auth'),      # ⭐ NEW: Register endpoint
+        
+        # Payments - moderate protection
+        (r'^/payments/', '30/5m', 'payments'),  # ⭐ UPDATED: 30 from 10
+        
+        # Uploads - protect storage
+        (r'^/orders/upload/', '60/1h', 'upload'), # ⭐ UPDATED: 60 from 10
+        (r'^/upload/', '60/1h', 'upload'),       # ⭐ NEW: Generic upload
+        
+        # WhatsApp webhooks - Meta is chatty
+        (r'^/whatsapp/', '500/5m', 'whatsapp'),  # ⭐ UPDATED: 500 from 50
+        (r'^/webhook/', '500/5m', 'webhook'),    # ⭐ NEW: Generic webhook
     ]
 
-    DEFAULT_RATE = '50/1h'
+    # ⭐ UPDATED: Default rate from 50/1h to 120/1m
+    # Normal browsing should not be strictly limited by the hour
+    DEFAULT_RATE = '120/1m'  # ⭐ CHANGED: More generous for normal users
     DEFAULT_RATE_NAME = 'default'
 
     def process_request(self, request):
@@ -50,6 +77,12 @@ class GlobalRateLimitMiddleware(MiddlewareMixin):
         # Skip excluded paths
         for pattern in self.EXCLUDED_PATHS:
             if re.match(pattern, path):
+                return None
+
+        # ⭐ NEW: BYPASS FOR ADMINS & STAFF
+        # Developers, admins, and agents should never be locked out
+        if hasattr(request, 'user') and request.user.is_authenticated:
+            if request.user.is_superuser or request.user.is_staff:
                 return None
 
         # Determine rate limit and bucket for this path
