@@ -299,11 +299,10 @@
     </script>
 
     <!-- ============================================================ -->
-    <!-- ASSISTANT CHAT WIDGET - Decoupled, standalone -->
+    <!-- ASSISTANT CHAT WIDGET - Clean include (no custom tags needed) -->
     <!-- ============================================================ -->
     {% if user.is_authenticated %}
-        {% load assistant_tags %}
-        {% assistant_widget %}
+        {% include 'assistant/widget.html' with user=user %}
     {% endif %}
     <!-- ============================================================ -->
 
