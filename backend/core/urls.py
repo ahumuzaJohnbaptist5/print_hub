@@ -42,7 +42,7 @@ def robots_txt(request):
 sitemaps = {
     'static': StaticSitemap,
     'orders': OrderSitemap,
-    'stations': StationSitemap,
+    #'stations': StationSitemap,
 }
 
 
