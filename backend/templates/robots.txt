@@ -1,6 +1,4 @@
-# PrintHub Robots.txt
-# https://www.printhubug.com/robots.txt
-
+# templates/robots.txt - Remove Sitemap line
 User-agent: *
 Allow: /
 Allow: /upload/
@@ -22,8 +20,6 @@ Disallow: /finances/
 Disallow: /referrals/
 Disallow: /orders/api/
 
-# Sitemap
-Sitemap: https://www.printhubug.com/sitemap.xml
+# Sitemap: https://www.printhubug.com/sitemap.xml  ← REMOVE THIS LINE
 
-# Crawl delay
 Crawl-delay: 2
