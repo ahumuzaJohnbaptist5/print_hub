@@ -13,7 +13,7 @@ from orders.views import (
     api_views, live_board_views
 )
 from accounts import views as accounts_views
-from .sitemap import StaticSitemap, OrderSitemap, StationSitemap
+from .sitemap import StaticSitemap  # ← Only import StaticSitemap
 
 
 # ─── ROBOTS.TXT ──────────────────────────────────────────────
@@ -38,11 +38,10 @@ def robots_txt(request):
     return HttpResponse("\n".join(lines), content_type="text/plain")
 
 
-# ─── SITEMAP ──────────────────────────────────────────────────
+# ─── SITEMAP - ONLY STATIC ──────────────────────────────────
 sitemaps = {
     'static': StaticSitemap,
-    'orders': OrderSitemap,
-    #'stations': StationSitemap,
+    # No orders, no stations - safe!
 }
 
 
