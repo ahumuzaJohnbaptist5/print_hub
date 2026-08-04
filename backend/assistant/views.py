@@ -25,7 +25,7 @@ from .models import AssistantDraft
 # ══════════════════════════════════════════════════════════════
 
 def format_response(text, suggestions=None, data=None, response_type="text", status=200):
-    """Standard response format with structured data for rich UI."""
+    """Standard response format with structured data."""
     return Response({
         "type": response_type,
         "text": text,
@@ -34,26 +34,18 @@ def format_response(text, suggestions=None, data=None, response_type="text", sta
     }, status=status)
 
 
-def get_status_emoji(status):
-    emoji_map = {
-        'pending': '⏳', 'paid': '💳', 'printing': '🖨️',
-        'in_transit': '🚚', 'ready': '✅', 'collected': '📦',
-        'cancelled': '❌'
+def get_status_text(status):
+    """Get clean status text without emojis."""
+    status_map = {
+        'pending': 'Pending',
+        'paid': 'Paid',
+        'printing': 'Printing',
+        'in_transit': 'In Transit',
+        'ready': 'Ready for Pickup',
+        'collected': 'Collected',
+        'cancelled': 'Cancelled'
     }
-    return emoji_map.get(status, '📋')
-
-
-def get_status_color(status):
-    color_map = {
-        'pending': '#f59e0b',
-        'paid': '#3b82f6',
-        'printing': '#8b5cf6',
-        'in_transit': '#f97316',
-        'ready': '#22c55e',
-        'collected': '#6b7280',
-        'cancelled': '#ef4444'
-    }
-    return color_map.get(status, '#6b7280')
+    return status_map.get(status, status.title())
 
 
 def is_admin(user):
@@ -97,7 +89,7 @@ def get_user_orders_summary(user):
 
 
 def format_order_card(order):
-    """Format a single order as structured data for rich rendering."""
+    """Format order as structured data."""
     priority = order.priority_info
     return {
         'id': order.id,
@@ -107,9 +99,7 @@ def format_order_card(order):
         'is_double_sided': order.is_double_sided,
         'binding': order.get_binding_display() if order.binding != 'none' else None,
         'status': order.status,
-        'status_display': order.get_status_display(),
-        'status_color': get_status_color(order.status),
-        'status_emoji': get_status_emoji(order.status),
+        'status_display': get_status_text(order.status),
         'total_price': f"{order.total_price:,.0f}",
         'station': order.station.name if order.station else None,
         'delivery_type': order.get_delivery_type_display(),
@@ -264,7 +254,7 @@ def get_default_whatsapp_number():
 # ══════════════════════════════════════════════════════════════
 
 class AssistantChatView(APIView):
-    """Main chatbot endpoint - read-only, user-scoped."""
+    """Main chatbot endpoint."""
     permission_classes = [IsAuthenticated]
 
     def post(self, request):
@@ -274,7 +264,7 @@ class AssistantChatView(APIView):
 
         if not message:
             return format_response(
-                "📝 Please type a message. I'm here to help with orders, pricing, and more!",
+                "Please type a message. I'm here to help with orders, pricing, and more.",
                 suggestions=["Help", "My orders", "Pricing"]
             )
 
@@ -286,7 +276,7 @@ class AssistantChatView(APIView):
         system = SystemSettings.load()
         if system.is_paused and not is_admin(user):
             return format_response(
-                f"⚠️ *System is currently paused.*\n\nReason: {system.pause_reason or 'Maintenance in progress.'}\n\nWe'll be back online shortly!",
+                f"System is currently paused.\n\nReason: {system.pause_reason or 'Maintenance in progress.'}\n\nWe'll be back online shortly.",
                 suggestions=["When will it be back?"]
             )
 
@@ -501,81 +491,79 @@ class AssistantChatView(APIView):
         return self._handle_fallback(user, message)
 
     # ══════════════════════════════════════════════════════════
-    # HANDLERS - ORDER MANAGEMENT
+    # HANDLERS - ORDER MANAGEMENT (CLEAN)
     # ══════════════════════════════════════════════════════════
 
     def _handle_welcome(self, user):
-        """Personalized welcome with order stats."""
+        """Personalized welcome with clean formatting."""
         name = user.first_name or user.username
         announcement = Announcement.get_active()
-        ann_text = f"\n📢 {announcement.message}" if announcement else ""
+        ann_text = f"\n{announcement.message}" if announcement else ""
 
         summary = get_user_orders_summary(user)
 
-        msg = f"👋 *Welcome back, {name}!*{ann_text}\n\n"
+        msg = f"Welcome back, {name}!{ann_text}\n\n"
 
         if summary['total'] > 0:
-            msg += f"📊 *Your orders:* {summary['total']} total\n"
+            msg += f"Your orders: {summary['total']} total\n"
             if summary['ready'] > 0:
-                msg += f"✅ *Ready:* {summary['ready']} — _Ready for pickup!_\n"
+                msg += f"Ready for pickup: {summary['ready']}\n"
             if summary['pending'] > 0:
-                msg += f"⏳ *Pending:* {summary['pending']} — _Awaiting payment or approval_\n"
+                msg += f"Pending: {summary['pending']}\n"
             if summary['in_progress'] > 0:
-                msg += f"🔄 *In Progress:* {summary['in_progress']} — _Being printed_\n"
+                msg += f"In Progress: {summary['in_progress']}\n"
             if summary['completed'] > 0:
-                msg += f"📦 *Completed:* {summary['completed']} — _Collected_\n"
+                msg += f"Completed: {summary['completed']}\n"
             msg += "\n"
         else:
-            msg += "📭 You don't have any orders yet. Let's get you started!\n\n"
+            msg += "You don't have any orders yet. Let's get you started!\n\n"
 
         msg += "What would you like to do?"
 
-        suggestions = ["My orders", "Pricing", "New order", "Track order", "Stations", "Start order"]
+        suggestions = ["My orders", "Pricing", "New order", "Track order", "Stations"]
 
         return format_response(msg, suggestions=suggestions, response_type="welcome")
 
     def _handle_help(self, user):
         """Show all available commands."""
-        msg = "📋 *PrintHub Commands*\n\n"
-        msg += "| Command | What it does |\n"
-        msg += "|---------|--------------|\n"
-        msg += "| *My orders* | View your order history |\n"
-        msg += "| *Track #id* | Check order status |\n"
-        msg += "| *Pricing* | See printing rates |\n"
-        msg += "| *Stations* | Find pickup locations |\n"
-        msg += "| *New order* | Start a print job |\n"
-        msg += "| *Start order* | Step-by-step order creation |\n"
-        msg += "| *Draft* | View your draft order |\n"
-        msg += "| *Confirm* | Place your draft order |\n"
-        msg += "| *Templates* | See saved order templates |\n"
-        msg += "| *Reorder #id* | Duplicate a past order |\n"
-        msg += "| *Discounts* | See active promotions |\n"
-        msg += "| *Pay #id* | Get payment instructions |\n"
-        msg += "| *Receipt #id* | Get order receipt |\n"
-        msg += "| *Cancel #id* | Cancel pending order |\n"
-        msg += "| *Human* | Talk to a real person |\n"
+        msg = "PrintHub Commands\n\n"
+        msg += "My orders - View your order history\n"
+        msg += "Track #id - Check order status\n"
+        msg += "Pricing - See printing rates\n"
+        msg += "Stations - Find pickup locations\n"
+        msg += "New order - Start a print job\n"
+        msg += "Start order - Step-by-step order creation\n"
+        msg += "Draft - View your draft order\n"
+        msg += "Confirm - Place your draft order\n"
+        msg += "Templates - See saved order templates\n"
+        msg += "Reorder #id - Duplicate a past order\n"
+        msg += "Discounts - See active promotions\n"
+        msg += "Pay #id - Get payment instructions\n"
+        msg += "Receipt #id - Get order receipt\n"
+        msg += "Cancel #id - Cancel pending order\n"
+        msg += "Human - Talk to a real person\n"
 
         if is_admin(user):
-            msg += "\n🔐 *Admin Commands:*\n"
-            msg += "• *Revenue* - Today's earnings\n"
-            msg += "• *Active* - Live orders\n"
-            msg += "• *Approve #id* - Approve payment\n"
-            msg += "• *Reject #id* - Reject payment\n"
-            msg += "• *Stock* - Paper inventory alerts\n"
-            msg += "• *Pause reason* - Pause system\n"
-            msg += "• *Resume* - Resume system\n"
+            msg += "\nAdmin Commands:\n"
+            msg += "Revenue - Today's earnings\n"
+            msg += "Active - Live orders\n"
+            msg += "Approve #id - Approve payment\n"
+            msg += "Reject #id - Reject payment\n"
+            msg += "Stock - Paper inventory alerts\n"
+            msg += "Pause reason - Pause system\n"
+            msg += "Resume - Resume system\n"
 
         if is_agent(user):
-            msg += "\n🖨️ *Agent Commands:*\n"
-            msg += "• *My station* - Your station info\n"
-            msg += "• *Earnings* - Your commissions\n"
-            msg += "• *Ready orders* - Ready for pickup\n"
-            msg += "• *Update #id to status* - Change order status\n"
+            msg += "\nAgent Commands:\n"
+            msg += "My station - Your station info\n"
+            msg += "Earnings - Your commissions\n"
+            msg += "Ready orders - Ready for pickup\n"
+            msg += "Update #id to status - Change order status\n"
 
         return format_response(msg, suggestions=["My orders", "Pricing", "New order", "Start order", "Human"])
 
     def _handle_track_order(self, user, order_id):
-        """Track a specific order with rich data."""
+        """Track a specific order with clean formatting."""
         try:
             if is_admin(user):
                 order = Order.objects.select_related('station', 'delivery_zone', 'client').get(id=order_id)
@@ -583,45 +571,45 @@ class AssistantChatView(APIView):
                 order = Order.objects.select_related('station', 'delivery_zone').get(id=order_id, client=user)
         except Order.DoesNotExist:
             return format_response(
-                f"❌ Order #{order_id} not found. Double-check the ID and try again.",
+                f"Order #{order_id} not found. Double-check the ID and try again.",
                 suggestions=["My orders", "Track another"]
             )
 
         order_data = format_order_card(order)
         
-        msg = f"📋 *Order #{order.id}*\n\n"
-        msg += f"📄 *File:* {order.file_name}\n"
-        msg += f"📄 *Pages:* {order.page_count}"
+        msg = f"Order #{order.id}\n\n"
+        msg += f"File: {order.file_name}\n"
+        msg += f"Pages: {order.page_count}"
         if order.is_color:
-            msg += " 🎨 Color"
+            msg += " (Color)"
         if order.is_double_sided:
-            msg += " | Double-sided"
+            msg += " (Double-sided)"
         msg += "\n"
-        msg += f"📊 *Status:* {order_data['status_emoji']} {order_data['status_display']}\n"
+        msg += f"Status: {order_data['status_display']}\n"
 
         if order.status not in ['pending', 'collected', 'cancelled']:
-            msg += f"⏱ *Time left:* {order_data['time_left']}\n"
+            msg += f"Time left: {order_data['time_left']}\n"
             if order_data['is_overdue']:
-                msg += "⚠️ *This order is overdue.* Please contact support.\n"
+                msg += "This order is overdue. Please contact support.\n"
 
         if order.station:
-            msg += f"📍 *Station:* {order.station.name}\n"
+            msg += f"Station: {order.station.name}\n"
         if order.binding != 'none':
-            msg += f"📚 *Binding:* {order.get_binding_display()}\n"
+            msg += f"Binding: {order.get_binding_display()}\n"
 
-        msg += f"💰 *Total:* {order_data['total_price']} UGX\n\n"
+        msg += f"Total: {order_data['total_price']} UGX\n\n"
 
-        msg += "*📅 Timeline:*\n"
+        msg += "Timeline:\n"
         if order.created_at:
-            msg += f"• Submitted: {order.created_at.strftime('%d %b, %I:%M %p')}\n"
+            msg += f"Submitted: {order.created_at.strftime('%d %b, %I:%M %p')}\n"
         if order.paid_at:
-            msg += f"• 💳 Paid: {order.paid_at.strftime('%d %b, %I:%M %p')}\n"
+            msg += f"Paid: {order.paid_at.strftime('%d %b, %I:%M %p')}\n"
         if order.printing_at:
-            msg += f"• 🖨️ Printing: {order.printing_at.strftime('%d %b, %I:%M %p')}\n"
+            msg += f"Printing: {order.printing_at.strftime('%d %b, %I:%M %p')}\n"
         if order.ready_at:
-            msg += f"• ✅ Ready: {order.ready_at.strftime('%d %b, %I:%M %p')}\n"
+            msg += f"Ready: {order.ready_at.strftime('%d %b, %I:%M %p')}\n"
         if order.collected_at:
-            msg += f"• 📦 Collected: {order.collected_at.strftime('%d %b, %I:%M %p')}\n"
+            msg += f"Collected: {order.collected_at.strftime('%d %b, %I:%M %p')}\n"
 
         suggestions = []
         if order.status == 'pending':
@@ -644,38 +632,38 @@ class AssistantChatView(APIView):
 
         if not orders.exists():
             return format_response(
-                "📭 *No orders yet.*\n\nReady to start? Send *Start order* to get started, or check out *Pricing* to see our rates!",
+                "No orders yet.\n\nReady to start? Send 'Start order' to get started, or check out 'Pricing' to see our rates.",
                 suggestions=["Start order", "Pricing", "Stations"]
             )
 
         summary = get_user_orders_summary(user)
         order_list = [format_order_card(o) for o in orders]
 
-        msg = f"📚 *Your Orders* ({summary['total']} total)\n\n"
+        msg = f"Your Orders ({summary['total']} total)\n\n"
 
         stats = []
         if summary['ready'] > 0:
-            stats.append(f"✅ Ready: {summary['ready']}")
+            stats.append(f"Ready: {summary['ready']}")
         if summary['pending'] > 0:
-            stats.append(f"⏳ Pending: {summary['pending']}")
+            stats.append(f"Pending: {summary['pending']}")
         if summary['in_progress'] > 0:
-            stats.append(f"🔄 In progress: {summary['in_progress']}")
+            stats.append(f"In progress: {summary['in_progress']}")
         if summary['completed'] > 0:
-            stats.append(f"📦 Completed: {summary['completed']}")
+            stats.append(f"Completed: {summary['completed']}")
         if summary['cancelled'] > 0:
-            stats.append(f"❌ Cancelled: {summary['cancelled']}")
+            stats.append(f"Cancelled: {summary['cancelled']}")
         msg += " | ".join(stats) + "\n\n"
 
-        msg += "*Recent:*\n"
+        msg += "Recent:\n"
         for order in orders[:5]:
-            emoji = get_status_emoji(order.status)
-            msg += f"#{order.id} {emoji} {order.get_status_display()}"
+            status = get_status_text(order.status)
+            msg += f"#{order.id} {status}"
             if order.status == 'ready':
-                msg += " ✅"
+                msg += " (Ready for pickup)"
             msg += f" | {order.total_price:,.0f} UGX\n"
-            msg += f"   📄 {order.file_name[:40]}\n"
+            msg += f"  {order.file_name[:40]}\n"
 
-        msg += "\n*Type Track #id for details.*"
+        msg += "\nType 'Track #id' for details."
 
         suggestions = [f"Track #{orders[0].id}", "Start order", "Pricing"]
         if summary['ready'] > 0:
@@ -693,20 +681,20 @@ class AssistantChatView(APIView):
         """Show order summary stats."""
         summary = get_user_orders_summary(user)
 
-        msg = f"📊 *Order Summary*\n\n"
-        msg += f"📋 Total: *{summary['total']}*\n"
-        msg += f"⏳ Pending: *{summary['pending']}*\n"
-        msg += f"🔄 In Progress: *{summary['in_progress']}*\n"
-        msg += f"✅ Ready: *{summary['ready']}*\n"
-        msg += f"📦 Completed: *{summary['completed']}*\n"
-        msg += f"❌ Cancelled: *{summary['cancelled']}*\n"
+        msg = "Order Summary\n\n"
+        msg += f"Total: {summary['total']}\n"
+        msg += f"Pending: {summary['pending']}\n"
+        msg += f"In Progress: {summary['in_progress']}\n"
+        msg += f"Ready: {summary['ready']}\n"
+        msg += f"Completed: {summary['completed']}\n"
+        msg += f"Cancelled: {summary['cancelled']}\n"
 
         if summary['ready'] > 0:
-            msg += f"\n🎉 You have {summary['ready']} order(s) ready for pickup!"
+            msg += f"\nYou have {summary['ready']} order(s) ready for pickup."
         elif summary['pending'] > 0:
-            msg += f"\n💳 You have {summary['pending']} order(s) pending payment."
+            msg += f"\nYou have {summary['pending']} order(s) pending payment."
         elif summary['total'] == 0:
-            msg += "\n📭 You haven't placed any orders yet."
+            msg += "\nYou haven't placed any orders yet."
 
         return format_response(msg, suggestions=["My orders", "Start order", "Pricing"])
 
@@ -714,24 +702,23 @@ class AssistantChatView(APIView):
         """Show orders filtered by status."""
         orders = Order.objects.filter(client=user, status=status).order_by('-created_at')[:10]
         status_label = dict(Order.STATUS_CHOICES).get(status, status.title())
-        emoji = get_status_emoji(status)
 
         if not orders.exists():
-            return format_response(f"📭 No {status_label} orders.")
+            return format_response(f"No {status_label} orders.")
         
-        msg = f"{emoji} *{status_label} Orders* ({orders.count()})\n\n"
+        msg = f"{status_label} Orders ({orders.count()})\n\n"
         for order in orders:
             msg += f"#{order.id} | {order.file_name[:30]}\n"
-            msg += f"   💰 {order.total_price:,.0f} UGX | 📅 {order.created_at.strftime('%d %b')}\n"
+            msg += f"  {order.total_price:,.0f} UGX | {order.created_at.strftime('%d %b')}\n"
             if order.station:
-                msg += f"   📍 {order.station.name}\n"
+                msg += f"  {order.station.name}\n"
             msg += "\n"
 
         suggestions = ["My orders", f"Track #{orders[0].id}"] if orders.exists() else ["My orders"]
         return format_response(msg, suggestions=suggestions, response_type="filtered_orders")
 
     # ══════════════════════════════════════════════════════════
-    # HANDLERS - INFORMATION
+    # HANDLERS - INFORMATION (CLEAN)
     # ══════════════════════════════════════════════════════════
 
     def _handle_pricing(self, message):
@@ -752,11 +739,9 @@ class AssistantChatView(APIView):
             {'name': 'Delivery', 'price': 'From 2,000 UGX'},
         ]
 
-        msg = "💰 *PrintHub Pricing*\n\n"
-        msg += "| Service | Price |\n"
-        msg += "|---------|-------|\n"
+        msg = "PrintHub Pricing\n\n"
         for p in prices:
-            msg += f"| {p['name']} | *{p['price']}* |\n"
+            msg += f"{p['name']}: {p['price']}\n"
 
         now = timezone.now()
         discounts = DiscountCode.objects.filter(
@@ -766,10 +751,10 @@ class AssistantChatView(APIView):
         )
 
         if discounts.exists():
-            msg += "\n🎫 *Active Promotions:*\n"
+            msg += "\nActive Promotions:\n"
             for d in discounts[:3]:
-                remaining = d.max_uses - d.used_count if d.max_uses > 0 else "∞"
-                msg += f"• *{d.code}* - {d.description}\n"
+                remaining = d.max_uses - d.used_count if d.max_uses > 0 else "unlimited"
+                msg += f"{d.code} - {d.description}\n"
                 msg += f"  {remaining} uses left\n"
 
         return format_response(
@@ -790,12 +775,12 @@ class AssistantChatView(APIView):
             delivery_fee=0
         )
 
-        color_text = "🎨 Color" if is_color else "⚫ B&W"
-        msg = f"💰 *Price Quote*\n\n"
-        msg += f"📄 {pages} pages ({color_text})\n"
-        msg += f"📊 Effective pages: {effective}\n"
-        msg += f"💵 *Total: {total:,.0f} UGX*\n\n"
-        msg += "_Add binding (+1,000 UGX) or double-sided for different pricing._"
+        color_text = "Color" if is_color else "B&W"
+        msg = f"Price Quote\n\n"
+        msg += f"{pages} pages ({color_text})\n"
+        msg += f"Effective pages: {effective}\n"
+        msg += f"Total: {total:,.0f} UGX\n\n"
+        msg += "Add binding (+1,000 UGX) or double-sided for different pricing."
 
         return format_response(msg, suggestions=["Start order", "Pricing"])
 
@@ -805,12 +790,12 @@ class AssistantChatView(APIView):
 
         if not stations.exists():
             return format_response(
-                "📍 No stations available at the moment.\n\nPlease check back later or contact support.",
+                "No stations available at the moment.\n\nPlease check back later or contact support.",
                 suggestions=["Help", "Start order", "Human"]
             )
 
         station_data = []
-        msg = "📍 *PrintHub Stations*\n\n"
+        msg = "PrintHub Stations\n\n"
         for s in stations:
             active_orders = Order.objects.filter(
                 station=s,
@@ -823,11 +808,11 @@ class AssistantChatView(APIView):
                 'location': getattr(s, 'location_description', '')
             })
             
-            msg += f"🏢 *{s.name}*\n"
+            msg += f"{s.name}\n"
             if hasattr(s, 'location_description') and s.location_description:
-                msg += f"   📍 {s.location_description}\n"
+                msg += f"  {s.location_description}\n"
             if active_orders > 0:
-                msg += f"   📊 {active_orders} active orders\n"
+                msg += f"  {active_orders} active orders\n"
             msg += "\n"
 
         return format_response(
@@ -848,24 +833,24 @@ class AssistantChatView(APIView):
 
         if not discounts.exists():
             return format_response(
-                "🎫 *No active promotions at the moment.*\n\nCheck back later for deals, or ask about student discounts!",
+                "No active promotions at the moment.\n\nCheck back later for deals.",
                 suggestions=["Pricing", "Start order"]
             )
 
-        msg = "🎫 *Active Promotions*\n\n"
+        msg = "Active Promotions\n\n"
         for d in discounts:
-            remaining = d.max_uses - d.used_count if d.max_uses > 0 else "∞"
-            msg += f"*{d.code}*\n"
-            msg += f"   {d.description}\n"
-            msg += f"   Type: {d.get_discount_type_display()}: {d.discount_value}%"
+            remaining = d.max_uses - d.used_count if d.max_uses > 0 else "unlimited"
+            msg += f"{d.code}\n"
+            msg += f"  {d.description}\n"
+            msg += f"  Type: {d.get_discount_type_display()}: {d.discount_value}%"
             if d.minimum_order > 0:
                 msg += f" | Min. order: {d.minimum_order:,.0f} UGX"
-            msg += f"\n   Uses left: {remaining}\n\n"
+            msg += f"\n  Uses left: {remaining}\n\n"
 
         return format_response(msg, suggestions=["Pricing", "Start order"])
 
     # ══════════════════════════════════════════════════════════
-    # HANDLERS - ORDER CREATION FLOW
+    # HANDLERS - ORDER CREATION (CLEAN)
     # ══════════════════════════════════════════════════════════
 
     def _handle_start_order(self, user):
@@ -875,20 +860,20 @@ class AssistantChatView(APIView):
         if draft.page_count:
             summary = get_draft_summary(draft)
             if summary:
-                msg = "📝 *You have a draft order in progress!*\n\n"
-                msg += f"📄 Pages: {summary['pages']}\n"
-                msg += f"🎨 {'Color' if summary['is_color'] else 'B&W'}\n"
+                msg = "You have a draft order in progress!\n\n"
+                msg += f"Pages: {summary['pages']}\n"
+                msg += f"{'Color' if summary['is_color'] else 'B&W'}\n"
                 if summary['is_double_sided']:
-                    msg += "📄 Double-sided\n"
+                    msg += "Double-sided\n"
                 if summary['binding'] != 'none':
-                    msg += f"📚 {summary['binding'].title()}\n"
+                    msg += f"{summary['binding'].title()}\n"
                 if summary['station']:
-                    msg += f"📍 {summary['station']}\n"
-                msg += f"💰 Total: {summary['total']:,.0f} UGX\n\n"
+                    msg += f"Station: {summary['station']}\n"
+                msg += f"Total: {summary['total']:,.0f} UGX\n\n"
                 msg += "What would you like to do?\n"
-                msg += "• *Confirm* - Place order\n"
-                msg += "• *Edit* - Change options\n"
-                msg += "• *Clear* - Start over"
+                msg += "Confirm - Place order\n"
+                msg += "Edit - Change options\n"
+                msg += "Clear - Start over"
                 return format_response(
                     msg,
                     suggestions=["Confirm", "Edit", "Clear", "Upload file"],
@@ -897,21 +882,21 @@ class AssistantChatView(APIView):
         
         reset_draft(draft)
         
-        msg = "📤 *Start a New Order*\n\n"
+        msg = "Start a New Order\n\n"
         msg += "Let's create your print order step by step.\n\n"
-        msg += "1️⃣ *How many pages?*\n"
-        msg += "   Reply with: `20 pages` or just `20`\n\n"
-        msg += "2️⃣ *Color or B&W?*\n"
-        msg += "   Reply with: `Color` or `B&W`\n\n"
-        msg += "3️⃣ *Single or double-sided?*\n"
-        msg += "   Reply with: `Single` or `Double`\n\n"
-        msg += "4️⃣ *Binding?*\n"
-        msg += "   Reply with: `Spiral`, `Staple`, or `No binding`\n\n"
-        msg += "5️⃣ *Pickup or delivery?*\n"
-        msg += "   Reply with: `Pickup` or `Delivery`\n\n"
+        msg += "1. How many pages?\n"
+        msg += "   Reply with: '20 pages' or just '20'\n\n"
+        msg += "2. Color or B&W?\n"
+        msg += "   Reply with: 'Color' or 'B&W'\n\n"
+        msg += "3. Single or double-sided?\n"
+        msg += "   Reply with: 'Single' or 'Double'\n\n"
+        msg += "4. Binding?\n"
+        msg += "   Reply with: 'Spiral', 'Staple', or 'No binding'\n\n"
+        msg += "5. Pickup or delivery?\n"
+        msg += "   Reply with: 'Pickup' or 'Delivery'\n\n"
         msg += "You can also use the quick command:\n"
-        msg += "*Order 20 Color Double Spiral Pickup*\n\n"
-        msg += "Or use a template: *Use template <name>*"
+        msg += "Order 20 Color Double Spiral Pickup\n\n"
+        msg += "Or use a template: 'Use template <name>'"
         
         return format_response(
             msg,
@@ -926,32 +911,32 @@ class AssistantChatView(APIView):
         
         if not summary:
             return format_response(
-                "📭 You don't have a draft order.\n\nStart one with *Start order* or *I want to print*",
+                "You don't have a draft order.\n\nStart one with 'Start order' or 'I want to print'",
                 suggestions=["Start order", "New order", "Templates"]
             )
         
-        msg = "📝 *Your Draft Order*\n\n"
-        msg += f"📄 Pages: *{summary['pages']}*\n"
-        msg += f"🎨 Type: *{'Color' if summary['is_color'] else 'B&W'}*\n"
+        msg = "Your Draft Order\n\n"
+        msg += f"Pages: {summary['pages']}\n"
+        msg += f"Type: {'Color' if summary['is_color'] else 'B&W'}\n"
         if summary['is_double_sided']:
-            msg += "📄 Double-sided\n"
+            msg += "Double-sided\n"
         if summary['binding'] != 'none':
-            msg += f"📚 Binding: *{summary['binding'].title()}*\n"
+            msg += f"Binding: {summary['binding'].title()}\n"
         if summary['station']:
-            msg += f"📍 Station: *{summary['station']}*\n"
-        msg += f"📦 Delivery: *{summary['delivery_type'].title()}*\n"
+            msg += f"Station: {summary['station']}\n"
+        msg += f"Delivery: {summary['delivery_type'].title()}\n"
         if summary['has_file']:
-            msg += f"📎 File: *{summary['file_name']}*\n"
-        msg += f"💰 Estimated Total: *{summary['total']:,.0f} UGX*\n\n"
+            msg += f"File: {summary['file_name']}\n"
+        msg += f"Estimated Total: {summary['total']:,.0f} UGX\n\n"
         
         if not summary['has_file']:
-            msg += "⚠️ *File missing!* Upload using the 📎 button.\n\n"
+            msg += "File missing! Upload using the attachment button.\n\n"
         
         msg += "What would you like to do?\n"
-        msg += "• *Confirm* - Place order\n"
-        msg += "• *Edit* - Change options\n"
-        msg += "• *Clear* - Start over\n"
-        msg += "• *Save template <name>* - Save for later"
+        msg += "Confirm - Place order\n"
+        msg += "Edit - Change options\n"
+        msg += "Clear - Start over\n"
+        msg += "Save template <name> - Save for later"
         
         suggestions = ["Confirm", "Edit", "Clear"]
         if not summary['has_file']:
@@ -970,26 +955,26 @@ class AssistantChatView(APIView):
         draft = get_user_draft(user)
         reset_draft(draft)
         return format_response(
-            "🗑️ Draft cleared.\n\nStart a new one with *Start order*",
+            "Draft cleared.\n\nStart a new one with 'Start order'",
             suggestions=["Start order", "New order"]
         )
 
     def _handle_set_pages(self, user, pages):
         """Set pages in draft."""
         if pages < 1:
-            return format_response("❌ Pages must be at least 1.")
+            return format_response("Pages must be at least 1.")
         if pages > 1000:
-            return format_response("⚠️ Maximum 1000 pages per order.")
+            return format_response("Maximum 1000 pages per order.")
         
         draft = get_user_draft(user)
         draft.page_count = pages
         draft.save()
         
         summary = get_draft_summary(draft)
-        msg = f"✅ Pages set to *{pages}*\n\n"
+        msg = f"Pages set to {pages}\n\n"
         if summary:
-            msg += f"💰 Estimated Total: *{summary['total']:,.0f} UGX*\n\n"
-        msg += "Next: Set color or binding, or *Confirm* to place order."
+            msg += f"Estimated Total: {summary['total']:,.0f} UGX\n\n"
+        msg += "Next: Set color or binding, or 'Confirm' to place order."
         
         return format_response(
             msg,
@@ -1002,13 +987,13 @@ class AssistantChatView(APIView):
         draft.is_color = is_color
         draft.save()
         
-        color_text = "Color 🎨" if is_color else "B&W ⚫"
-        msg = f"✅ Type set to *{color_text}*\n\n"
+        color_text = "Color" if is_color else "B&W"
+        msg = f"Type set to {color_text}\n\n"
         
         summary = get_draft_summary(draft)
         if summary and summary['pages']:
-            msg += f"💰 Estimated Total: *{summary['total']:,.0f} UGX*\n\n"
-        msg += "Next: Set binding or *Confirm* to place order."
+            msg += f"Estimated Total: {summary['total']:,.0f} UGX\n\n"
+        msg += "Next: Set binding or 'Confirm' to place order."
         
         return format_response(
             msg,
@@ -1021,13 +1006,13 @@ class AssistantChatView(APIView):
         draft.is_double_sided = is_double
         draft.save()
         
-        text = "Double-sided 📄" if is_double else "Single-sided 📄"
-        msg = f"✅ Set to *{text}*\n\n"
+        text = "Double-sided" if is_double else "Single-sided"
+        msg = f"Set to {text}\n\n"
         
         summary = get_draft_summary(draft)
         if summary and summary['pages']:
-            msg += f"💰 Estimated Total: *{summary['total']:,.0f} UGX*\n\n"
-        msg += "Next: Set binding or *Confirm* to place order."
+            msg += f"Estimated Total: {summary['total']:,.0f} UGX\n\n"
+        msg += "Next: Set binding or 'Confirm' to place order."
         
         return format_response(
             msg,
@@ -1037,19 +1022,19 @@ class AssistantChatView(APIView):
     def _handle_set_binding(self, user, binding):
         """Set binding in draft."""
         if binding not in ['none', 'staple', 'spiral']:
-            return format_response("❌ Invalid binding. Options: Spiral, Staple, No binding")
+            return format_response("Invalid binding. Options: Spiral, Staple, No binding")
         
         draft = get_user_draft(user)
         draft.binding = binding
         draft.save()
         
         binding_text = dict(Order.BINDING_CHOICES).get(binding, binding.title())
-        msg = f"✅ Binding set to *{binding_text}*\n\n"
+        msg = f"Binding set to {binding_text}\n\n"
         
         summary = get_draft_summary(draft)
         if summary and summary['pages']:
-            msg += f"💰 Estimated Total: *{summary['total']:,.0f} UGX*\n\n"
-        msg += "Next: Choose station or *Confirm* to place order."
+            msg += f"Estimated Total: {summary['total']:,.0f} UGX\n\n"
+        msg += "Next: Choose station or 'Confirm' to place order."
         
         stations = Station.objects.filter(is_active=True)
         suggestions = ["Confirm"]
@@ -1065,23 +1050,23 @@ class AssistantChatView(APIView):
     def _handle_set_delivery(self, user, delivery_type):
         """Set delivery type in draft."""
         if delivery_type not in ['pickup', 'delivery']:
-            return format_response("❌ Invalid. Options: Pickup, Delivery")
+            return format_response("Invalid. Options: Pickup, Delivery")
         
         draft = get_user_draft(user)
         draft.delivery_type = delivery_type
         draft.save()
         
-        text = "Pickup 🏢" if delivery_type == 'pickup' else "Delivery 🚚"
-        msg = f"✅ Set to *{text}*\n\n"
+        text = "Pickup" if delivery_type == 'pickup' else "Delivery"
+        msg = f"Set to {text}\n\n"
         
         summary = get_draft_summary(draft)
         if summary and summary['pages']:
-            msg += f"💰 Estimated Total: *{summary['total']:,.0f} UGX*\n\n"
+            msg += f"Estimated Total: {summary['total']:,.0f} UGX\n\n"
         
         if delivery_type == 'delivery':
-            msg += "📍 Please specify a delivery zone or address."
+            msg += "Please specify a delivery zone or address."
         else:
-            msg += "📍 Choose a station or *Confirm* to place order."
+            msg += "Choose a station or 'Confirm' to place order."
         
         stations = Station.objects.filter(is_active=True)
         suggestions = ["Confirm"]
@@ -1098,17 +1083,17 @@ class AssistantChatView(APIView):
         """Edit draft options."""
         draft = get_user_draft(user)
         if not draft.page_count:
-            return format_response("❌ No draft to edit. Start with *Start order*")
+            return format_response("No draft to edit. Start with 'Start order'")
         
-        msg = "✏️ *Edit Your Draft*\n\n"
+        msg = "Edit Your Draft\n\n"
         msg += "What would you like to change?\n\n"
-        msg += "• *Pages X* - Change page count\n"
-        msg += "• *Color* or *B&W* - Change type\n"
-        msg += "• *Double* or *Single* - Change sides\n"
-        msg += "• *Spiral*, *Staple*, or *No binding*\n"
-        msg += "• *Pickup* or *Delivery*\n"
-        msg += "• *Clear* - Start over\n\n"
-        msg += "Or just tell me what to change!"
+        msg += "Pages X - Change page count\n"
+        msg += "Color or B&W - Change type\n"
+        msg += "Double or Single - Change sides\n"
+        msg += "Spiral, Staple, or No binding\n"
+        msg += "Pickup or Delivery\n"
+        msg += "Clear - Start over\n\n"
+        msg += "Or just tell me what to change."
         
         return format_response(
             msg,
@@ -1121,13 +1106,13 @@ class AssistantChatView(APIView):
         
         if not draft.page_count:
             return format_response(
-                "❌ No draft to confirm.\n\nStart with *Start order* or *I want to print*",
+                "No draft to confirm.\n\nStart with 'Start order' or 'I want to print'",
                 suggestions=["Start order"]
             )
         
         if not draft.file:
             return format_response(
-                "⚠️ *File missing!*\n\nUpload your document using the 📎 button below.\n\nThen type *Confirm* again.",
+                "File missing!\n\nUpload your document using the attachment button below.\n\nThen type 'Confirm' again.",
                 suggestions=["Upload file"]
             )
         
@@ -1156,22 +1141,22 @@ class AssistantChatView(APIView):
             
             reset_draft(draft)
             
-            msg = f"✅ *Order #{order.id} Created!*\n\n"
-            msg += f"📄 File: {order.file_name}\n"
-            msg += f"📄 Pages: {order.page_count}"
+            msg = f"Order #{order.id} Created!\n\n"
+            msg += f"File: {order.file_name}\n"
+            msg += f"Pages: {order.page_count}"
             if order.is_color:
-                msg += " 🎨 Color"
+                msg += " (Color)"
             if order.is_double_sided:
-                msg += " | Double-sided"
+                msg += " (Double-sided)"
             msg += "\n"
             if order.binding != 'none':
-                msg += f"📚 Binding: {order.get_binding_display()}\n"
+                msg += f"Binding: {order.get_binding_display()}\n"
             if order.station:
-                msg += f"📍 Station: {order.station.name}\n"
-            msg += f"💰 Total: *{order.total_price:,.0f} UGX*\n\n"
-            msg += "📝 *Next steps:*\n"
-            msg += "1. Go to payment: *Pay #{}*\n".format(order.id)
-            msg += "2. Track your order: *Track #{}*".format(order.id)
+                msg += f"Station: {order.station.name}\n"
+            msg += f"Total: {order.total_price:,.0f} UGX\n\n"
+            msg += "Next steps:\n"
+            msg += f"1. Go to payment: Pay #{order.id}\n"
+            msg += f"2. Track your order: Track #{order.id}"
             
             try:
                 from notifications.models import Notification
@@ -1195,7 +1180,7 @@ class AssistantChatView(APIView):
             )
             
         except Exception as e:
-            return format_response(f"❌ Error creating order: {str(e)}\n\nPlease try again or contact support.", suggestions=["Human"])
+            return format_response(f"Error creating order: {str(e)}\n\nPlease try again or contact support.", suggestions=["Human"])
 
     # ══════════════════════════════════════════════════════════
     # HANDLERS - ORDER TEMPLATES
@@ -1208,27 +1193,27 @@ class AssistantChatView(APIView):
             templates = OrderTemplate.objects.filter(user=user)
         except ImportError:
             return format_response(
-                "📭 Templates are being set up.\n\nPlease check back soon!",
+                "Templates are being set up.\n\nPlease check back soon.",
                 suggestions=["Start order"]
             )
         
         if not templates.exists():
             return format_response(
-                "📭 *No saved templates.*\n\nSave a draft as a template with:\n*Save template <name>*\n\nExample: *Save template Assignment*",
+                "No saved templates.\n\nSave a draft as a template with:\nSave template <name>\n\nExample: Save template Assignment",
                 suggestions=["Start order"]
             )
         
-        msg = "📋 *Your Order Templates*\n\n"
+        msg = "Your Order Templates\n\n"
         for t in templates[:5]:
-            msg += f"• *{t.name}* - {t.pages} pages"
+            msg += f"{t.name} - {t.pages} pages"
             if t.is_color:
                 msg += " Color"
             msg += "\n"
             if t.binding != 'none':
-                msg += f"  📚 {t.binding}\n"
+                msg += f"  Binding: {t.binding}\n"
             msg += "\n"
         
-        msg += "Use a template with:\n*Use template <name>*"
+        msg += "Use a template with:\nUse template <name>"
         
         return format_response(
             msg,
@@ -1238,11 +1223,11 @@ class AssistantChatView(APIView):
     def _handle_save_template(self, user, name):
         """Save current draft as a template."""
         if not name:
-            return format_response("❌ Please provide a name: *Save template Assignment*")
+            return format_response("Please provide a name: Save template Assignment")
         
         draft = get_user_draft(user)
         if not draft.page_count:
-            return format_response("❌ No draft to save. Create one with *Start order*")
+            return format_response("No draft to save. Create one with 'Start order'")
         
         try:
             from .models import OrderTemplate
@@ -1259,16 +1244,16 @@ class AssistantChatView(APIView):
             )
         except ImportError:
             return format_response(
-                "❌ Templates are being set up.\n\nPlease check back soon!",
+                "Templates are being set up.\n\nPlease check back soon.",
                 suggestions=["Start order"]
             )
         
         if created:
-            msg = f"✅ Template *{name}* saved!"
+            msg = f"Template '{name}' saved!"
         else:
-            msg = f"✅ Template *{name}* updated!"
+            msg = f"Template '{name}' updated!"
         
-        msg += "\n\nUse it with: *Use template {}*".format(name)
+        msg += "\n\nUse it with: Use template {}".format(name)
         
         return format_response(msg, suggestions=["Use template {}".format(name), "My orders"])
 
@@ -1278,7 +1263,7 @@ class AssistantChatView(APIView):
             from .models import OrderTemplate
             template = OrderTemplate.objects.get(user=user, name=name)
         except (ImportError, OrderTemplate.DoesNotExist):
-            return format_response(f"❌ Template *{name}* not found.\n\n*Templates* to see saved ones.")
+            return format_response(f"Template '{name}' not found.\n\n'Templates' to see saved ones.")
         
         draft = get_user_draft(user)
         draft.page_count = template.pages
@@ -1290,15 +1275,15 @@ class AssistantChatView(APIView):
         
         summary = get_draft_summary(draft)
         
-        msg = f"✅ Template *{name}* loaded!\n\n"
-        msg += f"📄 Pages: {summary['pages']}\n"
-        msg += f"🎨 {'Color' if summary['is_color'] else 'B&W'}\n"
+        msg = f"Template '{name}' loaded!\n\n"
+        msg += f"Pages: {summary['pages']}\n"
+        msg += f"{'Color' if summary['is_color'] else 'B&W'}\n"
         if summary['is_double_sided']:
-            msg += "📄 Double-sided\n"
+            msg += "Double-sided\n"
         if summary['binding'] != 'none':
-            msg += f"📚 {summary['binding'].title()}\n"
-        msg += f"💰 Total: {summary['total']:,.0f} UGX\n\n"
-        msg += "Upload your file and type *Confirm* to place the order."
+            msg += f"{summary['binding'].title()}\n"
+        msg += f"Total: {summary['total']:,.0f} UGX\n\n"
+        msg += "Upload your file and type 'Confirm' to place the order."
         
         return format_response(
             msg,
@@ -1315,7 +1300,7 @@ class AssistantChatView(APIView):
         try:
             old_order = Order.objects.get(id=order_id, client=user)
         except Order.DoesNotExist:
-            return format_response(f"❌ Order #{order_id} not found.", suggestions=["My orders"])
+            return format_response(f"Order #{order_id} not found.", suggestions=["My orders"])
         
         draft = get_user_draft(user)
         draft.page_count = old_order.page_count
@@ -1328,17 +1313,17 @@ class AssistantChatView(APIView):
         
         summary = get_draft_summary(draft)
         
-        msg = f"🔄 *Reordering Order #{order_id}*\n\n"
-        msg += f"📄 Pages: {summary['pages']}\n"
-        msg += f"🎨 {'Color' if summary['is_color'] else 'B&W'}\n"
+        msg = f"Reordering Order #{order_id}\n\n"
+        msg += f"Pages: {summary['pages']}\n"
+        msg += f"{'Color' if summary['is_color'] else 'B&W'}\n"
         if summary['is_double_sided']:
-            msg += "📄 Double-sided\n"
+            msg += "Double-sided\n"
         if summary['binding'] != 'none':
-            msg += f"📚 {summary['binding'].title()}\n"
+            msg += f"{summary['binding'].title()}\n"
         if summary['station']:
-            msg += f"📍 {summary['station']}\n"
-        msg += f"💰 Total: {summary['total']:,.0f} UGX\n\n"
-        msg += "Upload your new file and type *Confirm* to place the order."
+            msg += f"Station: {summary['station']}\n"
+        msg += f"Total: {summary['total']:,.0f} UGX\n\n"
+        msg += "Upload your new file and type 'Confirm' to place the order."
         
         return format_response(
             msg,
@@ -1350,27 +1335,27 @@ class AssistantChatView(APIView):
         try:
             draft = AssistantDraft.objects.get(user=user)
             if draft.page_count:
-                msg = "📝 *You have a draft order!*\n\n"
-                msg += f"📄 Pages: {draft.page_count}\n"
-                msg += f"🎨 {'Color' if draft.is_color else 'B&W'}\n"
+                msg = "You have a draft order!\n\n"
+                msg += f"Pages: {draft.page_count}\n"
+                msg += f"{'Color' if draft.is_color else 'B&W'}\n"
                 if draft.file:
-                    msg += f"📎 File: {draft.file_name}\n"
-                msg += "\n*Type Confirm* to place it, or *Cancel* to discard."
+                    msg += f"File: {draft.file_name}\n"
+                msg += "\nType 'Confirm' to place it, or 'Cancel' to discard."
                 return format_response(msg, suggestions=["Confirm", "Cancel", "Start over"])
         except AssistantDraft.DoesNotExist:
             pass
 
-        msg = "📤 *Start a New Order*\n\n"
-        msg += "1️⃣ Upload your file (📎 button below)\n"
-        msg += "2️⃣ Type *Order <pages>*\n"
-        msg += "3️⃣ Choose your options\n"
-        msg += "4️⃣ Complete payment\n\n"
-        msg += "📎 Or upload at: www.printhubug.com/upload/"
+        msg = "Start a New Order\n\n"
+        msg += "1. Upload your file (attachment button below)\n"
+        msg += "2. Type 'Order <pages>'\n"
+        msg += "3. Choose your options\n"
+        msg += "4. Complete payment\n\n"
+        msg += "Or upload at: www.printhubug.com/upload/"
 
         return format_response(msg, suggestions=["Upload file", "Pricing", "Stations", "Human", "Start order"])
 
     # ══════════════════════════════════════════════════════════
-    # HANDLERS - TALK TO HUMAN
+    # HANDLERS - TALK TO HUMAN (CLEAN)
     # ══════════════════════════════════════════════════════════
 
     def _handle_talk_to_human(self, user, message=""):
@@ -1387,7 +1372,7 @@ class AssistantChatView(APIView):
             status__in=['pending', 'ready', 'paid', 'printing', 'in_transit']
         ).exists()
         
-        msg = "📞 *Talk to a Human*\n\n"
+        msg = "Talk to a Human\n\n"
         msg += "Choose who you'd like to contact:\n\n"
         
         options = []
@@ -1395,48 +1380,27 @@ class AssistantChatView(APIView):
         if has_station_agent:
             agent = get_user_station_agent(user)
             station_name = agent.station.name if agent and agent.station else "your station"
-            options.append({
-                'id': 'agent',
-                'label': '🏢 Station Agent',
-                'desc': f'Contact the agent at {station_name}',
-            })
+            options.append(f"Station Agent - Contact the agent at {station_name}")
         elif has_order:
-            options.append({
-                'id': 'agent',
-                'label': '🏢 Station Agent',
-                'desc': 'Contact the agent at your pickup station',
-            })
+            options.append("Station Agent - Contact the agent at your pickup station")
         
         if has_admin:
-            options.append({
-                'id': 'admin',
-                'label': '👤 Admin / Support',
-                'desc': 'Contact PrintHub support team',
-            })
+            options.append("Admin / Support - Contact PrintHub support team")
         else:
-            options.append({
-                'id': 'admin',
-                'label': '👤 Admin / Support',
-                'desc': 'Contact PrintHub support team',
-            })
+            options.append("Admin / Support - Contact PrintHub support team")
         
-        options.append({
-            'id': 'whatsapp',
-            'label': '📱 WhatsApp Support',
-            'desc': 'Chat with us directly on WhatsApp',
-        })
+        options.append("WhatsApp Support - Chat with us directly on WhatsApp")
         
         for i, opt in enumerate(options, 1):
-            msg += f"{i}. {opt['label']}\n"
-            msg += f"   _{opt['desc']}_\n\n"
+            msg += f"{i}. {opt}\n"
         
-        msg += "💬 *Reply with:*\n"
-        msg += "• `Agent` - Contact your station agent\n"
-        msg += "• `Admin` - Contact PrintHub support\n"
-        msg += "• `WhatsApp` - Chat on WhatsApp\n"
+        msg += "\nReply with:\n"
+        msg += "Agent - Contact your station agent\n"
+        msg += "Admin - Contact PrintHub support\n"
+        msg += "WhatsApp - Chat on WhatsApp\n"
         
         if has_order:
-            msg += "\n📦 *Tip:* Include your order number for faster help!"
+            msg += "\nTip: Include your order number for faster support."
         
         suggestions = []
         if has_station_agent:
@@ -1490,16 +1454,16 @@ class AssistantChatView(APIView):
             
             wa_link = get_whatsapp_link(number, prefilled)
             
-            msg = f"🏢 *Your Station Agent*\n\n"
-            msg += f"👤 *Name:* {agent_name}\n"
-            msg += f"📍 *Station:* {station_name}\n"
-            msg += f"📱 *WhatsApp:* `{number}`\n\n"
-            msg += f"🔗 [Click to chat]({wa_link})\n\n"
+            msg = f"Your Station Agent\n\n"
+            msg += f"Name: {agent_name}\n"
+            msg += f"Station: {station_name}\n"
+            msg += f"WhatsApp: {number}\n\n"
+            msg += f"Click to chat: {wa_link}\n\n"
             
             if context_msg:
-                msg += f"📝 *Context:* {context_msg}\n\n"
+                msg += f"Context: {context_msg}\n\n"
             
-            msg += "_The agent knows your order details._"
+            msg += "The agent knows your order details."
             
             return format_response(
                 msg,
@@ -1524,11 +1488,11 @@ class AssistantChatView(APIView):
         
         wa_link = get_whatsapp_link(fallback, prefilled)
         
-        msg = f"🏢 *Station Agent*\n\n"
-        msg += f"⚠️ No agent is currently assigned to your station.\n\n"
-        msg += f"📱 *Fallback Support:* `{fallback}`\n"
-        msg += f"🔗 [Click to chat]({wa_link})\n\n"
-        msg += "_Our support team will assist you._"
+        msg = f"Station Agent\n\n"
+        msg += "No agent is currently assigned to your station.\n\n"
+        msg += f"Fallback Support: {fallback}\n"
+        msg += f"Click to chat: {wa_link}\n\n"
+        msg += "Our support team will assist you."
         
         return format_response(
             msg,
@@ -1574,16 +1538,16 @@ class AssistantChatView(APIView):
             is_active=True
         ).count()
         
-        msg = f"👤 *PrintHub Support*\n\n"
-        msg += f"📱 *WhatsApp:* `{number}`\n"
-        msg += f"🔗 [Click to chat]({wa_link})\n\n"
+        msg = f"PrintHub Support\n\n"
+        msg += f"WhatsApp: {number}\n"
+        msg += f"Click to chat: {wa_link}\n\n"
         
         if context_msg:
-            msg += f"📝 *Context:* {context_msg}\n\n"
+            msg += f"Context: {context_msg}\n\n"
         
         if admin_online > 0:
-            msg += f"👤 *{admin_online} support staff available*\n"
-        msg += f"⏰ Response within 5-30 minutes"
+            msg += f"{admin_online} support staff available\n"
+        msg += "Response within 5-30 minutes"
         
         return format_response(
             msg,
@@ -1604,11 +1568,10 @@ class AssistantChatView(APIView):
         number = get_available_admin()
         wa_link = get_whatsapp_link(number)
         
-        msg = f"📱 *PrintHub WhatsApp Support*\n\n"
-        msg += f"📞 Number: `{number}`\n"
-        msg += f"🔗 [Click to chat]({wa_link})\n\n"
-        msg += f"_Click the link to chat with us._\n\n"
-        msg += "💡 We respond within 5-30 minutes during business hours."
+        msg = f"PrintHub WhatsApp Support\n\n"
+        msg += f"Number: {number}\n"
+        msg += f"Click to chat: {wa_link}\n\n"
+        msg += "We respond within 5-30 minutes during business hours."
         
         return format_response(
             msg,
@@ -1623,14 +1586,14 @@ class AssistantChatView(APIView):
         )
 
     # ══════════════════════════════════════════════════════════
-    # HANDLERS - AGENT
+    # HANDLERS - AGENT (CLEAN)
     # ══════════════════════════════════════════════════════════
 
     def _handle_agent_station(self, user):
         """Show agent's station info."""
         if not user.station:
             return format_response(
-                "❌ You haven't been assigned to a station yet.\n\nContact an admin to get set up.",
+                "You haven't been assigned to a station yet.\n\nContact an admin to get set up.",
                 suggestions=["Help", "Admin"]
             )
 
@@ -1642,13 +1605,13 @@ class AssistantChatView(APIView):
         ready = Order.objects.filter(station=station, status='ready').count()
         today = Order.objects.filter(station=station, created_at__date=timezone.now().date()).count()
 
-        msg = f"📍 *{station.name}*\n\n"
-        msg += f"📊 Active orders: *{active}*\n"
-        msg += f"✅ Ready for pickup: *{ready}*\n"
-        msg += f"📋 Today's orders: *{today}*\n"
+        msg = f"{station.name}\n\n"
+        msg += f"Active orders: {active}\n"
+        msg += f"Ready for pickup: {ready}\n"
+        msg += f"Today's orders: {today}\n"
 
         if ready > 0:
-            msg += f"\n🎯 *Action:* You have {ready} orders ready for pickup!"
+            msg += f"\nAction: You have {ready} orders ready for pickup."
 
         return format_response(msg, suggestions=["Ready orders", "My earnings", "My station", "Human"])
 
@@ -1656,66 +1619,66 @@ class AssistantChatView(APIView):
         """Show agent's earnings."""
         summary = AgentEarning.get_agent_summary(user)
 
-        msg = f"💰 *My Earnings*\n\n"
-        msg += f"📊 Total Earned: *{summary['total_earned'] or 0:,.0f} UGX*\n"
-        msg += f"💳 Paid: *{summary['total_paid'] or 0:,.0f} UGX*\n"
-        msg += f"⏳ Pending: *{summary['total_pending'] or 0:,.0f} UGX*\n"
-        msg += f"📋 Orders processed: *{summary['orders_count'] or 0}*\n"
+        msg = "My Earnings\n\n"
+        msg += f"Total Earned: {summary['total_earned'] or 0:,.0f} UGX\n"
+        msg += f"Paid: {summary['total_paid'] or 0:,.0f} UGX\n"
+        msg += f"Pending: {summary['total_pending'] or 0:,.0f} UGX\n"
+        msg += f"Orders processed: {summary['orders_count'] or 0}\n"
 
         if summary['total_pending'] and summary['total_pending'] > 0:
-            msg += f"\n💡 {summary['total_pending']:,.0f} UGX pending payment from admin."
+            msg += f"\n{summary['total_pending']:,.0f} UGX pending payment from admin."
 
         return format_response(msg, suggestions=["My station", "Ready orders", "Human"])
 
     def _handle_agent_ready_orders(self, user):
         """Show orders ready for pickup at agent's station."""
         if not user.station:
-            return format_response("❌ No station assigned.", suggestions=["My station", "Human"])
+            return format_response("No station assigned.", suggestions=["My station", "Human"])
 
         orders = Order.objects.filter(station=user.station, status='ready').order_by('-created_at')[:10]
 
         if not orders.exists():
             return format_response(
-                "✅ No ready orders at your station.\n\nCheck back later or ask customers to track their orders.",
+                "No ready orders at your station.\n\nCheck back later or ask customers to track their orders.",
                 suggestions=["My station", "My earnings"]
             )
 
-        msg = f"✅ *Ready Orders* ({orders.count()})\n\n"
+        msg = f"Ready Orders ({orders.count()})\n\n"
         for o in orders:
             msg += f"#{o.id} | {o.client.username}\n"
-            msg += f"   📄 {o.file_name[:35]}\n"
-            msg += f"   💰 {o.total_price:,.0f} UGX | 📅 {o.created_at.strftime('%d %b')}\n\n"
+            msg += f"  {o.file_name[:35]}\n"
+            msg += f"  {o.total_price:,.0f} UGX | {o.created_at.strftime('%d %b')}\n\n"
 
         return format_response(msg, suggestions=["My station", "My earnings", "Human"])
 
     def _handle_agent_update(self, user, order_id, new_status):
         """Update order status (agent only)."""
         if not user.station:
-            return format_response("❌ No station assigned.", suggestions=["My station", "Human"])
+            return format_response("No station assigned.", suggestions=["My station", "Human"])
 
         try:
             order = Order.objects.get(id=order_id, station=user.station)
         except Order.DoesNotExist:
-            return format_response(f"❌ Order #{order_id} not found at your station.", suggestions=["My station"])
+            return format_response(f"Order #{order_id} not found at your station.", suggestions=["My station"])
 
         valid_statuses = ['pending', 'paid', 'printing', 'in_transit', 'ready', 'collected', 'cancelled']
         if new_status not in valid_statuses:
             return format_response(
-                f"❌ Invalid status. Options: {', '.join(valid_statuses)}",
+                f"Invalid status. Options: {', '.join(valid_statuses)}",
                 suggestions=["My station", "Ready orders"]
             )
 
         from orders.utils import apply_order_status_change
         if apply_order_status_change(order, new_status, user):
             return format_response(
-                f"✅ Order #{order.id} updated to *{order.get_status_display()}*",
+                f"Order #{order.id} updated to {order.get_status_display()}",
                 suggestions=["My station", "Ready orders", f"Update #{order.id} to ..."]
             )
 
-        return format_response("❌ Failed to update status. Please try again.")
+        return format_response("Failed to update status. Please try again.")
 
     # ══════════════════════════════════════════════════════════
-    # HANDLERS - ADMIN
+    # HANDLERS - ADMIN (CLEAN)
     # ══════════════════════════════════════════════════════════
 
     def _handle_admin_revenue(self):
@@ -1728,14 +1691,14 @@ class AssistantChatView(APIView):
         )
         pending = Payment.objects.filter(status='pending').count()
 
-        msg = f"📊 *Today's Revenue*\n\n"
-        msg += f"💰 Total Revenue: *{data['total'] or 0:,.0f} UGX*\n"
-        msg += f"📋 Orders: *{data['count'] or 0}*\n"
-        msg += f"📈 Profit: *{data['profit'] or 0:,.0f} UGX*\n"
-        msg += f"⏳ Pending Payments: *{pending}*\n"
+        msg = "Today's Revenue\n\n"
+        msg += f"Total Revenue: {data['total'] or 0:,.0f} UGX\n"
+        msg += f"Orders: {data['count'] or 0}\n"
+        msg += f"Profit: {data['profit'] or 0:,.0f} UGX\n"
+        msg += f"Pending Payments: {pending}\n"
 
         if pending > 0:
-            msg += f"\n💡 {pending} payment(s) pending approval."
+            msg += f"\n{pending} payment(s) pending approval."
 
         return format_response(msg, suggestions=["Active orders", "Pending payments", "Human"])
 
@@ -1747,19 +1710,19 @@ class AssistantChatView(APIView):
 
         if not orders.exists():
             return format_response(
-                "✅ No active orders.\n\nEverything is quiet!",
+                "No active orders.\n\nEverything is quiet.",
                 suggestions=["Revenue", "Pending payments"]
             )
 
-        msg = f"🖨️ *Active Orders* ({orders.count()})\n\n"
+        msg = f"Active Orders ({orders.count()})\n\n"
         for o in orders[:10]:
             p = o.priority_info
-            msg += f"#{o.id} {get_status_emoji(o.status)} {o.get_status_display()}"
+            msg += f"#{o.id} {get_status_text(o.status)}"
             if p['is_overdue']:
-                msg += " ⛔"
-            msg += f" | ⏱ {p['time_display']}"
+                msg += " (Overdue)"
+            msg += f" | Time left: {p['time_display']}"
             if o.station:
-                msg += f" | 📍 {o.station.name}"
+                msg += f" | Station: {o.station.name}"
             msg += "\n"
 
         return format_response(msg, suggestions=["Refresh", "Pending payments", "Revenue"])
@@ -1769,14 +1732,14 @@ class AssistantChatView(APIView):
         payments = Payment.objects.filter(status='pending').select_related('order', 'user')[:10]
 
         if not payments.exists():
-            return format_response("✅ No pending payments.\n\nAll payments are processed.", suggestions=["Revenue"])
+            return format_response("No pending payments.\n\nAll payments are processed.", suggestions=["Revenue"])
 
-        msg = f"💳 *Pending Payments* ({payments.count()})\n\n"
+        msg = f"Pending Payments ({payments.count()})\n\n"
         for p in payments:
             msg += f"#{p.id} | Order #{p.order.id} | {p.user.username}\n"
-            msg += f"   💰 {p.amount:,.0f} UGX | TXN: `{p.transaction_id}`\n"
-            msg += f"   📱 {p.customer_phone}\n"
-            msg += f"   *Approve {p.id}* or *Reject {p.id}*\n\n"
+            msg += f"  {p.amount:,.0f} UGX | TXN: {p.transaction_id}\n"
+            msg += f"  Phone: {p.customer_phone}\n"
+            msg += f"  Approve {p.id} or Reject {p.id}\n\n"
 
         return format_response(msg, suggestions=["Approve 123", "Reject 123", "Revenue"])
 
@@ -1785,32 +1748,32 @@ class AssistantChatView(APIView):
         try:
             payment = Payment.objects.get(id=payment_id, status='pending')
         except Payment.DoesNotExist:
-            return format_response(f"❌ Payment #{payment_id} not found or already processed.", suggestions=["Pending payments"])
+            return format_response(f"Payment #{payment_id} not found or already processed.", suggestions=["Pending payments"])
 
         if payment.approve(approved_by=user):
-            msg = f"✅ *Payment #{payment.id} Approved!*\n\n"
-            msg += f"💳 {payment.amount:,.0f} UGX\n"
-            msg += f"📦 Order #{payment.order.id} is now PAID.\n"
-            msg += f"👤 {payment.user.username}\n\n"
+            msg = f"Payment #{payment.id} Approved!\n\n"
+            msg += f"{payment.amount:,.0f} UGX\n"
+            msg += f"Order #{payment.order.id} is now PAID.\n"
+            msg += f"Customer: {payment.user.username}\n\n"
             msg += "The customer will be notified."
             return format_response(msg, suggestions=["Pending payments", "Active orders", "Revenue"])
-        return format_response("❌ Failed to approve payment.", suggestions=["Pending payments"])
+        return format_response("Failed to approve payment.", suggestions=["Pending payments"])
 
     def _handle_admin_reject(self, user, payment_id):
         """Reject a payment."""
         try:
             payment = Payment.objects.get(id=payment_id, status='pending')
         except Payment.DoesNotExist:
-            return format_response(f"❌ Payment #{payment_id} not found or already processed.", suggestions=["Pending payments"])
+            return format_response(f"Payment #{payment_id} not found or already processed.", suggestions=["Pending payments"])
 
         if payment.reject(rejected_by=user, reason="Rejected via Assistant"):
-            msg = f"❌ *Payment #{payment.id} Rejected*\n\n"
-            msg += f"💳 {payment.amount:,.0f} UGX\n"
-            msg += f"📦 Order #{payment.order.id}\n"
-            msg += f"👤 {payment.user.username}\n\n"
+            msg = f"Payment #{payment.id} Rejected\n\n"
+            msg += f"{payment.amount:,.0f} UGX\n"
+            msg += f"Order #{payment.order.id}\n"
+            msg += f"Customer: {payment.user.username}\n\n"
             msg += "The customer will be notified."
             return format_response(msg, suggestions=["Pending payments"])
-        return format_response("❌ Failed to reject payment.", suggestions=["Pending payments"])
+        return format_response("Failed to reject payment.", suggestions=["Pending payments"])
 
     def _handle_admin_stock(self):
         """Check low stock."""
@@ -1824,16 +1787,16 @@ class AssistantChatView(APIView):
 
         if not low.exists():
             return format_response(
-                "✅ All paper stocks are sufficient.\n\nNo alerts to report.",
+                "All paper stocks are sufficient.\n\nNo alerts to report.",
                 suggestions=["Revenue"]
             )
 
-        msg = "⚠️ *Low Stock Alerts*\n\n"
+        msg = "Low Stock Alerts\n\n"
         for item in low:
-            msg += f"• {item.get_paper_type_display()}\n"
-            msg += f"   📦 {item.quantity} sheets remaining\n"
-            msg += f"   📊 Threshold: {item.low_stock_threshold}\n"
-            msg += f"   📋 Status: {'🔴 Critical' if item.quantity < item.low_stock_threshold/2 else '🟡 Low'}\n\n"
+            msg += f"{item.get_paper_type_display()}\n"
+            msg += f"  {item.quantity} sheets remaining\n"
+            msg += f"  Threshold: {item.low_stock_threshold}\n"
+            msg += f"  Status: {'Critical' if item.quantity < item.low_stock_threshold/2 else 'Low'}\n\n"
 
         return format_response(msg, suggestions=["Revenue"])
 
@@ -1841,7 +1804,7 @@ class AssistantChatView(APIView):
         """Pause the system."""
         system = SystemSettings.load()
         if system.is_paused:
-            return format_response("⚠️ System is already paused.", suggestions=["Resume"])
+            return format_response("System is already paused.", suggestions=["Resume"])
 
         system.is_paused = True
         system.pause_reason = reason or "Paused via Assistant"
@@ -1849,7 +1812,7 @@ class AssistantChatView(APIView):
         system.save()
 
         return format_response(
-            f"⏸️ *System PAUSED*\n\nReason: {system.pause_reason}\n\nSend *Resume* to restart.",
+            f"System PAUSED\n\nReason: {system.pause_reason}\n\nSend 'Resume' to restart.",
             suggestions=["Resume", "Active orders"]
         )
 
@@ -1857,7 +1820,7 @@ class AssistantChatView(APIView):
         """Resume the system."""
         system = SystemSettings.load()
         if not system.is_paused:
-            return format_response("⚠️ System is already running.", suggestions=["Pause"])
+            return format_response("System is already running.", suggestions=["Pause"])
 
         if system.pause_started_at:
             system.total_paused_seconds += (timezone.now() - system.pause_started_at).total_seconds()
@@ -1865,32 +1828,32 @@ class AssistantChatView(APIView):
         system.pause_started_at = None
         system.save()
 
-        return format_response("▶️ *System RESUMED*\n\nAll timers are now active.", suggestions=["Active orders", "Revenue"])
+        return format_response("System RESUMED\n\nAll timers are now active.", suggestions=["Active orders", "Revenue"])
 
     # ══════════════════════════════════════════════════════════
-    # HANDLERS - ACCOUNT & PAYMENTS
+    # HANDLERS - ACCOUNT & PAYMENTS (CLEAN)
     # ══════════════════════════════════════════════════════════
 
     def _handle_my_status(self, user):
         """Show user's account status."""
         summary = get_user_orders_summary(user)
 
-        msg = f"📊 *Your PrintHub Status*\n\n"
-        msg += f"👤 *{user.first_name or user.username}*\n"
-        msg += f"📧 {user.email}\n"
+        msg = "Your PrintHub Status\n\n"
+        msg += f"Name: {user.first_name or user.username}\n"
+        msg += f"Email: {user.email}\n"
         if user.phone_number:
-            msg += f"📱 {user.phone_number}\n"
-        msg += f"🎭 Role: *{user.role.title()}*\n\n"
+            msg += f"Phone: {user.phone_number}\n"
+        msg += f"Role: {user.role.title()}\n\n"
 
-        msg += "📚 *Order Stats:*\n"
-        msg += f"• Total: {summary['total']}\n"
-        msg += f"• Pending: {summary['pending']}\n"
-        msg += f"• In Progress: {summary['in_progress']}\n"
-        msg += f"• Ready: {summary['ready']}\n"
-        msg += f"• Completed: {summary['completed']}\n"
+        msg += "Order Stats:\n"
+        msg += f"Total: {summary['total']}\n"
+        msg += f"Pending: {summary['pending']}\n"
+        msg += f"In Progress: {summary['in_progress']}\n"
+        msg += f"Ready: {summary['ready']}\n"
+        msg += f"Completed: {summary['completed']}\n"
 
         if is_agent(user) and user.station:
-            msg += f"\n📍 *Station:* {user.station.name}"
+            msg += f"\nStation: {user.station.name}"
 
         return format_response(msg, suggestions=["My orders", "Start order", "Profile", "Human"])
 
@@ -1901,30 +1864,30 @@ class AssistantChatView(APIView):
                 order = Order.objects.get(id=order_id, client=user)
                 if order.status != 'pending':
                     return format_response(
-                        f"⚠️ Order #{order_id} is already *{order.get_status_display()}*.\n\nNo payment needed!",
+                        f"Order #{order_id} is already {order.get_status_display()}.\n\nNo payment needed.",
                         suggestions=["My orders"]
                     )
                 return self._show_payment_instructions(user, order)
             except Order.DoesNotExist:
-                return format_response(f"❌ Order #{order_id} not found.", suggestions=["My orders"])
+                return format_response(f"Order #{order_id} not found.", suggestions=["My orders"])
 
         pending_orders = Order.objects.filter(client=user, status='pending')
 
         if pending_orders.exists():
-            msg = f"💳 *You have {pending_orders.count()} pending order(s).*\n\n"
-            msg += "Send *Pay #id* for specific instructions.\n\n"
+            msg = f"You have {pending_orders.count()} pending order(s).\n\n"
+            msg += "Send 'Pay #id' for specific instructions.\n\n"
             for o in pending_orders[:3]:
-                msg += f"• #{o.id}: {o.total_price:,.0f} UGX — {o.file_name[:30]}\n"
+                msg += f"#{o.id}: {o.total_price:,.0f} UGX — {o.file_name[:30]}\n"
             suggestions = [f"Pay #{o.id}" for o in pending_orders[:3]]
             suggestions.append("My orders")
             return format_response(msg, suggestions=suggestions)
 
-        msg = "💳 *Payment Help*\n\n"
-        msg += "1️⃣ Place an order first (*Start order*)\n"
-        msg += "2️⃣ Send *Pay #id* for instructions\n"
-        msg += "3️⃣ Pay via MTN or Airtel Mobile Money\n"
-        msg += "4️⃣ Submit your transaction ID\n\n"
-        msg += "📱 Supported: MTN MoMo (*165#) and Airtel Money (*185#)"
+        msg = "Payment Help\n\n"
+        msg += "1. Place an order first ('Start order')\n"
+        msg += "2. Send 'Pay #id' for instructions\n"
+        msg += "3. Pay via MTN or Airtel Mobile Money\n"
+        msg += "4. Submit your transaction ID\n\n"
+        msg += "Supported: MTN MoMo (*165#) and Airtel Money (*185#)"
 
         return format_response(msg, suggestions=["Start order", "Pricing", "Human"])
 
@@ -1933,23 +1896,23 @@ class AssistantChatView(APIView):
         mtn = MerchantSettings.get_merchant('mtn')
         airtel = MerchantSettings.get_merchant('airtel')
 
-        msg = f"💳 *Pay for Order #{order.id}*\n\n"
-        msg += f"💰 Amount: *{order.total_price:,.0f} UGX*\n"
-        msg += f"📄 File: {order.file_name}\n\n"
+        msg = f"Pay for Order #{order.id}\n\n"
+        msg += f"Amount: {order.total_price:,.0f} UGX\n"
+        msg += f"File: {order.file_name}\n\n"
 
         if mtn:
-            msg += f"📱 *MTN MoMo:*\n"
-            msg += f"   Number: `{mtn.merchant_phone}`\n"
-            msg += f"   Name: {mtn.merchant_name}\n\n"
+            msg += f"MTN MoMo:\n"
+            msg += f"  Number: {mtn.merchant_phone}\n"
+            msg += f"  Name: {mtn.merchant_name}\n\n"
 
         if airtel:
-            msg += f"📱 *Airtel Money:*\n"
-            msg += f"   Number: `{airtel.merchant_phone}`\n"
-            msg += f"   Name: {airtel.merchant_name}\n\n"
+            msg += f"Airtel Money:\n"
+            msg += f"  Number: {airtel.merchant_phone}\n"
+            msg += f"  Name: {airtel.merchant_name}\n\n"
 
-        msg += "📝 *After payment:*\n"
-        msg += f"Send: *Paid {order.id} <transaction_id>*\n\n"
-        msg += "_Your payment will be verified within 5-30 minutes._"
+        msg += "After payment:\n"
+        msg += f"Send: 'Paid {order.id} <transaction_id>'\n\n"
+        msg += "Your payment will be verified within 5-30 minutes."
 
         return format_response(msg, suggestions=[f"Paid {order.id} TXN123", "My orders", "Human"])
 
@@ -1958,22 +1921,22 @@ class AssistantChatView(APIView):
         try:
             order = Order.objects.get(id=order_id, client=user)
         except Order.DoesNotExist:
-            return format_response(f"❌ Order #{order_id} not found.", suggestions=["My orders"])
+            return format_response(f"Order #{order_id} not found.", suggestions=["My orders"])
 
-        msg = f"🧾 *Receipt - Order #{order.id}*\n\n"
-        msg += f"📄 {order.file_name}\n"
-        msg += f"📄 {order.page_count} pages"
+        msg = f"Receipt - Order #{order.id}\n\n"
+        msg += f"File: {order.file_name}\n"
+        msg += f"Pages: {order.page_count}"
         if order.is_color:
-            msg += " 🎨 Color"
+            msg += " (Color)"
         if order.is_double_sided:
-            msg += " | Double-sided"
+            msg += " (Double-sided)"
         msg += "\n"
-        msg += f"💰 Total: *{order.total_price:,.0f} UGX*\n"
-        msg += f"📊 Status: {get_status_emoji(order.status)} {order.get_status_display()}\n"
+        msg += f"Total: {order.total_price:,.0f} UGX\n"
+        msg += f"Status: {get_status_text(order.status)}\n"
         if order.station:
-            msg += f"📍 Station: {order.station.name}\n"
-        msg += f"📅 {order.created_at.strftime('%d %b %Y, %I:%M %p')}\n\n"
-        msg += f"🔗 View full receipt: https://www.printhubug.com/orders/{order.id}/receipt/"
+            msg += f"Station: {order.station.name}\n"
+        msg += f"Date: {order.created_at.strftime('%d %b %Y, %I:%M %p')}\n\n"
+        msg += f"Full receipt: https://www.printhubug.com/orders/{order.id}/receipt/"
 
         return format_response(msg, suggestions=["My orders", f"Pay #{order.id}", "Human"])
 
@@ -1982,11 +1945,11 @@ class AssistantChatView(APIView):
         try:
             order = Order.objects.get(id=order_id, client=user)
         except Order.DoesNotExist:
-            return format_response(f"❌ Order #{order_id} not found.", suggestions=["My orders"])
+            return format_response(f"Order #{order_id} not found.", suggestions=["My orders"])
 
         if order.status not in ['pending', 'paid']:
             return format_response(
-                f"❌ Order #{order_id} cannot be cancelled.\n\nIt's already *{order.get_status_display()}*.",
+                f"Order #{order_id} cannot be cancelled.\n\nIt's already {order.get_status_display()}.",
                 suggestions=["My orders"]
             )
 
@@ -1996,7 +1959,7 @@ class AssistantChatView(APIView):
         order.save(update_fields=['status', 'cancellation_reason', 'cancelled_at'])
 
         return format_response(
-            f"✅ Order #{order.id} has been cancelled successfully.\n\nIf you paid, a refund will be processed.",
+            f"Order #{order.id} has been cancelled successfully.\n\nIf you paid, a refund will be processed.",
             suggestions=["My orders", "Start order", "Human"]
         )
 
@@ -2019,17 +1982,17 @@ class AssistantChatView(APIView):
             pages, is_color, is_double_sided, binding, 0
         )
 
-        msg = f"📝 *Order Draft Created*\n\n"
-        msg += f"📄 Pages: *{pages}*"
+        msg = f"Order Draft Created\n\n"
+        msg += f"Pages: {pages}"
         if is_double_sided:
             msg += f" ({effective} sheets)"
         msg += "\n"
-        msg += f"🎨 Type: *{'Color' if is_color else 'B&W'}*\n"
+        msg += f"Type: {'Color' if is_color else 'B&W'}\n"
         if binding != 'none':
-            msg += f"📚 Binding: *{dict(Order.BINDING_CHOICES).get(binding, binding)}*\n"
-        msg += f"📍 Delivery: *{dict(Order.DELIVERY_TYPE_CHOICES).get(delivery_type, delivery_type)}*\n"
-        msg += f"💰 Estimate: *{total:,.0f} UGX*\n\n"
-        msg += "📎 Upload your file using the 📎 button, then type *Confirm*."
+            msg += f"Binding: {dict(Order.BINDING_CHOICES).get(binding, binding)}\n"
+        msg += f"Delivery: {dict(Order.DELIVERY_TYPE_CHOICES).get(delivery_type, delivery_type)}\n"
+        msg += f"Estimate: {total:,.0f} UGX\n\n"
+        msg += "Upload your file using the attachment button, then type 'Confirm'."
 
         return format_response(
             msg,
@@ -2039,7 +2002,7 @@ class AssistantChatView(APIView):
         )
 
     # ══════════════════════════════════════════════════════════
-    # HANDLERS - FALLBACK
+    # HANDLERS - FALLBACK (CLEAN)
     # ══════════════════════════════════════════════════════════
 
     def _handle_fallback(self, user, message):
@@ -2048,51 +2011,51 @@ class AssistantChatView(APIView):
 
         if any(word in text_lower for word in ['what', 'how', 'when', 'where', 'why', 'who', 'can', 'could', 'would']):
             return format_response(
-                "🤔 *I can help with these things:*\n\n"
-                "📋 *Track #id* — Check order status\n"
-                "📚 *My orders* — View your orders\n"
-                "💰 *Pricing* — See printing rates\n"
-                "📍 *Stations* — Find pickup locations\n"
-                "📤 *Start order* — Create a new order\n"
-                "📞 *Human* — Talk to a real person\n\n"
+                "I can help with these things:\n\n"
+                "Track #id — Check order status\n"
+                "My orders — View your orders\n"
+                "Pricing — See printing rates\n"
+                "Stations — Find pickup locations\n"
+                "Start order — Create a new order\n"
+                "Human — Talk to a real person\n\n"
                 "What would you like to know?",
                 suggestions=["Help", "My orders", "Pricing", "Start order", "Human"]
             )
 
         if text_lower in ['yes', 'yep', 'yeah', 'ok', 'okay', 'sure', 'alright']:
             return format_response(
-                "🎯 *Great!*\n\nWhat would you like to do?\n\n"
-                "• *My orders* — View your orders\n"
-                "• *Pricing* — Check rates\n"
-                "• *Start order* — Create a new order\n"
-                "• *Human* — Talk to support\n"
-                "• *Help* — See all commands",
+                "Great!\n\nWhat would you like to do?\n\n"
+                "My orders — View your orders\n"
+                "Pricing — Check rates\n"
+                "Start order — Create a new order\n"
+                "Human — Talk to support\n"
+                "Help — See all commands",
                 suggestions=["My orders", "Pricing", "Start order", "Human"]
             )
 
         if text_lower in ['no', 'nope', 'nah', 'not now', 'later']:
             return format_response(
-                "👍 No problem. I'm here whenever you need me!\n\n"
-                "Type *Help* to see all commands, or *Human* to talk to support.",
+                "No problem. I'm here whenever you need me.\n\n"
+                "Type 'Help' to see all commands, or 'Human' to talk to support.",
                 suggestions=["Help", "My orders", "Pricing", "Start order", "Human"]
             )
 
         if text_lower in ['thanks', 'thank you', 'thx', 'thank']:
             return format_response(
-                "🎉 You're welcome! Happy to help.\n\n"
+                "You're welcome! Happy to help.\n\n"
                 "Is there anything else I can assist you with?",
                 suggestions=["My orders", "Pricing", "Start order", "Help", "Human"]
             )
 
         return format_response(
-            "🤖 *I can help with these things:*\n\n"
-            "📋 *Track #id* — Check order status\n"
-            "📚 *My orders* — View your orders\n"
-            "💰 *Pricing* — See printing rates\n"
-            "📍 *Stations* — Find pickup locations\n"
-            "📤 *Start order* — Create a new order\n"
-            "📞 *Human* — Talk to a real person\n\n"
-            "Type *Help* for all commands.",
+            "I can help with these things:\n\n"
+            "Track #id — Check order status\n"
+            "My orders — View your orders\n"
+            "Pricing — See printing rates\n"
+            "Stations — Find pickup locations\n"
+            "Start order — Create a new order\n"
+            "Human — Talk to a real person\n\n"
+            "Type 'Help' for all commands.",
             suggestions=["Help", "My orders", "Pricing", "Start order", "Human"]
         )
 
@@ -2114,11 +2077,11 @@ class AssistantUploadView(APIView):
         file_obj = request.FILES.get('file')
 
         if not file_obj:
-            return format_response("❌ No file provided.\n\nPlease select a file to upload.", status=400)
+            return format_response("No file provided.\n\nPlease select a file to upload.", status=400)
 
         if file_obj.size > 10 * 1024 * 1024:
             return format_response(
-                f"❌ File too large. Max 10MB.\n\nYour file is {(file_obj.size / 1024 / 1024):.1f}MB.",
+                f"File too large. Max 10MB.\n\nYour file is {(file_obj.size / 1024 / 1024):.1f}MB.",
                 status=400
             )
 
@@ -2126,7 +2089,7 @@ class AssistantUploadView(APIView):
         allowed = {'.pdf', '.docx', '.doc', '.txt', '.png', '.jpg', '.jpeg', '.pptx'}
         if ext not in allowed:
             return format_response(
-                f"❌ File type '{ext}' not allowed.\n\nSupported: {', '.join(sorted(allowed))}",
+                f"File type '{ext}' not allowed.\n\nSupported: {', '.join(sorted(allowed))}",
                 status=400
             )
 
@@ -2148,7 +2111,7 @@ class AssistantUploadView(APIView):
 
             if mime not in allowed_mimes:
                 return format_response(
-                    f"❌ Invalid file content.\n\nDetected: {mime}\nPlease use a standard document format.",
+                    f"Invalid file content.\n\nDetected: {mime}\nPlease use a standard document format.",
                     status=400
                 )
         except Exception:
@@ -2176,17 +2139,17 @@ class AssistantUploadView(APIView):
             except Exception:
                 pass
 
-        msg = f"✅ *File Received!*\n\n"
-        msg += f"📄 {file_obj.name}\n"
-        msg += f"📦 {(file_obj.size / 1024):.1f} KB\n"
+        msg = f"File Received!\n\n"
+        msg += f"File: {file_obj.name}\n"
+        msg += f"Size: {(file_obj.size / 1024):.1f} KB\n"
         if estimated_pages > 1:
-            msg += f"📄 ~{estimated_pages} pages detected\n\n"
+            msg += f"~{estimated_pages} pages detected\n\n"
         else:
             msg += "\n"
-        msg += "📝 *Next steps:*\n"
-        msg += "1. Type *Order <pages>* to start\n"
-        msg += "2. Or type *Confirm* to place order\n"
-        msg += "3. Type *Cancel* to discard"
+        msg += "Next steps:\n"
+        msg += "1. Type 'Order <pages>' to start\n"
+        msg += "2. Or type 'Confirm' to place order\n"
+        msg += "3. Type 'Cancel' to discard"
 
         suggestions = ["Confirm", f"Order {estimated_pages}", "Cancel", "Human"]
 
@@ -2201,6 +2164,6 @@ class AssistantUploadView(APIView):
             draft.file = None
             draft.file_name = None
             draft.save()
-            return format_response("🗑️ File removed from draft.\n\nYou can upload a new one anytime.")
+            return format_response("File removed from draft.\n\nYou can upload a new one anytime.")
         except AssistantDraft.DoesNotExist:
             return format_response("No draft file to delete.", status=404)
