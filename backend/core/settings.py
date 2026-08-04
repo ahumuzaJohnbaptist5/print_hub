@@ -272,3 +272,22 @@ LOGGING = {
         'level': 'INFO',
     },
 }
+
+# backend/core/settings.py - Add these
+
+# ─── SEO ──────────────────────────────────────────────────────
+SITE_URL = os.environ.get('SITE_URL', 'https://www.printhubug.com')
+SITE_NAME = 'PrintHub'
+SITE_DESCRIPTION = 'Fast, reliable printing services for students at University. Upload documents, pay with MTN or Airtel, and pick up at your nearest campus station.'
+
+# ─── SITEMAP ──────────────────────────────────────────────────
+SITE_ID = 1
+BASE_URL = SITE_URL
+
+# ─── META TAGS ────────────────────────────────────────────────
+DEFAULT_META_TAGS = {
+    'title': 'PrintHub — Kabale University Printing Services',
+    'description': SITE_DESCRIPTION,
+    'keywords': 'printing,university printing, courseworks, get course works done, professional printing, St Ignatious University, kabale stationary, kabale printing, Kabale University, student printing, document upload, MTN payment, Airtel payment, print shop, campus printing, document printing, passport photo',
+    'author': 'PrintHub',
+}
