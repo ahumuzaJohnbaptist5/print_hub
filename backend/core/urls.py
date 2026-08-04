@@ -7,14 +7,14 @@ from django.contrib.auth.decorators import login_required
 from django.http import HttpResponse
 from django.views.generic import TemplateView
 from django.contrib.sitemaps.views import sitemap
-from django.template import loader
+from django.views.static import serve
 
 from orders.views import (
     client_views, admin_views, agent_views, 
     api_views, live_board_views
 )
 from accounts import views as accounts_views
-from .sitemap import StaticSitemap  # ← Only import StaticSitemap
+from .sitemap import StaticSitemap
 
 
 # ─── ROBOTS.TXT ──────────────────────────────────────────────
@@ -39,44 +39,24 @@ def robots_txt(request):
     return HttpResponse("\n".join(lines), content_type="text/plain")
 
 
-# ─── SITEMAP - ONLY STATIC ──────────────────────────────────
-sitemaps = {
-    'static': StaticSitemap,
-    # No orders, no stations - safe!
-}
-
-
-# ─── CUSTOM SITEMAP VIEW WITH FORCED INDEX HEADER ──────────
-def sitemap_view(request):
-    """
-    Serve sitemap with forced index header.
-    Overrides any noindex headers from middleware/settings.
-    """
-    # Generate the sitemap using Django's sitemap framework
-    from django.contrib.sitemaps.views import sitemap as sitemap_view_func
+# ─── SITEMAP - STATIC FILE (NO DJANGO FRAMEWORK) ───────────
+def static_sitemap(request):
+    """Serve static sitemap.xml with forced index header."""
+    import os
+    from django.conf import settings
     
-    # Get the response from the default sitemap view
-    response = sitemap_view_func(request, {'sitemaps': sitemaps}, 'sitemap.xml')
+    file_path = os.path.join(settings.BASE_DIR, 'static', 'sitemap.xml')
     
-    # 🔥 FORCE INDEX - Override any noindex headers
-    response['X-Robots-Tag'] = 'index, follow'
+    with open(file_path, 'r') as f:
+        content = f.read()
     
-    # Remove any other restrictive headers if they exist
-    if 'X-Robots-Tag' in response:
-        response['X-Robots-Tag'] = 'index, follow'
-    
-    return response
-
-
-# ─── ALTERNATIVE: STATIC SITEMAP VIEW ──────────────────────
-def static_sitemap_view(request):
-    """Serve static sitemap.xml file with proper headers."""
-    template = loader.get_template('sitemap.xml')
-    content = template.render(request=request)
     response = HttpResponse(content, content_type='application/xml')
     
-    # 🔥 FORCE INDEX
+    # 🔥 FORCE INDEX - No middleware can override this
     response['X-Robots-Tag'] = 'index, follow'
+    
+    # Remove any other headers that might cause issues
+    response['Cache-Control'] = 'public, max-age=3600'
     
     return response
 
@@ -134,12 +114,8 @@ urlpatterns = [
     # ─── SEO URLs ────────────────────────────────────────────
     path('robots.txt', robots_txt, name='robots'),
     
-    # 🔥 USE THIS - Custom sitemap view with forced index
-    path('sitemap.xml', sitemap_view, name='sitemap'),
-    # OR use the static version:
-    # path('sitemap.xml', static_sitemap_view, name='sitemap'),
-    
-    path('sitemap-<section>.xml', sitemap, {'sitemaps': sitemaps}, name='sitemap_section'),
+    # 🔥 USE STATIC SITEMAP - Bypasses all middleware
+    path('sitemap.xml', static_sitemap, name='sitemap'),
     
     # Misc
     path('all-links/', client_views.all_links_view, name='all_links'),
