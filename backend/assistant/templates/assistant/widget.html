@@ -7,6 +7,7 @@
         <svg class="w-7 h-7" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 10h.01M12 10h.01M16 10h.01M9 16H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-5l-5 5v-5z"/>
         </svg>
+        <span class="absolute -top-1 -right-1 w-4 h-4 bg-green-400 rounded-full animate-pulse"></span>
     </button>
 </div>
 
@@ -22,6 +23,7 @@
 
         let isOpen = false;
         let chatWindow = null;
+        let chatHistory = [];
 
         // Get CSRF token
         function getCookie(name) {
@@ -63,7 +65,7 @@
                     <div>
                         <h3 class="text-white font-bold text-sm">PrintHub Assistant</h3>
                         <p class="text-blue-200 text-xs flex items-center gap-1">
-                            <span class="w-2 h-2 bg-green-400 rounded-full animate-pulse"></span> Online now
+                            <span class="w-2 h-2 bg-green-400 rounded-full animate-pulse"></span> Online
                         </p>
                     </div>
                 </div>
@@ -83,13 +85,14 @@
                 <div class="flex gap-2 items-start">
                     <div class="w-8 h-8 rounded-full bg-indigo-600 flex items-center justify-center text-xs font-bold text-white shrink-0">AI</div>
                     <div class="bg-slate-700 text-slate-200 p-3 rounded-lg rounded-tl-none max-w-[80%] text-sm">
-                        👋 Hi! I'm the PrintHub Assistant. Need help with an order or want a quick price quote?
+                        👋 Hi! I'm the PrintHub Assistant. Need help with orders, pricing, or anything else?
                     </div>
                 </div>
                 <div class="flex flex-wrap gap-2 pl-10">
-                    <button class="assistant-chip px-3 py-1.5 bg-slate-700 hover:bg-slate-600 text-slate-200 text-xs rounded-full border border-slate-600 transition">📍 Track my order</button>
-                    <button class="assistant-chip px-3 py-1.5 bg-slate-700 hover:bg-slate-600 text-slate-200 text-xs rounded-full border border-slate-600 transition">💰 Get a price quote</button>
-                    <button class="assistant-chip px-3 py-1.5 bg-slate-700 hover:bg-slate-600 text-slate-200 text-xs rounded-full border border-slate-600 transition">📞 Talk to human</button>
+                    <button class="assistant-chip px-3 py-1.5 bg-slate-700 hover:bg-slate-600 text-slate-200 text-xs rounded-full border border-slate-600 transition" data-command="My orders">📚 My orders</button>
+                    <button class="assistant-chip px-3 py-1.5 bg-slate-700 hover:bg-slate-600 text-slate-200 text-xs rounded-full border border-slate-600 transition" data-command="Pricing">💰 Pricing</button>
+                    <button class="assistant-chip px-3 py-1.5 bg-slate-700 hover:bg-slate-600 text-slate-200 text-xs rounded-full border border-slate-600 transition" data-command="Stations">📍 Stations</button>
+                    <button class="assistant-chip px-3 py-1.5 bg-slate-700 hover:bg-slate-600 text-slate-200 text-xs rounded-full border border-slate-600 transition" data-command="New order">📤 New order</button>
                 </div>
             `;
             chatWindow.appendChild(messages);
@@ -110,12 +113,24 @@
             `;
             chatWindow.appendChild(typing);
 
+            // Suggestions
+            const suggestions = document.createElement('div');
+            suggestions.id = 'assistant-suggestions';
+            suggestions.className = 'hidden px-3 py-2 bg-slate-800/50 border-t border-slate-700 flex-shrink-0 flex flex-wrap gap-1.5';
+            chatWindow.appendChild(suggestions);
+
             // Input area
             const inputArea = document.createElement('div');
             inputArea.className = 'p-3 bg-slate-900 border-t border-slate-700 flex-shrink-0';
             inputArea.innerHTML = `
                 <form id="assistant-form" class="flex items-center gap-2">
-                    <input type="text" id="assistant-input" placeholder="Type your message..." class="flex-1 bg-slate-800 text-white text-sm rounded-lg px-4 py-2 border border-slate-700 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent">
+                    <button type="button" id="assistant-upload-btn" class="p-2 text-gray-400 hover:text-white transition" title="Upload file">
+                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.172 7l-6.586 6.586a2 2 0 102.828 2.828l6.414-6.586a4 4 0 00-5.656-5.656l-6.415 6.585a6 6 0 108.486 8.486L20.5 13"/>
+                        </svg>
+                    </button>
+                    <input type="file" id="assistant-file-input" class="hidden" accept=".pdf,.docx,.doc,.txt,.png,.jpg,.jpeg,.pptx">
+                    <input type="text" id="assistant-input" placeholder="Type your message..." class="flex-1 bg-slate-800 text-white text-sm rounded-lg px-4 py-2 border border-slate-700 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent placeholder-gray-500">
                     <button type="submit" class="p-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg transition">
                         <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8"/>
@@ -125,61 +140,82 @@
             `;
             chatWindow.appendChild(inputArea);
 
-            // Add to DOM
             document.body.appendChild(chatWindow);
 
             // Event listeners
-            const closeBtn = document.getElementById('assistant-close');
-            if (closeBtn) closeBtn.addEventListener('click', function(e) {
-                e.stopPropagation();
-                toggleChat();
-            });
+            document.getElementById('assistant-close').addEventListener('click', toggleChat);
 
             const form = document.getElementById('assistant-form');
             const input = document.getElementById('assistant-input');
-            if (form && input) {
-                form.addEventListener('submit', function(e) {
-                    e.preventDefault();
-                    const text = input.value.trim();
-                    if (text) {
-                        addMessage(text, 'user');
-                        input.value = '';
-                        sendToAssistant(text);
-                    }
-                });
-            }
+            form.addEventListener('submit', function(e) {
+                e.preventDefault();
+                const text = input.value.trim();
+                if (text) {
+                    addMessage(text, 'user');
+                    input.value = '';
+                    sendToAssistant(text);
+                }
+            });
 
             // Quick chips
             document.querySelectorAll('.assistant-chip').forEach(chip => {
                 chip.addEventListener('click', function() {
-                    const text = this.textContent.trim();
+                    const text = this.dataset.command || this.textContent.trim();
                     addMessage(text, 'user');
                     sendToAssistant(text);
                 });
             });
 
-            // Light theme support
+            // File upload
+            document.getElementById('assistant-upload-btn').addEventListener('click', function() {
+                document.getElementById('assistant-file-input').click();
+            });
+
+            document.getElementById('assistant-file-input').addEventListener('change', function(e) {
+                const file = e.target.files[0];
+                if (!file) return;
+
+                addMessage(`📤 Uploading ${file.name}...`, 'user');
+
+                const formData = new FormData();
+                formData.append('file', file);
+
+                fetch('/api/assistant/upload/', {
+                    method: 'POST',
+                    headers: { 'X-CSRFToken': csrftoken },
+                    body: formData
+                })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.text) {
+                        addMessage(data.text, 'bot');
+                        if (data.suggestions) {
+                            showSuggestions(data.suggestions);
+                        }
+                    }
+                })
+                .catch(() => {
+                    addMessage("❌ Upload failed. Please try again.", 'bot');
+                });
+
+                this.value = '';
+            });
+
+            // Theme support
             function updateTheme() {
                 const isLight = document.documentElement.getAttribute('data-theme') === 'light';
                 if (chatWindow) {
                     if (isLight) {
-                        chatWindow.classList.add('light-theme');
                         chatWindow.style.background = '#ffffff';
                         chatWindow.style.borderColor = '#cbd5e1';
                     } else {
-                        chatWindow.classList.remove('light-theme');
                         chatWindow.style.background = '#1e293b';
                         chatWindow.style.borderColor = '#334155';
                     }
                 }
             }
-
-            // Listen for theme changes
             const observer = new MutationObserver(updateTheme);
-            observer.observe(document.documentElement, { 
-                attributes: true, 
-                attributeFilter: ['data-theme'] 
-            });
+            observer.observe(document.documentElement, { attributes: true, attributeFilter: ['data-theme'] });
             updateTheme();
 
             return chatWindow;
@@ -188,21 +224,18 @@
         function toggleChat() {
             const window = createChatWindow();
             isOpen = !isOpen;
-            
+
             if (isOpen) {
                 window.style.display = 'flex';
                 setTimeout(() => {
                     window.style.opacity = '1';
                     window.style.transform = 'scale(1)';
                 }, 10);
-                const input = document.getElementById('assistant-input');
-                if (input) setTimeout(() => input.focus(), 200);
+                document.getElementById('assistant-input')?.focus();
             } else {
                 window.style.opacity = '0';
                 window.style.transform = 'scale(0.9)';
-                setTimeout(() => {
-                    window.style.display = 'none';
-                }, 300);
+                setTimeout(() => { window.style.display = 'none'; }, 300);
             }
         }
 
@@ -210,26 +243,57 @@
             const messages = document.getElementById('assistant-messages');
             if (!messages) return;
 
+            const suggestions = document.getElementById('assistant-suggestions');
+            if (sender === 'user') suggestions?.classList.add('hidden');
+
             const msgDiv = document.createElement('div');
             msgDiv.className = `flex gap-2 items-start ${sender === 'user' ? 'justify-end' : ''}`;
-            
+
             if (sender === 'bot') {
+                const formatted = text
+                    .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
+                    .replace(/\n/g, '<br>');
                 msgDiv.innerHTML = `
                     <div class="w-8 h-8 rounded-full bg-indigo-600 flex items-center justify-center text-xs font-bold text-white shrink-0">AI</div>
-                    <div class="bg-slate-700 text-slate-200 p-3 rounded-lg rounded-tl-none max-w-[80%] text-sm">${text}</div>
+                    <div class="bg-slate-700 text-slate-200 p-3 rounded-lg rounded-tl-none max-w-[80%] text-sm">${formatted}</div>
                 `;
             } else {
-                msgDiv.innerHTML = `
-                    <div class="bg-indigo-600 text-white p-3 rounded-lg rounded-tr-none max-w-[80%] text-sm">${text}</div>
-                `;
+                msgDiv.innerHTML = `<div class="bg-indigo-600 text-white p-3 rounded-lg rounded-tr-none max-w-[80%] text-sm">${text}</div>`;
             }
             messages.appendChild(msgDiv);
             messages.scrollTop = messages.scrollHeight;
+
+            chatHistory.push({ role: sender, content: text });
+            if (chatHistory.length > 20) chatHistory = chatHistory.slice(-20);
+        }
+
+        function showSuggestions(suggestionsList) {
+            const container = document.getElementById('assistant-suggestions');
+            if (!container) return;
+
+            if (!suggestionsList || suggestionsList.length === 0) {
+                container.classList.add('hidden');
+                return;
+            }
+
+            container.innerHTML = suggestionsList.map(s =>
+                `<button class="suggestion-chip px-3 py-1.5 bg-slate-700 hover:bg-slate-600 text-slate-200 text-xs rounded-full border border-slate-600 transition">${s}</button>`
+            ).join('');
+
+            container.querySelectorAll('.suggestion-chip').forEach(chip => {
+                chip.addEventListener('click', function() {
+                    const text = this.textContent.trim();
+                    addMessage(text, 'user');
+                    sendToAssistant(text);
+                });
+            });
+
+            container.classList.remove('hidden');
         }
 
         async function sendToAssistant(message) {
             const typing = document.getElementById('assistant-typing');
-            if (typing) typing.classList.remove('hidden');
+            typing?.classList.remove('hidden');
 
             try {
                 const response = await fetch('/api/assistant/chat/', {
@@ -238,23 +302,24 @@
                         'Content-Type': 'application/json',
                         'X-CSRFToken': csrftoken
                     },
-                    body: JSON.stringify({ 
+                    body: JSON.stringify({
                         message: message,
-                        context: window.location.pathname
+                        context: window.location.pathname,
+                        history: chatHistory.slice(-5)
                     })
                 });
 
                 const data = await response.json();
-                
-                if (typing) typing.classList.add('hidden');
-                
+                typing?.classList.add('hidden');
+
                 if (response.ok) {
-                    addMessage(data.text || "I'm not sure how to respond to that.", 'bot');
+                    addMessage(data.text || "I'm not sure how to respond.", 'bot');
+                    if (data.suggestions) showSuggestions(data.suggestions);
                 } else {
-                    addMessage("⚠️ Sorry, I encountered an error. Please try again.", 'bot');
+                    addMessage("⚠️ Sorry, I encountered an error.", 'bot');
                 }
             } catch (error) {
-                if (typing) typing.classList.add('hidden');
+                typing?.classList.add('hidden');
                 addMessage("⚠️ Network error. Please check your connection.", 'bot');
                 console.error('Chat error:', error);
             }
@@ -263,14 +328,12 @@
         // Click outside to close
         document.addEventListener('click', function(e) {
             if (isOpen && chatWindow) {
-                const toggleBtn = document.getElementById('assistant-toggle');
                 if (!chatWindow.contains(e.target) && e.target !== toggleBtn && !toggleBtn.contains(e.target)) {
                     toggleChat();
                 }
             }
         });
 
-        // Open/close on toggle
         toggleBtn.addEventListener('click', function(e) {
             e.stopPropagation();
             toggleChat();
@@ -281,7 +344,45 @@
 </script>
 
 <style>
-    /* Light theme support for chat */
+    /* Dark theme default */
+    #assistant-chat-window {
+        background: #1e293b !important;
+        border-color: #334155 !important;
+    }
+    #assistant-messages {
+        background: #1e293b !important;
+    }
+    #assistant-messages .bg-slate-700 {
+        background: #334155 !important;
+        color: #e2e8f0 !important;
+    }
+    .assistant-chip {
+        background: #334155 !important;
+        color: #e2e8f0 !important;
+        border-color: #475569 !important;
+    }
+    .assistant-chip:hover {
+        background: #475569 !important;
+    }
+    #assistant-suggestions .suggestion-chip {
+        background: #334155 !important;
+        color: #e2e8f0 !important;
+        border-color: #475569 !important;
+    }
+    #assistant-suggestions .suggestion-chip:hover {
+        background: #475569 !important;
+    }
+    #assistant-form input {
+        background: #1e293b !important;
+        color: #e2e8f0 !important;
+        border-color: #475569 !important;
+    }
+    #assistant-form .p-3 {
+        background: #0f172a !important;
+        border-color: #334155 !important;
+    }
+
+    /* Light theme */
     html[data-theme="light"] #assistant-chat-window {
         background: #ffffff !important;
         border-color: #cbd5e1 !important;
@@ -295,16 +396,6 @@
         color: #1e293b !important;
         border: 1px solid #e2e8f0 !important;
     }
-    html[data-theme="light"] #assistant-messages .bg-slate-700 .text-slate-200 {
-        color: #1e293b !important;
-    }
-    html[data-theme="light"] #assistant-typing .bg-slate-700 {
-        background: #ffffff !important;
-        border: 1px solid #e2e8f0 !important;
-    }
-    html[data-theme="light"] #assistant-typing .bg-slate-400 {
-        background: #94a3b8 !important;
-    }
     html[data-theme="light"] .assistant-chip {
         background: #f1f5f9 !important;
         color: #1e293b !important;
@@ -313,16 +404,29 @@
     html[data-theme="light"] .assistant-chip:hover {
         background: #e2e8f0 !important;
     }
+    html[data-theme="light"] #assistant-suggestions .suggestion-chip {
+        background: #f1f5f9 !important;
+        color: #1e293b !important;
+        border-color: #cbd5e1 !important;
+    }
+    html[data-theme="light"] #assistant-suggestions .suggestion-chip:hover {
+        background: #e2e8f0 !important;
+    }
     html[data-theme="light"] #assistant-form input {
         background: #f1f5f9 !important;
         color: #1e293b !important;
         border-color: #cbd5e1 !important;
     }
-    html[data-theme="light"] #assistant-form input::placeholder {
-        color: #94a3b8 !important;
-    }
     html[data-theme="light"] #assistant-form .p-3 {
         background: #ffffff !important;
         border-color: #e2e8f0 !important;
+    }
+
+    #assistant-suggestions .suggestion-chip {
+        animation: fadeInUp 0.2s ease-out;
+    }
+    @keyframes fadeInUp {
+        from { opacity: 0; transform: translateY(8px); }
+        to { opacity: 1; transform: translateY(0); }
     }
 </style>
