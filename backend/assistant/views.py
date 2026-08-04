@@ -74,6 +74,7 @@ def extract_order_id(text):
         r'pay\s*#?\s*(\d{1,6})',
         r'receipt\s*#?\s*(\d{1,6})',
         r'cancel\s*#?\s*(\d{1,6})',
+        r'reorder\s*#?\s*(\d{1,6})',
     ]
     for pattern in patterns:
         match = re.search(pattern, text, re.IGNORECASE)
@@ -119,6 +120,68 @@ def format_order_card(order):
         'printing_at': order.printing_at.strftime('%d %b %Y, %I:%M %p') if order.printing_at else None,
         'ready_at': order.ready_at.strftime('%d %b %Y, %I:%M %p') if order.ready_at else None,
         'collected_at': order.collected_at.strftime('%d %b %Y, %I:%M %p') if order.collected_at else None,
+    }
+
+
+def get_user_draft(user):
+    """Get or create a draft for the user."""
+    draft, created = AssistantDraft.objects.get_or_create(user=user)
+    return draft
+
+
+def reset_draft(draft):
+    """Reset draft to empty state."""
+    draft.page_count = None
+    draft.is_color = False
+    draft.is_double_sided = False
+    draft.binding = 'none'
+    draft.delivery_type = 'pickup'
+    draft.station_id = None
+    draft.discount_code = None
+    if draft.file:
+        try:
+            draft.file.delete(save=False)
+        except Exception:
+            pass
+    draft.file = None
+    draft.file_name = None
+    draft.save()
+    return draft
+
+
+def get_draft_summary(draft):
+    """Get a summary of the draft for display."""
+    if not draft.page_count:
+        return None
+    
+    total, effective, per_page = Order.compute_price(
+        draft.page_count,
+        draft.is_color,
+        draft.is_double_sided,
+        draft.binding,
+        0
+    )
+    
+    station_name = None
+    if draft.station_id:
+        try:
+            station = Station.objects.get(id=draft.station_id)
+            station_name = station.name
+        except Station.DoesNotExist:
+            pass
+    
+    return {
+        'pages': draft.page_count,
+        'is_color': draft.is_color,
+        'is_double_sided': draft.is_double_sided,
+        'binding': draft.binding,
+        'delivery_type': draft.delivery_type,
+        'station': station_name,
+        'total': total,
+        'effective_pages': effective,
+        'per_page': per_page,
+        'has_file': bool(draft.file),
+        'file_name': draft.file_name,
     }
 
 
@@ -249,6 +312,73 @@ class AssistantChatView(APIView):
         if 'whatsapp' in text_lower or 'whatsapp group' in text_lower:
             return self._handle_whatsapp_info(user)
 
+        # ─── ORDER CREATION FLOW ──────────────────────────────
+        if text_lower in ['i want to print', 'i need to print', 'print', 'start order', 'create order', 'start printing']:
+            return self._handle_start_order(user)
+        
+        if text_lower in ['draft', 'my draft', 'show draft', 'view draft']:
+            return self._handle_show_draft(user)
+        
+        if text_lower in ['clear draft', 'reset draft', 'delete draft', 'clear']:
+            return self._handle_clear_draft(user)
+        
+        if text_lower in ['confirm', 'place order', 'submit order', 'confirm order']:
+            return self._handle_confirm_order(user)
+        
+        if text_lower in ['edit', 'change', 'edit draft']:
+            return self._handle_edit_draft(user, message)
+
+        # ─── ORDER TEMPLATES ──────────────────────────────────
+        if text_lower in ['templates', 'saved orders', 'my templates']:
+            return self._handle_list_templates(user)
+        
+        if command == 'save' and len(parts) >= 2 and parts[1].lower() == 'template':
+            name = ' '.join(parts[2:]) if len(parts) > 2 else None
+            return self._handle_save_template(user, name)
+        
+        if command == 'use' and len(parts) >= 2:
+            return self._handle_use_template(user, ' '.join(parts[1:]))
+
+        # ─── SET ORDER OPTIONS ─────────────────────────────────
+        if command in ['pages', 'page'] and len(parts) >= 2:
+            try:
+                pages = int(parts[1])
+                return self._handle_set_pages(user, pages)
+            except ValueError:
+                pass
+        
+        if 'color' in text_lower and not any(x in text_lower for x in ['discount', 'station', 'location']):
+            return self._handle_set_color(user, True)
+        
+        if 'b&w' in text_lower or 'bw' in text_lower:
+            return self._handle_set_color(user, False)
+        
+        if 'double' in text_lower or 'two-sided' in text_lower:
+            return self._handle_set_double_sided(user, True)
+        
+        if 'single' in text_lower:
+            return self._handle_set_double_sided(user, False)
+        
+        if 'spiral' in text_lower:
+            return self._handle_set_binding(user, 'spiral')
+        if 'staple' in text_lower:
+            return self._handle_set_binding(user, 'staple')
+        if 'no binding' in text_lower or 'no binding' in text_lower:
+            return self._handle_set_binding(user, 'none')
+        
+        if 'pickup' in text_lower:
+            return self._handle_set_delivery(user, 'pickup')
+        if 'delivery' in text_lower:
+            return self._handle_set_delivery(user, 'delivery')
+
+        # ─── REORDER ──────────────────────────────────────────
+        if command in ['reorder', 'reprint'] and len(parts) >= 2:
+            try:
+                oid = int(parts[1].replace('#', ''))
+                return self._handle_reorder(user, oid)
+            except ValueError:
+                pass
+
         # ─── ORDER TRACKING ────────────────────────────────────
         order_id = extract_order_id(text_lower)
         if order_id:
@@ -292,8 +422,7 @@ class AssistantChatView(APIView):
             return self._handle_discounts()
 
         # ─── NEW ORDER / UPLOAD ──────────────────────────────
-        if text_lower in ['new order', 'place order', 'upload', 'order now', 'start order', 'create order', 
-                          'new orders', 'place orders', 'start printing']:
+        if text_lower in ['new order', 'place order', 'upload', 'order now', 'new orders', 'place orders']:
             return self._handle_new_order(user)
 
         # ─── PAYMENT HELP ──────────────────────────────────────
@@ -401,7 +530,7 @@ class AssistantChatView(APIView):
 
         msg += "What would you like to do?"
 
-        suggestions = ["My orders", "Pricing", "New order", "Track order", "Stations"]
+        suggestions = ["My orders", "Pricing", "New order", "Track order", "Stations", "Start order"]
 
         return format_response(msg, suggestions=suggestions, response_type="welcome")
 
@@ -415,6 +544,11 @@ class AssistantChatView(APIView):
         msg += "| *Pricing* | See printing rates |\n"
         msg += "| *Stations* | Find pickup locations |\n"
         msg += "| *New order* | Start a print job |\n"
+        msg += "| *Start order* | Step-by-step order creation |\n"
+        msg += "| *Draft* | View your draft order |\n"
+        msg += "| *Confirm* | Place your draft order |\n"
+        msg += "| *Templates* | See saved order templates |\n"
+        msg += "| *Reorder #id* | Duplicate a past order |\n"
         msg += "| *Discounts* | See active promotions |\n"
         msg += "| *Pay #id* | Get payment instructions |\n"
         msg += "| *Receipt #id* | Get order receipt |\n"
@@ -438,7 +572,7 @@ class AssistantChatView(APIView):
             msg += "• *Ready orders* - Ready for pickup\n"
             msg += "• *Update #id to status* - Change order status\n"
 
-        return format_response(msg, suggestions=["My orders", "Pricing", "New order", "Human"])
+        return format_response(msg, suggestions=["My orders", "Pricing", "New order", "Start order", "Human"])
 
     def _handle_track_order(self, user, order_id):
         """Track a specific order with rich data."""
@@ -494,6 +628,7 @@ class AssistantChatView(APIView):
             suggestions.append(f"Pay #{order.id}")
         suggestions.append("My orders")
         suggestions.append("Track another")
+        suggestions.append("Reorder #" + str(order.id))
         suggestions.append("Human")
 
         return format_response(
@@ -509,8 +644,8 @@ class AssistantChatView(APIView):
 
         if not orders.exists():
             return format_response(
-                "📭 *No orders yet.*\n\nReady to start? Send *New order* to get started, or check out *Pricing* to see our rates!",
-                suggestions=["New order", "Pricing", "Stations"]
+                "📭 *No orders yet.*\n\nReady to start? Send *Start order* to get started, or check out *Pricing* to see our rates!",
+                suggestions=["Start order", "Pricing", "Stations"]
             )
 
         summary = get_user_orders_summary(user)
@@ -542,7 +677,7 @@ class AssistantChatView(APIView):
 
         msg += "\n*Type Track #id for details.*"
 
-        suggestions = [f"Track #{orders[0].id}", "New order", "Pricing"]
+        suggestions = [f"Track #{orders[0].id}", "Start order", "Pricing"]
         if summary['ready'] > 0:
             suggestions.insert(0, "Ready orders")
         suggestions.append("Human")
@@ -573,7 +708,7 @@ class AssistantChatView(APIView):
         elif summary['total'] == 0:
             msg += "\n📭 You haven't placed any orders yet."
 
-        return format_response(msg, suggestions=["My orders", "New order", "Pricing"])
+        return format_response(msg, suggestions=["My orders", "Start order", "Pricing"])
 
     def _handle_filtered_orders(self, user, status):
         """Show orders filtered by status."""
@@ -640,7 +775,7 @@ class AssistantChatView(APIView):
         return format_response(
             msg,
             data={'type': 'pricing', 'prices': prices, 'discounts': [d.code for d in discounts]},
-            suggestions=["New order", "Stations", "Discounts"],
+            suggestions=["Start order", "Stations", "Discounts"],
             response_type="pricing"
         )
 
@@ -662,7 +797,7 @@ class AssistantChatView(APIView):
         msg += f"💵 *Total: {total:,.0f} UGX*\n\n"
         msg += "_Add binding (+1,000 UGX) or double-sided for different pricing._"
 
-        return format_response(msg, suggestions=["Pricing", "New order"])
+        return format_response(msg, suggestions=["Start order", "Pricing"])
 
     def _handle_stations(self):
         """Show station locations."""
@@ -671,7 +806,7 @@ class AssistantChatView(APIView):
         if not stations.exists():
             return format_response(
                 "📍 No stations available at the moment.\n\nPlease check back later or contact support.",
-                suggestions=["Help", "New order", "Human"]
+                suggestions=["Help", "Start order", "Human"]
             )
 
         station_data = []
@@ -698,7 +833,7 @@ class AssistantChatView(APIView):
         return format_response(
             msg,
             data={'type': 'stations', 'stations': station_data},
-            suggestions=["New order", "Pricing", "Human"],
+            suggestions=["Start order", "Pricing", "Human"],
             response_type="stations"
         )
 
@@ -714,7 +849,7 @@ class AssistantChatView(APIView):
         if not discounts.exists():
             return format_response(
                 "🎫 *No active promotions at the moment.*\n\nCheck back later for deals, or ask about student discounts!",
-                suggestions=["Pricing", "New order"]
+                suggestions=["Pricing", "Start order"]
             )
 
         msg = "🎫 *Active Promotions*\n\n"
@@ -727,178 +862,512 @@ class AssistantChatView(APIView):
                 msg += f" | Min. order: {d.minimum_order:,.0f} UGX"
             msg += f"\n   Uses left: {remaining}\n\n"
 
-        return format_response(msg, suggestions=["Pricing", "New order"])
+        return format_response(msg, suggestions=["Pricing", "Start order"])
 
     # ══════════════════════════════════════════════════════════
-    # HANDLERS - ACCOUNT & PAYMENTS
+    # HANDLERS - ORDER CREATION FLOW
     # ══════════════════════════════════════════════════════════
 
-    def _handle_my_status(self, user):
-        """Show user's account status."""
-        summary = get_user_orders_summary(user)
-
-        msg = f"📊 *Your PrintHub Status*\n\n"
-        msg += f"👤 *{user.first_name or user.username}*\n"
-        msg += f"📧 {user.email}\n"
-        if user.phone_number:
-            msg += f"📱 {user.phone_number}\n"
-        msg += f"🎭 Role: *{user.role.title()}*\n\n"
-
-        msg += "📚 *Order Stats:*\n"
-        msg += f"• Total: {summary['total']}\n"
-        msg += f"• Pending: {summary['pending']}\n"
-        msg += f"• In Progress: {summary['in_progress']}\n"
-        msg += f"• Ready: {summary['ready']}\n"
-        msg += f"• Completed: {summary['completed']}\n"
-
-        if is_agent(user) and user.station:
-            msg += f"\n📍 *Station:* {user.station.name}"
-
-        return format_response(msg, suggestions=["My orders", "New order", "Profile", "Human"])
-
-    def _handle_payment_help(self, user, order_id=None):
-        """Help with payments."""
-        if order_id:
-            try:
-                order = Order.objects.get(id=order_id, client=user)
-                if order.status != 'pending':
-                    return format_response(
-                        f"⚠️ Order #{order_id} is already *{order.get_status_display()}*.\n\nNo payment needed!",
-                        suggestions=["My orders"]
-                    )
-                return self._show_payment_instructions(user, order)
-            except Order.DoesNotExist:
-                return format_response(f"❌ Order #{order_id} not found.", suggestions=["My orders"])
-
-        pending_orders = Order.objects.filter(client=user, status='pending')
-
-        if pending_orders.exists():
-            msg = f"💳 *You have {pending_orders.count()} pending order(s).*\n\n"
-            msg += "Send *Pay #id* for specific instructions.\n\n"
-            for o in pending_orders[:3]:
-                msg += f"• #{o.id}: {o.total_price:,.0f} UGX — {o.file_name[:30]}\n"
-            suggestions = [f"Pay #{o.id}" for o in pending_orders[:3]]
-            suggestions.append("My orders")
-            return format_response(msg, suggestions=suggestions)
-
-        msg = "💳 *Payment Help*\n\n"
-        msg += "1️⃣ Place an order first (*New order*)\n"
-        msg += "2️⃣ Send *Pay #id* for instructions\n"
-        msg += "3️⃣ Pay via MTN or Airtel Mobile Money\n"
-        msg += "4️⃣ Submit your transaction ID\n\n"
-        msg += "📱 Supported: MTN MoMo (*165#) and Airtel Money (*185#)"
-
-        return format_response(msg, suggestions=["New order", "Pricing", "Human"])
-
-    def _show_payment_instructions(self, user, order):
-        """Show payment instructions for an order."""
-        mtn = MerchantSettings.get_merchant('mtn')
-        airtel = MerchantSettings.get_merchant('airtel')
-
-        msg = f"💳 *Pay for Order #{order.id}*\n\n"
-        msg += f"💰 Amount: *{order.total_price:,.0f} UGX*\n"
-        msg += f"📄 File: {order.file_name}\n\n"
-
-        if mtn:
-            msg += f"📱 *MTN MoMo:*\n"
-            msg += f"   Number: `{mtn.merchant_phone}`\n"
-            msg += f"   Name: {mtn.merchant_name}\n\n"
-
-        if airtel:
-            msg += f"📱 *Airtel Money:*\n"
-            msg += f"   Number: `{airtel.merchant_phone}`\n"
-            msg += f"   Name: {airtel.merchant_name}\n\n"
-
-        msg += "📝 *After payment:*\n"
-        msg += f"Send: *Paid {order.id} <transaction_id>*\n\n"
-        msg += "_Your payment will be verified within 5-30 minutes._"
-
-        return format_response(msg, suggestions=[f"Paid {order.id} TXN123", "My orders", "Human"])
-
-    def _handle_receipt(self, user, order_id):
-        """Show receipt for an order."""
-        try:
-            order = Order.objects.get(id=order_id, client=user)
-        except Order.DoesNotExist:
-            return format_response(f"❌ Order #{order_id} not found.", suggestions=["My orders"])
-
-        msg = f"🧾 *Receipt - Order #{order.id}*\n\n"
-        msg += f"📄 {order.file_name}\n"
-        msg += f"📄 {order.page_count} pages"
-        if order.is_color:
-            msg += " 🎨 Color"
-        if order.is_double_sided:
-            msg += " | Double-sided"
-        msg += "\n"
-        msg += f"💰 Total: *{order.total_price:,.0f} UGX*\n"
-        msg += f"📊 Status: {get_status_emoji(order.status)} {order.get_status_display()}\n"
-        if order.station:
-            msg += f"📍 Station: {order.station.name}\n"
-        msg += f"📅 {order.created_at.strftime('%d %b %Y, %I:%M %p')}\n\n"
-        msg += f"🔗 View full receipt: https://www.printhubug.com/orders/{order.id}/receipt/"
-
-        return format_response(msg, suggestions=["My orders", f"Pay #{order.id}", "Human"])
-
-    def _handle_cancel_order(self, user, order_id):
-        """Cancel a pending order."""
-        try:
-            order = Order.objects.get(id=order_id, client=user)
-        except Order.DoesNotExist:
-            return format_response(f"❌ Order #{order_id} not found.", suggestions=["My orders"])
-
-        if order.status not in ['pending', 'paid']:
-            return format_response(
-                f"❌ Order #{order_id} cannot be cancelled.\n\nIt's already *{order.get_status_display()}*.",
-                suggestions=["My orders"]
-            )
-
-        order.status = 'cancelled'
-        order.cancellation_reason = 'Cancelled via Assistant'
-        order.cancelled_at = timezone.now()
-        order.save(update_fields=['status', 'cancellation_reason', 'cancelled_at'])
-
-        return format_response(
-            f"✅ Order #{order.id} has been cancelled successfully.\n\nIf you paid, a refund will be processed.",
-            suggestions=["My orders", "New order", "Human"]
-        )
-
-    def _handle_simple_order(self, user, pages, options):
-        """Handle simple order creation (draft)."""
-        is_color = 'color' in ' '.join(options).lower()
-        is_double_sided = 'double' in ' '.join(options).lower()
-        binding = 'spiral' if 'spiral' in ' '.join(options).lower() else 'none'
-        delivery_type = 'delivery' if 'delivery' in ' '.join(options).lower() else 'pickup'
-
-        draft, _ = AssistantDraft.objects.get_or_create(user=user)
-        draft.page_count = pages
-        draft.is_color = is_color
-        draft.is_double_sided = is_double_sided
-        draft.binding = binding
-        draft.delivery_type = delivery_type
-        draft.save()
-
-        total, effective, per_page = Order.compute_price(
-            pages, is_color, is_double_sided, binding, 0
-        )
-
-        msg = f"📝 *Order Draft Created*\n\n"
-        msg += f"📄 Pages: *{pages}*"
-        if is_double_sided:
-            msg += f" ({effective} sheets)"
-        msg += "\n"
-        msg += f"🎨 Type: *{'Color' if is_color else 'B&W'}*\n"
-        if binding != 'none':
-            msg += f"📚 Binding: *{dict(Order.BINDING_CHOICES).get(binding, binding)}*\n"
-        msg += f"📍 Delivery: *{dict(Order.DELIVERY_TYPE_CHOICES).get(delivery_type, delivery_type)}*\n"
-        msg += f"💰 Estimate: *{total:,.0f} UGX*\n\n"
-        msg += "📎 Upload your file using the 📎 button, then type *Confirm*."
-
+    def _handle_start_order(self, user):
+        """Start the order creation flow."""
+        draft = get_user_draft(user)
+        
+        if draft.page_count:
+            summary = get_draft_summary(draft)
+            if summary:
+                msg = "📝 *You have a draft order in progress!*\n\n"
+                msg += f"📄 Pages: {summary['pages']}\n"
+                msg += f"🎨 {'Color' if summary['is_color'] else 'B&W'}\n"
+                if summary['is_double_sided']:
+                    msg += "📄 Double-sided\n"
+                if summary['binding'] != 'none':
+                    msg += f"📚 {summary['binding'].title()}\n"
+                if summary['station']:
+                    msg += f"📍 {summary['station']}\n"
+                msg += f"💰 Total: {summary['total']:,.0f} UGX\n\n"
+                msg += "What would you like to do?\n"
+                msg += "• *Confirm* - Place order\n"
+                msg += "• *Edit* - Change options\n"
+                msg += "• *Clear* - Start over"
+                return format_response(
+                    msg,
+                    suggestions=["Confirm", "Edit", "Clear", "Upload file"],
+                    data={'draft': summary}
+                )
+        
+        reset_draft(draft)
+        
+        msg = "📤 *Start a New Order*\n\n"
+        msg += "Let's create your print order step by step.\n\n"
+        msg += "1️⃣ *How many pages?*\n"
+        msg += "   Reply with: `20 pages` or just `20`\n\n"
+        msg += "2️⃣ *Color or B&W?*\n"
+        msg += "   Reply with: `Color` or `B&W`\n\n"
+        msg += "3️⃣ *Single or double-sided?*\n"
+        msg += "   Reply with: `Single` or `Double`\n\n"
+        msg += "4️⃣ *Binding?*\n"
+        msg += "   Reply with: `Spiral`, `Staple`, or `No binding`\n\n"
+        msg += "5️⃣ *Pickup or delivery?*\n"
+        msg += "   Reply with: `Pickup` or `Delivery`\n\n"
+        msg += "You can also use the quick command:\n"
+        msg += "*Order 20 Color Double Spiral Pickup*\n\n"
+        msg += "Or use a template: *Use template <name>*"
+        
         return format_response(
             msg,
-            suggestions=["Upload file", "Confirm", "Cancel", "Human"],
-            data={'draft': {'pages': pages, 'total': total}},
-            response_type="draft_created"
+            suggestions=["20 pages", "Color", "B&W", "Pickup"],
+            response_type="order_start"
         )
+
+    def _handle_show_draft(self, user):
+        """Show current draft."""
+        draft = get_user_draft(user)
+        summary = get_draft_summary(draft)
+        
+        if not summary:
+            return format_response(
+                "📭 You don't have a draft order.\n\nStart one with *Start order* or *I want to print*",
+                suggestions=["Start order", "New order", "Templates"]
+            )
+        
+        msg = "📝 *Your Draft Order*\n\n"
+        msg += f"📄 Pages: *{summary['pages']}*\n"
+        msg += f"🎨 Type: *{'Color' if summary['is_color'] else 'B&W'}*\n"
+        if summary['is_double_sided']:
+            msg += "📄 Double-sided\n"
+        if summary['binding'] != 'none':
+            msg += f"📚 Binding: *{summary['binding'].title()}*\n"
+        if summary['station']:
+            msg += f"📍 Station: *{summary['station']}*\n"
+        msg += f"📦 Delivery: *{summary['delivery_type'].title()}*\n"
+        if summary['has_file']:
+            msg += f"📎 File: *{summary['file_name']}*\n"
+        msg += f"💰 Estimated Total: *{summary['total']:,.0f} UGX*\n\n"
+        
+        if not summary['has_file']:
+            msg += "⚠️ *File missing!* Upload using the 📎 button.\n\n"
+        
+        msg += "What would you like to do?\n"
+        msg += "• *Confirm* - Place order\n"
+        msg += "• *Edit* - Change options\n"
+        msg += "• *Clear* - Start over\n"
+        msg += "• *Save template <name>* - Save for later"
+        
+        suggestions = ["Confirm", "Edit", "Clear"]
+        if not summary['has_file']:
+            suggestions.insert(0, "Upload file")
+        suggestions.append("Save template")
+        
+        return format_response(
+            msg,
+            suggestions=suggestions,
+            data={'draft': summary},
+            response_type="draft_summary"
+        )
+
+    def _handle_clear_draft(self, user):
+        """Clear the draft."""
+        draft = get_user_draft(user)
+        reset_draft(draft)
+        return format_response(
+            "🗑️ Draft cleared.\n\nStart a new one with *Start order*",
+            suggestions=["Start order", "New order"]
+        )
+
+    def _handle_set_pages(self, user, pages):
+        """Set pages in draft."""
+        if pages < 1:
+            return format_response("❌ Pages must be at least 1.")
+        if pages > 1000:
+            return format_response("⚠️ Maximum 1000 pages per order.")
+        
+        draft = get_user_draft(user)
+        draft.page_count = pages
+        draft.save()
+        
+        summary = get_draft_summary(draft)
+        msg = f"✅ Pages set to *{pages}*\n\n"
+        if summary:
+            msg += f"💰 Estimated Total: *{summary['total']:,.0f} UGX*\n\n"
+        msg += "Next: Set color or binding, or *Confirm* to place order."
+        
+        return format_response(
+            msg,
+            suggestions=["Color", "B&W", "Double", "Confirm"]
+        )
+
+    def _handle_set_color(self, user, is_color):
+        """Set color in draft."""
+        draft = get_user_draft(user)
+        draft.is_color = is_color
+        draft.save()
+        
+        color_text = "Color 🎨" if is_color else "B&W ⚫"
+        msg = f"✅ Type set to *{color_text}*\n\n"
+        
+        summary = get_draft_summary(draft)
+        if summary and summary['pages']:
+            msg += f"💰 Estimated Total: *{summary['total']:,.0f} UGX*\n\n"
+        msg += "Next: Set binding or *Confirm* to place order."
+        
+        return format_response(
+            msg,
+            suggestions=["Spiral", "Staple", "No binding", "Confirm"]
+        )
+
+    def _handle_set_double_sided(self, user, is_double):
+        """Set double-sided in draft."""
+        draft = get_user_draft(user)
+        draft.is_double_sided = is_double
+        draft.save()
+        
+        text = "Double-sided 📄" if is_double else "Single-sided 📄"
+        msg = f"✅ Set to *{text}*\n\n"
+        
+        summary = get_draft_summary(draft)
+        if summary and summary['pages']:
+            msg += f"💰 Estimated Total: *{summary['total']:,.0f} UGX*\n\n"
+        msg += "Next: Set binding or *Confirm* to place order."
+        
+        return format_response(
+            msg,
+            suggestions=["Spiral", "Staple", "No binding", "Confirm"]
+        )
+
+    def _handle_set_binding(self, user, binding):
+        """Set binding in draft."""
+        if binding not in ['none', 'staple', 'spiral']:
+            return format_response("❌ Invalid binding. Options: Spiral, Staple, No binding")
+        
+        draft = get_user_draft(user)
+        draft.binding = binding
+        draft.save()
+        
+        binding_text = dict(Order.BINDING_CHOICES).get(binding, binding.title())
+        msg = f"✅ Binding set to *{binding_text}*\n\n"
+        
+        summary = get_draft_summary(draft)
+        if summary and summary['pages']:
+            msg += f"💰 Estimated Total: *{summary['total']:,.0f} UGX*\n\n"
+        msg += "Next: Choose station or *Confirm* to place order."
+        
+        stations = Station.objects.filter(is_active=True)
+        suggestions = ["Confirm"]
+        if stations.exists():
+            for s in stations[:2]:
+                suggestions.append(s.name)
+        
+        return format_response(
+            msg,
+            suggestions=suggestions
+        )
+
+    def _handle_set_delivery(self, user, delivery_type):
+        """Set delivery type in draft."""
+        if delivery_type not in ['pickup', 'delivery']:
+            return format_response("❌ Invalid. Options: Pickup, Delivery")
+        
+        draft = get_user_draft(user)
+        draft.delivery_type = delivery_type
+        draft.save()
+        
+        text = "Pickup 🏢" if delivery_type == 'pickup' else "Delivery 🚚"
+        msg = f"✅ Set to *{text}*\n\n"
+        
+        summary = get_draft_summary(draft)
+        if summary and summary['pages']:
+            msg += f"💰 Estimated Total: *{summary['total']:,.0f} UGX*\n\n"
+        
+        if delivery_type == 'delivery':
+            msg += "📍 Please specify a delivery zone or address."
+        else:
+            msg += "📍 Choose a station or *Confirm* to place order."
+        
+        stations = Station.objects.filter(is_active=True)
+        suggestions = ["Confirm"]
+        if stations.exists():
+            for s in stations[:2]:
+                suggestions.append(s.name)
+        
+        return format_response(
+            msg,
+            suggestions=suggestions
+        )
+
+    def _handle_edit_draft(self, user, message):
+        """Edit draft options."""
+        draft = get_user_draft(user)
+        if not draft.page_count:
+            return format_response("❌ No draft to edit. Start with *Start order*")
+        
+        msg = "✏️ *Edit Your Draft*\n\n"
+        msg += "What would you like to change?\n\n"
+        msg += "• *Pages X* - Change page count\n"
+        msg += "• *Color* or *B&W* - Change type\n"
+        msg += "• *Double* or *Single* - Change sides\n"
+        msg += "• *Spiral*, *Staple*, or *No binding*\n"
+        msg += "• *Pickup* or *Delivery*\n"
+        msg += "• *Clear* - Start over\n\n"
+        msg += "Or just tell me what to change!"
+        
+        return format_response(
+            msg,
+            suggestions=["Pages 10", "Color", "Double", "Spiral", "Pickup", "Clear"]
+        )
+
+    def _handle_confirm_order(self, user):
+        """Confirm and place the order."""
+        draft = get_user_draft(user)
+        
+        if not draft.page_count:
+            return format_response(
+                "❌ No draft to confirm.\n\nStart with *Start order* or *I want to print*",
+                suggestions=["Start order"]
+            )
+        
+        if not draft.file:
+            return format_response(
+                "⚠️ *File missing!*\n\nUpload your document using the 📎 button below.\n\nThen type *Confirm* again.",
+                suggestions=["Upload file"]
+            )
+        
+        summary = get_draft_summary(draft)
+        
+        try:
+            order = Order.objects.create(
+                client=user,
+                station_id=draft.station_id,
+                file=draft.file,
+                file_name=draft.file_name or f"Draft Order - {draft.page_count} pages",
+                page_count=draft.page_count,
+                is_color=draft.is_color,
+                is_double_sided=draft.is_double_sided,
+                binding=draft.binding,
+                delivery_type=draft.delivery_type,
+                status='pending',
+                notes=f"Ordered via Assistant\nPages: {draft.page_count}\n"
+                      f"Color: {'Yes' if draft.is_color else 'No'}\n"
+                      f"Binding: {draft.binding}\n"
+                      f"Delivery: {draft.delivery_type}"
+            )
+            
+            order.calculate_price()
+            order.save()
+            
+            reset_draft(draft)
+            
+            msg = f"✅ *Order #{order.id} Created!*\n\n"
+            msg += f"📄 File: {order.file_name}\n"
+            msg += f"📄 Pages: {order.page_count}"
+            if order.is_color:
+                msg += " 🎨 Color"
+            if order.is_double_sided:
+                msg += " | Double-sided"
+            msg += "\n"
+            if order.binding != 'none':
+                msg += f"📚 Binding: {order.get_binding_display()}\n"
+            if order.station:
+                msg += f"📍 Station: {order.station.name}\n"
+            msg += f"💰 Total: *{order.total_price:,.0f} UGX*\n\n"
+            msg += "📝 *Next steps:*\n"
+            msg += "1. Go to payment: *Pay #{}*\n".format(order.id)
+            msg += "2. Track your order: *Track #{}*".format(order.id)
+            
+            try:
+                from notifications.models import Notification
+                admins = CustomUser.objects.filter(role='admin')
+                for admin in admins:
+                    Notification.create_notification(
+                        user=admin,
+                        notification_type='order_status',
+                        title='New Order via Assistant',
+                        message=f'Order #{order.id} placed by {user.username}',
+                        link=f'/orders/admin-dashboard/'
+                    )
+            except Exception:
+                pass
+            
+            return format_response(
+                msg,
+                suggestions=[f"Pay #{order.id}", f"Track #{order.id}", "My orders", "Start order"],
+                data={'type': 'order', **format_order_card(order)},
+                response_type="order_created"
+            )
+            
+        except Exception as e:
+            return format_response(f"❌ Error creating order: {str(e)}\n\nPlease try again or contact support.", suggestions=["Human"])
+
+    # ══════════════════════════════════════════════════════════
+    # HANDLERS - ORDER TEMPLATES
+    # ══════════════════════════════════════════════════════════
+
+    def _handle_list_templates(self, user):
+        """List saved order templates."""
+        try:
+            from .models import OrderTemplate
+            templates = OrderTemplate.objects.filter(user=user)
+        except ImportError:
+            return format_response(
+                "📭 Templates are being set up.\n\nPlease check back soon!",
+                suggestions=["Start order"]
+            )
+        
+        if not templates.exists():
+            return format_response(
+                "📭 *No saved templates.*\n\nSave a draft as a template with:\n*Save template <name>*\n\nExample: *Save template Assignment*",
+                suggestions=["Start order"]
+            )
+        
+        msg = "📋 *Your Order Templates*\n\n"
+        for t in templates[:5]:
+            msg += f"• *{t.name}* - {t.pages} pages"
+            if t.is_color:
+                msg += " Color"
+            msg += "\n"
+            if t.binding != 'none':
+                msg += f"  📚 {t.binding}\n"
+            msg += "\n"
+        
+        msg += "Use a template with:\n*Use template <name>*"
+        
+        return format_response(
+            msg,
+            suggestions=[f"Use template {templates[0].name}" if templates.exists() else None, "Start order"]
+        )
+
+    def _handle_save_template(self, user, name):
+        """Save current draft as a template."""
+        if not name:
+            return format_response("❌ Please provide a name: *Save template Assignment*")
+        
+        draft = get_user_draft(user)
+        if not draft.page_count:
+            return format_response("❌ No draft to save. Create one with *Start order*")
+        
+        try:
+            from .models import OrderTemplate
+            template, created = OrderTemplate.objects.update_or_create(
+                user=user,
+                name=name[:50],
+                defaults={
+                    'pages': draft.page_count,
+                    'is_color': draft.is_color,
+                    'is_double_sided': draft.is_double_sided,
+                    'binding': draft.binding,
+                    'delivery_type': draft.delivery_type,
+                }
+            )
+        except ImportError:
+            return format_response(
+                "❌ Templates are being set up.\n\nPlease check back soon!",
+                suggestions=["Start order"]
+            )
+        
+        if created:
+            msg = f"✅ Template *{name}* saved!"
+        else:
+            msg = f"✅ Template *{name}* updated!"
+        
+        msg += "\n\nUse it with: *Use template {}*".format(name)
+        
+        return format_response(msg, suggestions=["Use template {}".format(name), "My orders"])
+
+    def _handle_use_template(self, user, name):
+        """Use a saved template."""
+        try:
+            from .models import OrderTemplate
+            template = OrderTemplate.objects.get(user=user, name=name)
+        except (ImportError, OrderTemplate.DoesNotExist):
+            return format_response(f"❌ Template *{name}* not found.\n\n*Templates* to see saved ones.")
+        
+        draft = get_user_draft(user)
+        draft.page_count = template.pages
+        draft.is_color = template.is_color
+        draft.is_double_sided = template.is_double_sided
+        draft.binding = template.binding
+        draft.delivery_type = template.delivery_type
+        draft.save()
+        
+        summary = get_draft_summary(draft)
+        
+        msg = f"✅ Template *{name}* loaded!\n\n"
+        msg += f"📄 Pages: {summary['pages']}\n"
+        msg += f"🎨 {'Color' if summary['is_color'] else 'B&W'}\n"
+        if summary['is_double_sided']:
+            msg += "📄 Double-sided\n"
+        if summary['binding'] != 'none':
+            msg += f"📚 {summary['binding'].title()}\n"
+        msg += f"💰 Total: {summary['total']:,.0f} UGX\n\n"
+        msg += "Upload your file and type *Confirm* to place the order."
+        
+        return format_response(
+            msg,
+            suggestions=["Upload file", "Confirm", "Edit", "Clear"],
+            data={'draft': summary}
+        )
+
+    # ══════════════════════════════════════════════════════════
+    # HANDLERS - REORDER
+    # ══════════════════════════════════════════════════════════
+
+    def _handle_reorder(self, user, order_id):
+        """Create a new order from a past order."""
+        try:
+            old_order = Order.objects.get(id=order_id, client=user)
+        except Order.DoesNotExist:
+            return format_response(f"❌ Order #{order_id} not found.", suggestions=["My orders"])
+        
+        draft = get_user_draft(user)
+        draft.page_count = old_order.page_count
+        draft.is_color = old_order.is_color
+        draft.is_double_sided = old_order.is_double_sided
+        draft.binding = old_order.binding
+        draft.delivery_type = old_order.delivery_type
+        draft.station_id = old_order.station_id
+        draft.save()
+        
+        summary = get_draft_summary(draft)
+        
+        msg = f"🔄 *Reordering Order #{order_id}*\n\n"
+        msg += f"📄 Pages: {summary['pages']}\n"
+        msg += f"🎨 {'Color' if summary['is_color'] else 'B&W'}\n"
+        if summary['is_double_sided']:
+            msg += "📄 Double-sided\n"
+        if summary['binding'] != 'none':
+            msg += f"📚 {summary['binding'].title()}\n"
+        if summary['station']:
+            msg += f"📍 {summary['station']}\n"
+        msg += f"💰 Total: {summary['total']:,.0f} UGX\n\n"
+        msg += "Upload your new file and type *Confirm* to place the order."
+        
+        return format_response(
+            msg,
+            suggestions=["Upload file", "Confirm", "Edit", "Clear"]
+        )
+
+    def _handle_new_order(self, user):
+        """Help user start a new order."""
+        try:
+            draft = AssistantDraft.objects.get(user=user)
+            if draft.page_count:
+                msg = "📝 *You have a draft order!*\n\n"
+                msg += f"📄 Pages: {draft.page_count}\n"
+                msg += f"🎨 {'Color' if draft.is_color else 'B&W'}\n"
+                if draft.file:
+                    msg += f"📎 File: {draft.file_name}\n"
+                msg += "\n*Type Confirm* to place it, or *Cancel* to discard."
+                return format_response(msg, suggestions=["Confirm", "Cancel", "Start over"])
+        except AssistantDraft.DoesNotExist:
+            pass
+
+        msg = "📤 *Start a New Order*\n\n"
+        msg += "1️⃣ Upload your file (📎 button below)\n"
+        msg += "2️⃣ Type *Order <pages>*\n"
+        msg += "3️⃣ Choose your options\n"
+        msg += "4️⃣ Complete payment\n\n"
+        msg += "📎 Or upload at: www.printhubug.com/upload/"
+
+        return format_response(msg, suggestions=["Upload file", "Pricing", "Stations", "Human", "Start order"])
 
     # ══════════════════════════════════════════════════════════
     # HANDLERS - TALK TO HUMAN
@@ -951,7 +1420,6 @@ class AssistantChatView(APIView):
                 'desc': 'Contact PrintHub support team',
             })
         
-        # Always show WhatsApp as fallback
         options.append({
             'id': 'whatsapp',
             'label': '📱 WhatsApp Support',
@@ -1048,7 +1516,6 @@ class AssistantChatView(APIView):
                 response_type="contact"
             )
         
-        # No agent found - show fallback
         fallback = get_default_whatsapp_number()
         if context_msg:
             prefilled = f"Hi PrintHub, I need help with {context_msg}. My username is {user.username}."
@@ -1401,32 +1868,175 @@ class AssistantChatView(APIView):
         return format_response("▶️ *System RESUMED*\n\nAll timers are now active.", suggestions=["Active orders", "Revenue"])
 
     # ══════════════════════════════════════════════════════════
-    # HANDLERS - NEW ORDER
+    # HANDLERS - ACCOUNT & PAYMENTS
     # ══════════════════════════════════════════════════════════
 
-    def _handle_new_order(self, user):
-        """Help user start a new order."""
+    def _handle_my_status(self, user):
+        """Show user's account status."""
+        summary = get_user_orders_summary(user)
+
+        msg = f"📊 *Your PrintHub Status*\n\n"
+        msg += f"👤 *{user.first_name or user.username}*\n"
+        msg += f"📧 {user.email}\n"
+        if user.phone_number:
+            msg += f"📱 {user.phone_number}\n"
+        msg += f"🎭 Role: *{user.role.title()}*\n\n"
+
+        msg += "📚 *Order Stats:*\n"
+        msg += f"• Total: {summary['total']}\n"
+        msg += f"• Pending: {summary['pending']}\n"
+        msg += f"• In Progress: {summary['in_progress']}\n"
+        msg += f"• Ready: {summary['ready']}\n"
+        msg += f"• Completed: {summary['completed']}\n"
+
+        if is_agent(user) and user.station:
+            msg += f"\n📍 *Station:* {user.station.name}"
+
+        return format_response(msg, suggestions=["My orders", "Start order", "Profile", "Human"])
+
+    def _handle_payment_help(self, user, order_id=None):
+        """Help with payments."""
+        if order_id:
+            try:
+                order = Order.objects.get(id=order_id, client=user)
+                if order.status != 'pending':
+                    return format_response(
+                        f"⚠️ Order #{order_id} is already *{order.get_status_display()}*.\n\nNo payment needed!",
+                        suggestions=["My orders"]
+                    )
+                return self._show_payment_instructions(user, order)
+            except Order.DoesNotExist:
+                return format_response(f"❌ Order #{order_id} not found.", suggestions=["My orders"])
+
+        pending_orders = Order.objects.filter(client=user, status='pending')
+
+        if pending_orders.exists():
+            msg = f"💳 *You have {pending_orders.count()} pending order(s).*\n\n"
+            msg += "Send *Pay #id* for specific instructions.\n\n"
+            for o in pending_orders[:3]:
+                msg += f"• #{o.id}: {o.total_price:,.0f} UGX — {o.file_name[:30]}\n"
+            suggestions = [f"Pay #{o.id}" for o in pending_orders[:3]]
+            suggestions.append("My orders")
+            return format_response(msg, suggestions=suggestions)
+
+        msg = "💳 *Payment Help*\n\n"
+        msg += "1️⃣ Place an order first (*Start order*)\n"
+        msg += "2️⃣ Send *Pay #id* for instructions\n"
+        msg += "3️⃣ Pay via MTN or Airtel Mobile Money\n"
+        msg += "4️⃣ Submit your transaction ID\n\n"
+        msg += "📱 Supported: MTN MoMo (*165#) and Airtel Money (*185#)"
+
+        return format_response(msg, suggestions=["Start order", "Pricing", "Human"])
+
+    def _show_payment_instructions(self, user, order):
+        """Show payment instructions for an order."""
+        mtn = MerchantSettings.get_merchant('mtn')
+        airtel = MerchantSettings.get_merchant('airtel')
+
+        msg = f"💳 *Pay for Order #{order.id}*\n\n"
+        msg += f"💰 Amount: *{order.total_price:,.0f} UGX*\n"
+        msg += f"📄 File: {order.file_name}\n\n"
+
+        if mtn:
+            msg += f"📱 *MTN MoMo:*\n"
+            msg += f"   Number: `{mtn.merchant_phone}`\n"
+            msg += f"   Name: {mtn.merchant_name}\n\n"
+
+        if airtel:
+            msg += f"📱 *Airtel Money:*\n"
+            msg += f"   Number: `{airtel.merchant_phone}`\n"
+            msg += f"   Name: {airtel.merchant_name}\n\n"
+
+        msg += "📝 *After payment:*\n"
+        msg += f"Send: *Paid {order.id} <transaction_id>*\n\n"
+        msg += "_Your payment will be verified within 5-30 minutes._"
+
+        return format_response(msg, suggestions=[f"Paid {order.id} TXN123", "My orders", "Human"])
+
+    def _handle_receipt(self, user, order_id):
+        """Show receipt for an order."""
         try:
-            draft = AssistantDraft.objects.get(user=user)
-            if draft.page_count:
-                msg = "📝 *You have a draft order!*\n\n"
-                msg += f"📄 Pages: {draft.page_count}\n"
-                msg += f"🎨 {'Color' if draft.is_color else 'B&W'}\n"
-                if draft.file:
-                    msg += f"📎 File: {draft.file_name}\n"
-                msg += "\n*Type Confirm* to place it, or *Cancel* to discard."
-                return format_response(msg, suggestions=["Confirm", "Cancel", "Start over"])
-        except AssistantDraft.DoesNotExist:
-            pass
+            order = Order.objects.get(id=order_id, client=user)
+        except Order.DoesNotExist:
+            return format_response(f"❌ Order #{order_id} not found.", suggestions=["My orders"])
 
-        msg = "📤 *Start a New Order*\n\n"
-        msg += "1️⃣ Upload your file (📎 button below)\n"
-        msg += "2️⃣ Type *Order <pages>*\n"
-        msg += "3️⃣ Choose your options\n"
-        msg += "4️⃣ Complete payment\n\n"
-        msg += "📎 Or upload at: www.printhubug.com/upload/"
+        msg = f"🧾 *Receipt - Order #{order.id}*\n\n"
+        msg += f"📄 {order.file_name}\n"
+        msg += f"📄 {order.page_count} pages"
+        if order.is_color:
+            msg += " 🎨 Color"
+        if order.is_double_sided:
+            msg += " | Double-sided"
+        msg += "\n"
+        msg += f"💰 Total: *{order.total_price:,.0f} UGX*\n"
+        msg += f"📊 Status: {get_status_emoji(order.status)} {order.get_status_display()}\n"
+        if order.station:
+            msg += f"📍 Station: {order.station.name}\n"
+        msg += f"📅 {order.created_at.strftime('%d %b %Y, %I:%M %p')}\n\n"
+        msg += f"🔗 View full receipt: https://www.printhubug.com/orders/{order.id}/receipt/"
 
-        return format_response(msg, suggestions=["Upload file", "Pricing", "Stations", "Human"])
+        return format_response(msg, suggestions=["My orders", f"Pay #{order.id}", "Human"])
+
+    def _handle_cancel_order(self, user, order_id):
+        """Cancel a pending order."""
+        try:
+            order = Order.objects.get(id=order_id, client=user)
+        except Order.DoesNotExist:
+            return format_response(f"❌ Order #{order_id} not found.", suggestions=["My orders"])
+
+        if order.status not in ['pending', 'paid']:
+            return format_response(
+                f"❌ Order #{order_id} cannot be cancelled.\n\nIt's already *{order.get_status_display()}*.",
+                suggestions=["My orders"]
+            )
+
+        order.status = 'cancelled'
+        order.cancellation_reason = 'Cancelled via Assistant'
+        order.cancelled_at = timezone.now()
+        order.save(update_fields=['status', 'cancellation_reason', 'cancelled_at'])
+
+        return format_response(
+            f"✅ Order #{order.id} has been cancelled successfully.\n\nIf you paid, a refund will be processed.",
+            suggestions=["My orders", "Start order", "Human"]
+        )
+
+    def _handle_simple_order(self, user, pages, options):
+        """Handle simple order creation (draft)."""
+        is_color = 'color' in ' '.join(options).lower()
+        is_double_sided = 'double' in ' '.join(options).lower()
+        binding = 'spiral' if 'spiral' in ' '.join(options).lower() else 'none'
+        delivery_type = 'delivery' if 'delivery' in ' '.join(options).lower() else 'pickup'
+
+        draft, _ = AssistantDraft.objects.get_or_create(user=user)
+        draft.page_count = pages
+        draft.is_color = is_color
+        draft.is_double_sided = is_double_sided
+        draft.binding = binding
+        draft.delivery_type = delivery_type
+        draft.save()
+
+        total, effective, per_page = Order.compute_price(
+            pages, is_color, is_double_sided, binding, 0
+        )
+
+        msg = f"📝 *Order Draft Created*\n\n"
+        msg += f"📄 Pages: *{pages}*"
+        if is_double_sided:
+            msg += f" ({effective} sheets)"
+        msg += "\n"
+        msg += f"🎨 Type: *{'Color' if is_color else 'B&W'}*\n"
+        if binding != 'none':
+            msg += f"📚 Binding: *{dict(Order.BINDING_CHOICES).get(binding, binding)}*\n"
+        msg += f"📍 Delivery: *{dict(Order.DELIVERY_TYPE_CHOICES).get(delivery_type, delivery_type)}*\n"
+        msg += f"💰 Estimate: *{total:,.0f} UGX*\n\n"
+        msg += "📎 Upload your file using the 📎 button, then type *Confirm*."
+
+        return format_response(
+            msg,
+            suggestions=["Upload file", "Confirm", "Cancel", "Human"],
+            data={'draft': {'pages': pages, 'total': total}},
+            response_type="draft_created"
+        )
 
     # ══════════════════════════════════════════════════════════
     # HANDLERS - FALLBACK
@@ -1443,10 +2053,10 @@ class AssistantChatView(APIView):
                 "📚 *My orders* — View your orders\n"
                 "💰 *Pricing* — See printing rates\n"
                 "📍 *Stations* — Find pickup locations\n"
-                "📤 *New order* — Start a print job\n"
+                "📤 *Start order* — Create a new order\n"
                 "📞 *Human* — Talk to a real person\n\n"
                 "What would you like to know?",
-                suggestions=["Help", "My orders", "Pricing", "Human"]
+                suggestions=["Help", "My orders", "Pricing", "Start order", "Human"]
             )
 
         if text_lower in ['yes', 'yep', 'yeah', 'ok', 'okay', 'sure', 'alright']:
@@ -1454,24 +2064,24 @@ class AssistantChatView(APIView):
                 "🎯 *Great!*\n\nWhat would you like to do?\n\n"
                 "• *My orders* — View your orders\n"
                 "• *Pricing* — Check rates\n"
-                "• *New order* — Start printing\n"
+                "• *Start order* — Create a new order\n"
                 "• *Human* — Talk to support\n"
                 "• *Help* — See all commands",
-                suggestions=["My orders", "Pricing", "New order", "Human"]
+                suggestions=["My orders", "Pricing", "Start order", "Human"]
             )
 
         if text_lower in ['no', 'nope', 'nah', 'not now', 'later']:
             return format_response(
                 "👍 No problem. I'm here whenever you need me!\n\n"
                 "Type *Help* to see all commands, or *Human* to talk to support.",
-                suggestions=["Help", "My orders", "Pricing", "Human"]
+                suggestions=["Help", "My orders", "Pricing", "Start order", "Human"]
             )
 
         if text_lower in ['thanks', 'thank you', 'thx', 'thank']:
             return format_response(
                 "🎉 You're welcome! Happy to help.\n\n"
                 "Is there anything else I can assist you with?",
-                suggestions=["My orders", "Pricing", "Help", "Human"]
+                suggestions=["My orders", "Pricing", "Start order", "Help", "Human"]
             )
 
         return format_response(
@@ -1480,10 +2090,10 @@ class AssistantChatView(APIView):
             "📚 *My orders* — View your orders\n"
             "💰 *Pricing* — See printing rates\n"
             "📍 *Stations* — Find pickup locations\n"
-            "📤 *New order* — Start a print job\n"
+            "📤 *Start order* — Create a new order\n"
             "📞 *Human* — Talk to a real person\n\n"
             "Type *Help* for all commands.",
-            suggestions=["Help", "My orders", "Pricing", "New order", "Human"]
+            suggestions=["Help", "My orders", "Pricing", "Start order", "Human"]
         )
 
 
