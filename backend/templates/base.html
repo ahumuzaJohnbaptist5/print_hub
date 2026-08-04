@@ -3,30 +3,60 @@
 <html lang="en" data-theme="dark">
 <head>
    <meta charset="UTF-8">
-   <meta property="og:title" content="PrintHub — Kabale University Printing">
-   <meta property="og:description" content="Upload your documents, pay with MTN or Airtel, and pick up at your nearest campus station. Fast, reliable printing for students.">
-   <meta property="og:image" content="https://printlink.pythonanywhere.com/orders/live-board-preview.png">
+   <meta name="viewport" content="width=device-width, initial-scale=1.0">
+   
+   <!-- ─── PRIMARY SEO TAGS ──────────────────────────────────── -->
+   <title>{% block title %}PrintHub — Kabale University Printing Services{% endblock %}</title>
+   <meta name="description" content="{% block description %}Upload your documents, pay with MTN or Airtel Mobile Money, and pick up at your nearest campus station. Fast, reliable printing for students at Kabale University.{% endblock %}">
+   <meta name="keywords" content="printing, Kabale University, student printing, document upload, MTN payment, Airtel payment, print shop, campus printing, passport photo, document printing, Kabale">
+   <meta name="robots" content="index, follow">
+   <link rel="canonical" href="{{ request.build_absolute_uri }}">
+   <meta name="author" content="PrintHub">
+   
+   <!-- ─── OPEN GRAPH ────────────────────────────────────────── -->
+   <meta property="og:title" content="{% block og_title %}PrintHub — Kabale University Printing Services{% endblock %}">
+   <meta property="og:description" content="{% block og_description %}Upload your documents, pay with MTN or Airtel, and pick up at your nearest campus station. Fast, reliable printing for students.{% endblock %}">
+   <meta property="og:image" content="{% block og_image %}https://www.printhubug.com/orders/live-board-preview.png{% endblock %}">
    <meta property="og:image:width" content="1200">
    <meta property="og:image:height" content="630">
-   <meta property="og:url" content="https://printlink.pythonanywhere.com">
+   <meta property="og:url" content="{{ request.build_absolute_uri }}">
    <meta property="og:type" content="website">
    <meta property="og:site_name" content="PrintHub">
-   <meta name="twitter:card" content="summary_large_image">
-   <meta name="twitter:title" content="PrintHub — Kabale University Printing">
-   <meta name="twitter:description" content="Upload your documents, pay with MTN or Airtel, and pick up at your nearest campus station. Fast, reliable printing for students.">
-   <meta name="twitter:image" content="https://printlink.pythonanywhere.com/orders/live-board-preview.png">
-   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-   <title>{% block title %}PrintHub{% endblock %}</title>
    
+   <!-- ─── TWITTER ───────────────────────────────────────────── -->
+   <meta name="twitter:card" content="summary_large_image">
+   <meta name="twitter:title" content="{% block twitter_title %}PrintHub — Kabale University Printing{% endblock %}">
+   <meta name="twitter:description" content="{% block twitter_description %}Upload your documents, pay with MTN or Airtel, and pick up at your nearest campus station. Fast, reliable printing for students.{% endblock %}">
+   <meta name="twitter:image" content="{% block twitter_image %}https://www.printhubug.com/orders/live-board-preview.png{% endblock %}">
+   
+   <!-- ─── STRUCTURED DATA (JSON-LD) ────────────────────────── -->
+   <script type="application/ld+json">
+   {
+       "@context": "https://schema.org",
+       "@type": "WebSite",
+       "name": "PrintHub",
+       "url": "https://www.printhubug.com",
+       "description": "Fast, reliable printing services for students at Kabale University.",
+       "potentialAction": {
+           "@type": "SearchAction",
+           "target": "https://www.printhubug.com/track/?order_id={search_term_string}",
+           "query-input": "required name=search_term_string"
+       }
+   }
+   </script>
+   
+   <!-- ─── PWA ────────────────────────────────────────────────── -->
    <link rel="manifest" href="/static/manifest.json">
    <meta name="theme-color" content="#0f172a" id="meta-theme-color">
    <meta name="apple-mobile-web-app-capable" content="yes">
    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
    <meta name="apple-mobile-web-app-title" content="PrintHub">
    
+   <!-- ─── ICONS ──────────────────────────────────────────────── -->
    <link rel="icon" type="image/svg+xml" href="{% static 'icon.svg' %}">
    <link rel="apple-touch-icon" href="{% static 'icon.svg' %}">
    
+   <!-- ─── Tailwind ───────────────────────────────────────────── -->
    <script src="https://cdn.tailwindcss.com"></script>
    <script>
        tailwind.config = { darkMode: 'class' };
@@ -38,12 +68,14 @@
            document.getElementById('meta-theme-color').setAttribute('content', saved === 'dark' ? '#0f172a' : '#f8fafc');
        })();
    </script>
+   
    <style>
+       /* Your existing styles... */
        select option { background: #1e293b !important; color: #e2e8f0 !important; }
        .theme-toggle-btn { background: transparent; border: 1px solid #64748b; color: #e2e8f0; width: 36px; height: 36px; border-radius: 50%; cursor: pointer; font-size: 16px; display: flex; align-items: center; justify-content: center; transition: all 0.2s; flex-shrink: 0; }
        .theme-toggle-btn:hover { border-color: #818cf8; color: #818cf8; }
        
-       /* Light theme overrides */
+       /* Light theme overrides (your existing styles) */
        html[data-theme="light"] body { color: #1e293b !important; }
        html[data-theme="light"] .bg-slate-900 { background-color: #f8fafc !important; }
        html[data-theme="light"] .bg-slate-800 { background-color: #ffffff !important; }
@@ -103,6 +135,7 @@
 </head>
 <body class="bg-slate-900 min-h-screen overflow-x-hidden text-white">
 
+    <!-- ===== NAVIGATION ===== -->
     <nav class="bg-slate-800/50 backdrop-blur-md border-b border-white/10 sticky top-0 z-50 relative">
         <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
             <div class="flex justify-between items-center h-16">
@@ -199,6 +232,7 @@
         </div>
     </nav>
 
+    <!-- ===== MESSAGES ===== -->
     {% if messages %}
     <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 mt-4">
         {% for message in messages %}
@@ -207,12 +241,17 @@
     </div>
     {% endif %}
 
+    <!-- ===== MAIN CONTENT ===== -->
     <main class="min-h-[calc(100vh-4rem)]">{% block content %}{% endblock %}</main>
 
+    <!-- ===== FOOTER ===== -->
     <footer class="bg-slate-800/50 backdrop-blur-md border-t border-white/10 mt-20">
-        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8"><p class="text-center text-gray-400 text-sm">&copy; 2026 PrintHub. All rights reserved.</p></div>
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+            <p class="text-center text-gray-400 text-sm">&copy; 2026 PrintHub. All rights reserved.</p>
+        </div>
     </footer>
 
+    <!-- ===== PWA INSTALL BANNER ===== -->
     <div id="pwa-install-banner" class="hidden fixed bottom-0 left-0 right-0 bg-slate-800 border-t border-slate-700 p-4 z-50">
         <div class="max-w-7xl mx-auto flex items-center justify-between">
             <div class="flex items-center gap-3">
@@ -229,7 +268,9 @@
         </div>
     </div>
 
+    <!-- ===== JAVASCRIPT ===== -->
     <script>
+        // ─── THEME TOGGLE ──────────────────────────────────────
         function toggleTheme() {
             const html = document.documentElement;
             const btn = document.getElementById('themeBtn');
@@ -243,11 +284,13 @@
         }
         (function(){document.getElementById('themeBtn').innerHTML=(localStorage.getItem('theme')||'dark')==='dark'?'&#9788;':'&#9790;';})();
         
+        // ─── MOBILE MENU ──────────────────────────────────────
         document.addEventListener('DOMContentLoaded',function(){
             const btn=document.getElementById('mobile-menu-btn'),menu=document.getElementById('mobile-menu'),hi=document.getElementById('hamburger-icon'),ci=document.getElementById('close-icon');
             if(btn)btn.addEventListener('click',function(){menu.classList.toggle('hidden');hi.classList.toggle('hidden');ci.classList.toggle('hidden');});
         });
 
+        // ─── NOTIFICATIONS ────────────────────────────────────
         function playNotificationSound() {
             try {
                 const ctx = new (window.AudioContext || window.webkitAudioContext)();
@@ -272,6 +315,7 @@
         setInterval(fetchNotifications,15000);fetchNotifications();
         document.addEventListener('click',function(e){const b=document.getElementById('notification-bell');if(b&&!b.contains(e.target))document.getElementById('notification-dropdown').classList.add('hidden');});
 
+        // ─── PUSH NOTIFICATIONS ──────────────────────────────
         async function subscribeToPush() {
             try {
                 const data = await fetch('/notifications/api/').then(r => r.json());
@@ -290,6 +334,7 @@
         if ('serviceWorker' in navigator && 'PushManager' in window) { subscribeToPush(); }
         {% endif %}
 
+        // ─── PWA INSTALL ──────────────────────────────────────
         let deferredPrompt;
         window.addEventListener('beforeinstallprompt',(e)=>{e.preventDefault();deferredPrompt=e;document.getElementById('pwa-install-banner').classList.remove('hidden');});
         function installPWA(){if(deferredPrompt){deferredPrompt.prompt();deferredPrompt.userChoice.then(()=>{deferredPrompt=null;document.getElementById('pwa-install-banner').classList.add('hidden');});}}
@@ -298,13 +343,10 @@
         if('serviceWorker' in navigator)navigator.serviceWorker.register('/sw.js');
     </script>
 
-    <!-- ============================================================ -->
-    <!-- ASSISTANT CHAT WIDGET - Clean include (no custom tags needed) -->
-    <!-- ============================================================ -->
+    <!-- ===== ASSISTANT CHAT WIDGET ===== -->
     {% if user.is_authenticated %}
         {% include 'assistant/widget.html' with user=user %}
     {% endif %}
-    <!-- ============================================================ -->
 
     {% block extra_scripts %}{% endblock %}
 </body>
