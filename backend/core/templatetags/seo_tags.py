@@ -1,66 +1,67 @@
-# core/templatetags/seo_tags.py
+# backend/core/templatetags/seo_tags.py
 from django import template
 from django.conf import settings
-from core.seo import MetaTags, SEOGenerator
 
 register = template.Library()
 
 @register.simple_tag(takes_context=True)
 def seo_meta(context):
-    """Generate SEO meta tags for the current page"""
     request = context.get('request')
-    
     if not request:
         return ''
     
-    # Determine page type and get appropriate meta tags
     path = request.path
     
-    page_configs = {
-        '/': MetaTags.HOME,
-        '/upload/': MetaTags.UPLOAD,
-        '/dashboard/': MetaTags.DASHBOARD,
-        '/pricing/': MetaTags.PRICING,
+    # Page-specific meta
+    meta_configs = {
+        '/': {
+            'title': 'PrintHub — Kabale University Printing Services',
+            'description': 'Upload your documents, pay with MTN or Airtel, and pick up at your nearest campus station. Fast, reliable printing for students.',
+        },
+        '/upload/': {
+            'title': 'Upload Documents for Printing — PrintHub',
+            'description': 'Upload PDF, Word, or image files for printing. Quick, affordable printing services for students at Kabale University.',
+        },
+        '/dashboard/': {
+            'title': 'My Orders — PrintHub Dashboard',
+            'description': 'View and track your printing orders. Check status, payment, and pickup details.',
+        },
+        '/track/': {
+            'title': 'Track Your Order — PrintHub',
+            'description': 'Track your printing order status. Enter your order ID or email to check progress.',
+        },
+        '/pricing/': {
+            'title': 'Printing Prices — Affordable Student Printing',
+            'description': 'See our competitive pricing for B&W and color printing. Special rates for students at Kabale University.',
+        },
+        '/stations/': {
+            'title': 'PrintHub Stations — Pickup Locations',
+            'description': 'Find your nearest PrintHub station on campus. View locations and pickup information.',
+        },
     }
     
-    # Get config based on path, or use home as default
-    config = page_configs.get(path, MetaTags.HOME)
+    # Find matching config
+    config = meta_configs.get(path, meta_configs['/'])
     
-    url = request.build_absolute_uri()
-    seo = SEOGenerator.meta_tags(
-        title=config['title'],
-        description=config['description'],
-        keywords=config.get('keywords', []),
-        url=url
-    )
-    
-    # Store JSON-LD in context for later use
-    context['seo_json_ld'] = seo['json_ld']
-    
-    # Build meta tags HTML
     html = f"""
     <!-- Primary Meta Tags -->
-    <title>{seo['title']}</title>
-    <meta name="title" content="{seo['title']}">
-    <meta name="description" content="{seo['description']}">
-    <meta name="keywords" content="{seo['keywords']}">
-    <meta name="robots" content="{seo['robots']}">
-    <link rel="canonical" href="{seo['canonical']}">
+    <title>{config['title']}</title>
+    <meta name="description" content="{config['description']}">
+    <link rel="canonical" href="{request.build_absolute_uri()}">
     
-    <!-- Open Graph / Facebook -->
-    <meta property="og:type" content="{seo['og_type']}">
-    <meta property="og:url" content="{seo['og_url']}">
-    <meta property="og:title" content="{seo['og_title']}">
-    <meta property="og:description" content="{seo['og_description']}">
-    <meta property="og:image" content="{seo['og_image']}">
-    <meta property="og:site_name" content="{seo['og_site_name']}">
+    <!-- Open Graph -->
+    <meta property="og:title" content="{config['title']}">
+    <meta property="og:description" content="{config['description']}">
+    <meta property="og:url" content="{request.build_absolute_uri()}">
+    <meta property="og:type" content="website">
+    <meta property="og:site_name" content="PrintHub">
+    <meta property="og:image" content="https://www.printhubug.com/static/og-image.png">
     
     <!-- Twitter -->
-    <meta property="twitter:card" content="{seo['twitter_card']}">
-    <meta property="twitter:url" content="{seo['og_url']}">
-    <meta property="twitter:title" content="{seo['twitter_title']}">
-    <meta property="twitter:description" content="{seo['twitter_description']}">
-    <meta property="twitter:image" content="{seo['twitter_image']}">
+    <meta name="twitter:card" content="summary_large_image">
+    <meta name="twitter:title" content="{config['title']}">
+    <meta name="twitter:description" content="{config['description']}">
+    <meta name="twitter:image" content="https://www.printhubug.com/static/og-image.png">
     """
     
     return html
