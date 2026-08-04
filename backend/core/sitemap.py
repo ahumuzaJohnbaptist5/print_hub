@@ -41,15 +41,12 @@ class OrderSitemap(Sitemap):
         return obj.updated_at or obj.created_at
 
 
-class StationSitemap(Sitemap):
-    """Sitemap for station pages."""
-    changefreq = "monthly"
-    priority = 0.5
-    
-    def items(self):
-        Station = apps.get_model('stations', 'Station')
-        # ✅ FIXED: Remove 'is_active' - it doesn't exist
-        return Station.objects.all()
-    
-    def lastmod(self, obj):
-        return obj.updated_at or timezone.now()
+# ─── REMOVED: StationSitemap ──────────────────────────────────
+
+
+# ─── SITEMAPS DICTIONARY - Only static and orders ──────────
+sitemaps = {
+    'static': StaticSitemap,
+    'orders': OrderSitemap,
+    # 'stations': StationSitemap,  ← REMOVED
+}
