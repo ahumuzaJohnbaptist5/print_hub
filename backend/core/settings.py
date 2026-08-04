@@ -278,6 +278,7 @@ LOGGING = {
 # ─── SEO ──────────────────────────────────────────────────────
 SITE_URL = os.environ.get('SITE_URL', 'https://www.printhubug.com')
 SITE_NAME = 'PrintHub'
+BASE_URL = SITE_URL
 SITE_DESCRIPTION = 'Fast, reliable printing services for students at University. Upload documents, pay with MTN or Airtel, and pick up at your nearest campus station.'
 
 # ─── SITEMAP ──────────────────────────────────────────────────
