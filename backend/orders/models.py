@@ -434,3 +434,42 @@ class Order(models.Model):
     def __str__(self):
         order_type_display = dict(self.ORDER_TYPE_CHOICES).get(self.order_type, 'Document')
         return f"{order_type_display} Order #{self.id} by {self.client.username}"
+
+
+# backend/orders/models.py - Add this new model
+
+class SupportSettings(models.Model):
+    """Support settings for the chatbot."""
+    support_group_link = models.URLField(
+        max_length=500,
+        blank=True,
+        help_text="WhatsApp group invite link (e.g., https://chat.whatsapp.com/...)"
+    )
+    support_admin_number = models.CharField(
+        max_length=15,
+        blank=True,
+        help_text="Default admin WhatsApp number if no admin found"
+    )
+    support_agent_fallback = models.CharField(
+        max_length=15,
+        blank=True,
+        help_text="Fallback agent WhatsApp number if none assigned"
+    )
+    updated_at = models.DateTimeField(auto_now=True)
+    
+    class Meta:
+        verbose_name = "Support Setting"
+        verbose_name_plural = "Support Settings"
+    
+    def save(self, *args, **kwargs):
+        self.pk = 1
+        super().save(*args, **kwargs)
+    
+    @classmethod
+    def load(cls):
+        obj, created = cls.objects.get_or_create(pk=1)
+        return obj
+
+
+
+
