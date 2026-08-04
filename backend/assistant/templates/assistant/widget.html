@@ -47,7 +47,7 @@
 
             chatWindow = document.createElement('div');
             chatWindow.id = 'assistant-chat-window';
-            chatWindow.className = 'fixed bottom-24 right-6 z-50 w-80 sm:w-96 h-[500px] bg-slate-900 border border-slate-700 rounded-2xl shadow-2xl flex flex-col overflow-hidden transition-all duration-300 transform origin-bottom-right';
+            chatWindow.className = 'fixed bottom-24 right-6 z-50 w-80 sm:w-96 h-[550px] bg-slate-900 border border-slate-700 rounded-2xl shadow-2xl flex flex-col overflow-hidden transition-all duration-300 transform origin-bottom-right';
             chatWindow.style.display = 'none';
             chatWindow.style.opacity = '0';
             chatWindow.style.transform = 'scale(0.9)';
@@ -80,7 +80,7 @@
             // Messages area
             const messages = document.createElement('div');
             messages.id = 'assistant-messages';
-            messages.className = 'flex-1 p-4 overflow-y-auto space-y-4 bg-slate-800/50';
+            messages.className = 'flex-1 p-4 overflow-y-auto space-y-4 bg-slate-800/50 scroll-smooth';
             messages.innerHTML = `
                 <div class="flex gap-2 items-start">
                     <div class="w-8 h-8 rounded-full bg-indigo-600 flex items-center justify-center text-xs font-bold text-white shrink-0">AI</div>
@@ -145,7 +145,6 @@
             // Event listeners
             document.getElementById('assistant-close').addEventListener('click', toggleChat);
 
-            // ─── FORM SUBMIT - THIS IS THE KEY PART ───────────
             const form = document.getElementById('assistant-form');
             const input = document.getElementById('assistant-input');
             form.addEventListener('submit', function(e) {
@@ -154,7 +153,7 @@
                 if (text) {
                     addMessage(text, 'user');
                     input.value = '';
-                    sendToAssistant(text);  // ← CALLS REAL API
+                    sendToAssistant(text);
                 }
             });
 
@@ -163,7 +162,7 @@
                 chip.addEventListener('click', function() {
                     const text = this.dataset.command || this.textContent.trim();
                     addMessage(text, 'user');
-                    sendToAssistant(text);  // ← CALLS REAL API
+                    sendToAssistant(text);
                 });
             });
 
@@ -189,10 +188,7 @@
                 .then(response => response.json())
                 .then(data => {
                     if (data.text) {
-                        addMessage(data.text, 'bot');
-                        if (data.suggestions) {
-                            showSuggestions(data.suggestions);
-                        }
+                        addRichMessage(data, 'bot');
                     }
                 })
                 .catch(() => {
@@ -240,6 +236,8 @@
             }
         }
 
+        // ─── RICH MESSAGE RENDERER ──────────────────────────────
+
         function addMessage(text, sender) {
             const messages = document.getElementById('assistant-messages');
             if (!messages) return;
@@ -268,6 +266,273 @@
             if (chatHistory.length > 20) chatHistory = chatHistory.slice(-20);
         }
 
+        // ─── RICH RESPONSE HANDLER ──────────────────────────────
+
+        function addRichMessage(data, sender) {
+            const messages = document.getElementById('assistant-messages');
+            if (!messages) return;
+
+            const suggestions = document.getElementById('assistant-suggestions');
+            if (suggestions) suggestions.classList.add('hidden');
+
+            const msgDiv = document.createElement('div');
+            msgDiv.className = `flex gap-2 items-start ${sender === 'user' ? 'justify-end' : ''}`;
+
+            let content = '';
+
+            // Check if we have structured data
+            if (data.data && data.data.type) {
+                switch (data.data.type) {
+                    case 'order':
+                        content = renderOrderCard(data.data);
+                        break;
+                    case 'order_list':
+                        content = renderOrderList(data.data);
+                        break;
+                    case 'pricing':
+                        content = renderPricingTable(data.data);
+                        break;
+                    case 'stations':
+                        content = renderStationList(data.data);
+                        break;
+                    case 'user_status':
+                        content = renderStatusCard(data.data);
+                        break;
+                    default:
+                        content = renderText(data.text);
+                }
+            } else {
+                content = renderText(data.text);
+            }
+
+            msgDiv.innerHTML = `
+                <div class="w-8 h-8 rounded-full bg-indigo-600 flex items-center justify-center text-xs font-bold text-white shrink-0">AI</div>
+                <div class="max-w-[85%]">${content}</div>
+            `;
+            messages.appendChild(msgDiv);
+            messages.scrollTop = messages.scrollHeight;
+
+            // Show suggestions if provided
+            if (data.suggestions && data.suggestions.length > 0) {
+                showSuggestions(data.suggestions);
+            }
+        }
+
+        // ─── RENDER FUNCTIONS ────────────────────────────────────
+
+        function renderText(text) {
+            const formatted = text
+                .replace(/\*\*(.*?)\*\*/g, '<strong class="text-white">$1</strong>')
+                .replace(/\|/g, '')
+                .replace(/\n/g, '<br>');
+            return `<div class="bg-slate-700 text-slate-200 p-3 rounded-lg rounded-tl-none text-sm">${formatted}</div>`;
+        }
+
+        function renderOrderCard(order) {
+            const statusColors = {
+                'pending': 'bg-yellow-500/20 text-yellow-400',
+                'paid': 'bg-blue-500/20 text-blue-400',
+                'printing': 'bg-purple-500/20 text-purple-400',
+                'in_transit': 'bg-orange-500/20 text-orange-400',
+                'ready': 'bg-green-500/20 text-green-400',
+                'collected': 'bg-gray-500/20 text-gray-400',
+                'cancelled': 'bg-red-500/20 text-red-400'
+            };
+            const statusColor = statusColors[order.status] || 'bg-gray-500/20 text-gray-400';
+
+            return `
+                <div class="bg-slate-700/50 rounded-xl p-4 border border-slate-600">
+                    <div class="flex justify-between items-start mb-3">
+                        <div>
+                            <span class="text-white font-bold text-sm">Order #${order.id}</span>
+                            <span class="text-gray-400 text-xs ml-2">${order.file_name || 'Document'}</span>
+                        </div>
+                        <span class="px-2 py-0.5 rounded-full text-xs font-semibold ${statusColor}">
+                            ${order.status_display || order.status}
+                        </span>
+                    </div>
+                    <div class="grid grid-cols-2 gap-2 text-xs">
+                        <div>
+                            <span class="text-gray-500">Pages</span>
+                            <span class="text-white block">${order.page_count || 0}</span>
+                        </div>
+                        <div>
+                            <span class="text-gray-500">Total</span>
+                            <span class="text-white block font-bold">${order.total_price || 0} UGX</span>
+                        </div>
+                        ${order.station ? `
+                        <div>
+                            <span class="text-gray-500">Station</span>
+                            <span class="text-white block">${order.station}</span>
+                        </div>
+                        ` : ''}
+                        ${order.time_left ? `
+                        <div>
+                            <span class="text-gray-500">Time Left</span>
+                            <span class="text-white block font-mono">${order.time_left}</span>
+                        </div>
+                        ` : ''}
+                    </div>
+                    ${order.status === 'pending' ? `
+                    <div class="mt-3 pt-3 border-t border-slate-600">
+                        <a href="#" onclick="window.location.href='/orders/${order.id}/payment/'" 
+                           class="block text-center bg-green-600 hover:bg-green-700 text-white text-xs font-bold py-2 rounded-lg transition">💳 Pay Now</a>
+                    </div>
+                    ` : ''}
+                    ${order.status === 'ready' ? `
+                    <div class="mt-3 pt-3 border-t border-slate-600">
+                        <div class="bg-green-500/10 border border-green-500/30 rounded-lg p-2 text-center">
+                            <span class="text-green-400 text-xs font-semibold">✅ Ready for Pickup!</span>
+                        </div>
+                    </div>
+                    ` : ''}
+                    <div class="mt-2 flex gap-2">
+                        <a href="#" onclick="window.location.href='/orders/${order.id}/receipt/'" 
+                           class="flex-1 text-center bg-slate-600 hover:bg-slate-500 text-white text-xs font-medium py-1.5 rounded-lg transition">📄 Receipt</a>
+                        <a href="#" onclick="window.location.href='/track/?order_id=${order.id}'" 
+                           class="flex-1 text-center bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-medium py-1.5 rounded-lg transition">📍 Track</a>
+                    </div>
+                </div>
+            `;
+        }
+
+        function renderOrderList(data) {
+            const orders = data.orders || [];
+            if (orders.length === 0) {
+                return `<div class="bg-slate-700 text-slate-200 p-3 rounded-lg rounded-tl-none text-sm">📭 No orders found.</div>`;
+            }
+
+            let html = `<div class="space-y-2 max-h-60 overflow-y-auto">`;
+            orders.forEach(order => {
+                const statusColors = {
+                    'pending': 'bg-yellow-500/20 text-yellow-400',
+                    'paid': 'bg-blue-500/20 text-blue-400',
+                    'printing': 'bg-purple-500/20 text-purple-400',
+                    'in_transit': 'bg-orange-500/20 text-orange-400',
+                    'ready': 'bg-green-500/20 text-green-400',
+                    'collected': 'bg-gray-500/20 text-gray-400',
+                    'cancelled': 'bg-red-500/20 text-red-400'
+                };
+                const statusColor = statusColors[order.status] || 'bg-gray-500/20 text-gray-400';
+
+                html += `
+                    <div class="bg-slate-700/30 rounded-lg p-3 border border-slate-600/50 cursor-pointer hover:bg-slate-700/50 transition"
+                         onclick="window.location.href='/track/?order_id=${order.id}'">
+                        <div class="flex justify-between items-center">
+                            <span class="text-white font-bold text-sm">#${order.id}</span>
+                            <span class="px-2 py-0.5 rounded-full text-xs font-semibold ${statusColor}">
+                                ${order.status_display || order.status}
+                            </span>
+                        </div>
+                        <div class="flex justify-between text-xs mt-1">
+                            <span class="text-gray-400">${order.file_name || 'Document'}</span>
+                            <span class="text-white font-bold">${order.total_price || 0} UGX</span>
+                        </div>
+                        ${order.station ? `<div class="text-gray-500 text-xs mt-1">📍 ${order.station}</div>` : ''}
+                    </div>
+                `;
+            });
+            html += `</div>`;
+            return html;
+        }
+
+        function renderPricingTable(data) {
+            const prices = data.prices || [];
+            if (prices.length === 0) {
+                return `<div class="bg-slate-700 text-slate-200 p-3 rounded-lg rounded-tl-none text-sm">💰 Pricing information not available.</div>`;
+            }
+
+            let html = `
+                <div class="bg-slate-700/50 rounded-xl p-4 border border-slate-600">
+                    <div class="text-white font-bold text-sm mb-3">💰 Pricing</div>
+                    <div class="space-y-2">
+            `;
+            prices.forEach(item => {
+                html += `
+                    <div class="flex justify-between items-center border-b border-slate-600/50 pb-2">
+                        <span class="text-gray-300 text-sm">${item.name}</span>
+                        <span class="text-white font-bold text-sm">${item.price}</span>
+                    </div>
+                `;
+            });
+            html += `
+                    </div>
+                    ${data.discounts && data.discounts.length > 0 ? `
+                    <div class="mt-3 pt-3 border-t border-slate-600">
+                        <span class="text-green-400 text-xs font-semibold">🎫 Active: ${data.discounts.join(', ')}</span>
+                    </div>
+                    ` : ''}
+                </div>
+            `;
+            return html;
+        }
+
+        function renderStationList(data) {
+            const stations = data.stations || [];
+            if (stations.length === 0) {
+                return `<div class="bg-slate-700 text-slate-200 p-3 rounded-lg rounded-tl-none text-sm">📍 No stations available.</div>`;
+            }
+
+            let html = `
+                <div class="bg-slate-700/50 rounded-xl p-4 border border-slate-600">
+                    <div class="text-white font-bold text-sm mb-3">📍 Stations</div>
+                    <div class="space-y-2">
+            `;
+            stations.forEach(station => {
+                html += `
+                    <div class="flex justify-between items-center bg-slate-700/30 rounded-lg p-2">
+                        <div>
+                            <span class="text-white text-sm font-medium">${station.name}</span>
+                            ${station.active_orders ? `<span class="text-gray-400 text-xs ml-2">${station.active_orders} active</span>` : ''}
+                        </div>
+                        <span class="text-green-400 text-xs">🟢 Open</span>
+                    </div>
+                `;
+            });
+            html += `
+                    </div>
+                </div>
+            `;
+            return html;
+        }
+
+        function renderStatusCard(data) {
+            return `
+                <div class="bg-slate-700/50 rounded-xl p-4 border border-slate-600">
+                    <div class="flex items-center gap-3 mb-3">
+                        <div class="w-12 h-12 bg-indigo-500/20 rounded-full flex items-center justify-center text-white font-bold text-lg">
+                            ${data.name ? data.name.charAt(0).toUpperCase() : 'U'}
+                        </div>
+                        <div>
+                            <div class="text-white font-bold text-sm">${data.name || 'User'}</div>
+                            <div class="text-gray-400 text-xs">${data.email || ''}</div>
+                        </div>
+                    </div>
+                    ${data.stats ? `
+                    <div class="grid grid-cols-2 gap-2 text-xs">
+                        <div class="bg-slate-700/30 rounded-lg p-2 text-center">
+                            <div class="text-gray-500">Orders</div>
+                            <div class="text-white font-bold">${data.stats.total || 0}</div>
+                        </div>
+                        <div class="bg-slate-700/30 rounded-lg p-2 text-center">
+                            <div class="text-gray-500">Pending</div>
+                            <div class="text-yellow-400 font-bold">${data.stats.pending || 0}</div>
+                        </div>
+                        <div class="bg-slate-700/30 rounded-lg p-2 text-center">
+                            <div class="text-gray-500">Ready</div>
+                            <div class="text-green-400 font-bold">${data.stats.ready || 0}</div>
+                        </div>
+                        <div class="bg-slate-700/30 rounded-lg p-2 text-center">
+                            <div class="text-gray-500">Completed</div>
+                            <div class="text-blue-400 font-bold">${data.stats.completed || 0}</div>
+                        </div>
+                    </div>
+                    ` : ''}
+                    ${data.role ? `<div class="mt-2 text-gray-400 text-xs">🎭 ${data.role}</div>` : ''}
+                </div>
+            `;
+        }
+
         function showSuggestions(suggestionsList) {
             const container = document.getElementById('assistant-suggestions');
             if (!container) return;
@@ -293,6 +558,7 @@
         }
 
         // ─── REAL API CALL ──────────────────────────────────────
+
         async function sendToAssistant(message) {
             const typing = document.getElementById('assistant-typing');
             if (typing) typing.classList.remove('hidden');
@@ -315,7 +581,12 @@
                 typing?.classList.add('hidden');
 
                 if (response.ok) {
-                    addMessage(data.text || "I'm not sure how to respond.", 'bot');
+                    // Use rich rendering if data has structure
+                    if (data.data && data.data.type) {
+                        addRichMessage(data, 'bot');
+                    } else {
+                        addMessage(data.text || "I'm not sure how to respond.", 'bot');
+                    }
                     if (data.suggestions) showSuggestions(data.suggestions);
                 } else {
                     addMessage("⚠️ Sorry, I encountered an error.", 'bot');
@@ -341,7 +612,7 @@
             toggleChat();
         });
 
-        console.log('🤖 PrintHub Assistant Widget Loaded');
+        console.log('🎨 PrintHub Assistant Widget Loaded');
     })();
 </script>
 
@@ -352,36 +623,48 @@
         border-color: #334155 !important;
     }
     #assistant-messages {
-        background: #1e293b !important;
+        background: #0f172a !important;
     }
     #assistant-messages .bg-slate-700 {
-        background: #334155 !important;
+        background: #1e293b !important;
         color: #e2e8f0 !important;
     }
     .assistant-chip {
-        background: #334155 !important;
+        background: #1e293b !important;
         color: #e2e8f0 !important;
         border-color: #475569 !important;
     }
     .assistant-chip:hover {
-        background: #475569 !important;
+        background: #334155 !important;
     }
     #assistant-suggestions .suggestion-chip {
-        background: #334155 !important;
-        color: #e2e8f0 !important;
-        border-color: #475569 !important;
-    }
-    #assistant-suggestions .suggestion-chip:hover {
-        background: #475569 !important;
-    }
-    #assistant-form input {
         background: #1e293b !important;
         color: #e2e8f0 !important;
         border-color: #475569 !important;
     }
+    #assistant-suggestions .suggestion-chip:hover {
+        background: #334155 !important;
+    }
+    #assistant-form input {
+        background: #0f172a !important;
+        color: #e2e8f0 !important;
+        border-color: #334155 !important;
+    }
     #assistant-form .p-3 {
         background: #0f172a !important;
         border-color: #334155 !important;
+    }
+
+    /* Scrollbar styling */
+    #assistant-messages::-webkit-scrollbar {
+        width: 4px;
+    }
+    #assistant-messages::-webkit-scrollbar-track {
+        background: transparent;
+    }
+    #assistant-messages::-webkit-scrollbar-thumb {
+        background: #475569;
+        border-radius: 4px;
     }
 
     /* Light theme */
@@ -396,6 +679,10 @@
     html[data-theme="light"] #assistant-messages .bg-slate-700 {
         background: #ffffff !important;
         color: #1e293b !important;
+        border: 1px solid #e2e8f0 !important;
+    }
+    html[data-theme="light"] #assistant-messages .bg-slate-700/50 {
+        background: #f1f5f9 !important;
         border: 1px solid #e2e8f0 !important;
     }
     html[data-theme="light"] .assistant-chip {
@@ -423,6 +710,9 @@
         background: #ffffff !important;
         border-color: #e2e8f0 !important;
     }
+    html[data-theme="light"] #assistant-messages .bg-slate-700/30 {
+        background: #f1f5f9 !important;
+    }
 
     #assistant-suggestions .suggestion-chip {
         animation: fadeInUp 0.2s ease-out;
@@ -430,5 +720,10 @@
     @keyframes fadeInUp {
         from { opacity: 0; transform: translateY(8px); }
         to { opacity: 1; transform: translateY(0); }
+    }
+
+    /* Smooth scrolling for messages */
+    #assistant-messages {
+        scroll-behavior: smooth;
     }
 </style>
