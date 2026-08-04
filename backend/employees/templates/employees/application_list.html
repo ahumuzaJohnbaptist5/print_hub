@@ -1,0 +1,144 @@
+{% extends 'base.html' %}
+{% load humanize %}
+
+{% block title %}Applications - PrintHub Admin{% endblock %}
+
+{% block content %}
+<div class="max-w-7xl mx-auto px-4 py-12">
+    <div class="flex justify-between items-center mb-8">
+        <div>
+            <h1 class="text-3xl font-bold text-white">Applications</h1>
+            <p class="text-gray-400 mt-1">Manage job applications</p>
+        </div>
+    </div>
+    
+    <!-- Stats -->
+    <div class="grid grid-cols-2 md:grid-cols-7 gap-3 mb-8">
+        <div class="bg-slate-800/50 border border-slate-700 rounded-xl p-4 text-center">
+            <p class="text-2xl font-bold text-white">{{ stats.total }}</p>
+            <p class="text-gray-400 text-xs">Total</p>
+        </div>
+        <div class="bg-yellow-500/10 border border-yellow-500/30 rounded-xl p-4 text-center">
+            <p class="text-2xl font-bold text-yellow-400">{{ stats.pending }}</p>
+            <p class="text-gray-400 text-xs">Pending</p>
+        </div>
+        <div class="bg-blue-500/10 border border-blue-500/30 rounded-xl p-4 text-center">
+            <p class="text-2xl font-bold text-blue-400">{{ stats.reviewing }}</p>
+            <p class="text-gray-400 text-xs">Reviewing</p>
+        </div>
+        <div class="bg-purple-500/10 border border-purple-500/30 rounded-xl p-4 text-center">
+            <p class="text-2xl font-bold text-purple-400">{{ stats.shortlisted }}</p>
+            <p class="text-gray-400 text-xs">Shortlisted</p>
+        </div>
+        <div class="bg-orange-500/10 border border-orange-500/30 rounded-xl p-4 text-center">
+            <p class="text-2xl font-bold text-orange-400">{{ stats.interview }}</p>
+            <p class="text-gray-400 text-xs">Interview</p>
+        </div>
+        <div class="bg-green-500/10 border border-green-500/30 rounded-xl p-4 text-center">
+            <p class="text-2xl font-bold text-green-400">{{ stats.accepted }}</p>
+            <p class="text-gray-400 text-xs">Accepted</p>
+        </div>
+        <div class="bg-red-500/10 border border-red-500/30 rounded-xl p-4 text-center">
+            <p class="text-2xl font-bold text-red-400">{{ stats.rejected }}</p>
+            <p class="text-gray-400 text-xs">Rejected</p>
+        </div>
+    </div>
+    
+    <!-- Filters -->
+    <div class="bg-slate-800/50 border border-slate-700 rounded-2xl p-4 mb-6">
+        <form method="GET" class="grid grid-cols-1 md:grid-cols-4 gap-4">
+            <div>
+                <label class="block text-xs text-gray-400 mb-1">Status</label>
+                <select name="status" class="w-full bg-slate-700 border border-slate-600 text-white rounded-lg px-3 py-2 text-sm" onchange="this.form.submit()">
+                    <option value="">All Statuses</option>
+                    {% for value, label in status_choices %}
+                    <option value="{{ value }}" {% if status_filter == value %}selected{% endif %}>{{ label }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div>
+                <label class="block text-xs text-gray-400 mb-1">Position</label>
+                <select name="stage" class="w-full bg-slate-700 border border-slate-600 text-white rounded-lg px-3 py-2 text-sm" onchange="this.form.submit()">
+                    <option value="">All Positions</option>
+                    {% for value, label in stage_choices %}
+                    <option value="{{ value }}" {% if stage_filter == value %}selected{% endif %}>{{ label }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div>
+                <label class="block text-xs text-gray-400 mb-1">Search</label>
+                <input type="text" name="search" value="{{ search }}" placeholder="Name or email..." class="w-full bg-slate-700 border border-slate-600 text-white rounded-lg px-3 py-2 text-sm">
+            </div>
+            <div class="flex items-end gap-2">
+                <button type="submit" class="flex-1 bg-blue-600 hover:bg-blue-700 text-white font-semibold py-2 rounded-lg transition-all">Filter</button>
+                {% if search or status_filter or stage_filter %}
+                <a href="{% url 'employees:application_list' %}" class="bg-slate-600 hover:bg-slate-500 text-white px-3 py-2 rounded-lg transition-all">Clear</a>
+                {% endif %}
+            </div>
+        </form>
+    </div>
+    
+    <!-- Applications Table -->
+    <div class="bg-slate-800/50 border border-slate-700 rounded-2xl overflow-hidden">
+        <div class="overflow-x-auto">
+            <table class="w-full">
+                <thead class="bg-slate-700/50">
+                    <tr>
+                        <th class="px-4 py-3 text-left text-xs font-medium text-gray-300 uppercase">Applicant</th>
+                        <th class="px-4 py-3 text-left text-xs font-medium text-gray-300 uppercase">Position</th>
+                        <th class="px-4 py-3 text-left text-xs font-medium text-gray-300 uppercase">Status</th>
+                        <th class="px-4 py-3 text-left text-xs font-medium text-gray-300 uppercase">Date</th>
+                        <th class="px-4 py-3 text-left text-xs font-medium text-gray-300 uppercase">Actions</th>
+                    </tr>
+                </thead>
+                <tbody class="divide-y divide-slate-700">
+                    {% for app in applications %}
+                    <tr class="hover:bg-slate-700/30 transition">
+                        <td class="px-4 py-3">
+                            <div>
+                                <p class="text-white font-medium">{{ app.first_name }} {{ app.last_name }}</p>
+                                <p class="text-gray-400 text-sm">{{ app.email }}</p>
+                            </div>
+                        </td>
+                        <td class="px-4 py-3 text-gray-300 text-sm">{{ app.get_applied_stage_display }}</td>
+                        <td class="px-4 py-3">
+                            <span class="px-2 py-1 rounded-full text-xs font-semibold
+                                {% if app.status == 'pending' %}bg-yellow-500/20 text-yellow-400
+                                {% elif app.status == 'reviewing' %}bg-blue-500/20 text-blue-400
+                                {% elif app.status == 'shortlisted' %}bg-purple-500/20 text-purple-400
+                                {% elif app.status == 'interview' %}bg-orange-500/20 text-orange-400
+                                {% elif app.status == 'accepted' %}bg-green-500/20 text-green-400
+                                {% elif app.status == 'rejected' %}bg-red-500/20 text-red-400
+                                {% endif %}">
+                                {{ app.get_status_display }}
+                            </span>
+                        </td>
+                        <td class="px-4 py-3 text-gray-400 text-sm">{{ app.created_at|date:"M d, Y" }}</td>
+                        <td class="px-4 py-3">
+                            <a href="{% url 'employees:application_detail' app.id %}" class="text-blue-400 hover:text-blue-300 text-sm">View</a>
+                        </td>
+                    </tr>
+                    {% empty %}
+                    <tr>
+                        <td colspan="5" class="px-4 py-8 text-center text-gray-400">No applications found.</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+    
+    <!-- Pagination -->
+    {% if page_obj.has_other_pages %}
+    <div class="flex justify-center gap-2 mt-6">
+        {% if page_obj.has_previous %}
+        <a href="?page={{ page_obj.previous_page_number }}&status={{ status_filter }}&stage={{ stage_filter }}&search={{ search }}" class="px-4 py-2 bg-slate-700 text-white rounded-lg hover:bg-slate-600">Previous</a>
+        {% endif %}
+        <span class="px-4 py-2 text-gray-400">Page {{ page_obj.number }} of {{ page_obj.paginator.num_pages }}</span>
+        {% if page_obj.has_next %}
+        <a href="?page={{ page_obj.next_page_number }}&status={{ status_filter }}&stage={{ stage_filter }}&search={{ search }}" class="px-4 py-2 bg-slate-700 text-white rounded-lg hover:bg-slate-600">Next</a>
+        {% endif %}
+    </div>
+    {% endif %}
+</div>
+{% endblock %}
