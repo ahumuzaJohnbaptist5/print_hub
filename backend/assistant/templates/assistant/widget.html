@@ -145,6 +145,7 @@
             // Event listeners
             document.getElementById('assistant-close').addEventListener('click', toggleChat);
 
+            // ─── FORM SUBMIT - THIS IS THE KEY PART ───────────
             const form = document.getElementById('assistant-form');
             const input = document.getElementById('assistant-input');
             form.addEventListener('submit', function(e) {
@@ -153,7 +154,7 @@
                 if (text) {
                     addMessage(text, 'user');
                     input.value = '';
-                    sendToAssistant(text);
+                    sendToAssistant(text);  // ← CALLS REAL API
                 }
             });
 
@@ -162,7 +163,7 @@
                 chip.addEventListener('click', function() {
                     const text = this.dataset.command || this.textContent.trim();
                     addMessage(text, 'user');
-                    sendToAssistant(text);
+                    sendToAssistant(text);  // ← CALLS REAL API
                 });
             });
 
@@ -291,9 +292,10 @@
             container.classList.remove('hidden');
         }
 
+        // ─── REAL API CALL ──────────────────────────────────────
         async function sendToAssistant(message) {
             const typing = document.getElementById('assistant-typing');
-            typing?.classList.remove('hidden');
+            if (typing) typing.classList.remove('hidden');
 
             try {
                 const response = await fetch('/api/assistant/chat/', {
