@@ -22,6 +22,32 @@ class AssistantDraft(models.Model):
     # File upload fields
     file = models.FileField(upload_to='assistant_uploads/%Y/%m/%d/', null=True, blank=True)
     file_name = models.CharField(max_length=255, null=True, blank=True)
+
+
+    # backend/assistant/models.py - Add this model
+
+class OrderTemplate(models.Model):
+    """Saved order templates for users."""
+    user = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.CASCADE,
+        related_name='order_templates'
+    )
+    name = models.CharField(max_length=50)
+    pages = models.IntegerField()
+    is_color = models.BooleanField(default=False)
+    is_double_sided = models.BooleanField(default=False)
+    binding = models.CharField(max_length=20, default='none')
+    delivery_type = models.CharField(max_length=20, default='pickup')
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+    
+    class Meta:
+        unique_together = ['user', 'name']
+        ordering = ['-created_at']
+    
+    def __str__(self):
+        return f"{self.user.username} - {self.name}"
     
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
