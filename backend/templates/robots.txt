@@ -1,24 +1,29 @@
-# templates/robots.txt
+# PrintHub Robots.txt
+# https://www.printhubug.com/robots.txt
+
 User-agent: *
 Allow: /
+Allow: /upload/
+Allow: /dashboard/
+Allow: /track/
+Allow: /live-board/
+Allow: /stations/
+Allow: /auth/login/
+Allow: /auth/register/
+
 Disallow: /admin/
 Disallow: /api/
 Disallow: /accounts/
 Disallow: /payments/
 Disallow: /whatsapp/
 Disallow: /webhook/
+Disallow: /notifications/
+Disallow: /finances/
+Disallow: /referrals/
+Disallow: /orders/api/
 
-# Allow Google to crawl important pages
-Allow: /upload/
-Allow: /dashboard/
-Allow: /pricing/
-Allow: /stations/
+# Sitemap
+Sitemap: https://www.printhubug.com/sitemap.xml
 
-# Sitemap location
-Sitemap: {{ sitemap_url }}
-
-# Crawl delay for slower pages
+# Crawl delay
 Crawl-delay: 2
-
-# Host (optional but recommended)
-Host: {{ site_url }}
