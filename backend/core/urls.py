@@ -128,8 +128,7 @@ urlpatterns += [path('notifications/', include('notifications.urls'))]
 urlpatterns += [path('stations/', include('stations.urls'))]
 urlpatterns += [path('referrals/', include('referrals.urls'))]
 
-#employees application
-urlpatterns += [path('employees/', include('employees.urls'))]
+
 
 # Static & Media (Development)
 if settings.DEBUG:
