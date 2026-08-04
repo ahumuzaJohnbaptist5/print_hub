@@ -1,26 +1,25 @@
-# core/sitemap.py
-"""
-Sitemap generation for PrintHub
-"""
+# backend/core/sitemap.py
 from django.contrib.sitemaps import Sitemap
 from django.urls import reverse
 from django.utils import timezone
-from orders.models import Order
-from stations.models import Station
 from django.conf import settings
 
+from orders.models import Order
+from stations.models import Station
+
+
 class StaticSitemap(Sitemap):
-    """Sitemap for static pages"""
+    """Sitemap for static pages."""
     changefreq = "weekly"
     priority = 0.8
     
     def items(self):
         return [
-            ('home', 'home'),
-            ('upload', 'upload'),
-            ('pricing', 'pricing'),
-            ('dashboard', 'dashboard'),
-            ('track_order', 'track_order'),
+            ('home', 'Home'),
+            ('upload', 'Upload Document'),
+            ('dashboard', 'Dashboard'),
+            ('track_order', 'Track Order'),
+            ('live_board', 'Live Board'),
         ]
     
     def location(self, item):
@@ -29,73 +28,75 @@ class StaticSitemap(Sitemap):
     def lastmod(self, item):
         return timezone.now()
 
+
 class OrderSitemap(Sitemap):
-    """Sitemap for order pages"""
+    """Sitemap for order detail pages."""
     changefreq = "daily"
     priority = 0.6
     
     def items(self):
-        # Show recent orders that are public
+        # Show completed or ready orders (not pending/cancelled)
         return Order.objects.filter(
-            status__in=['ready', 'completed'],
-            is_public=True
-        )[:1000]  # Limit for performance
-    
-    def location(self, obj):
-        return f"/orders/{obj.id}/"
+            status__in=['ready', 'collected', 'completed']
+        ).order_by('-created_at')[:500]
     
     def lastmod(self, obj):
         return obj.updated_at or obj.created_at
 
+
 class StationSitemap(Sitemap):
-    """Sitemap for station pages"""
+    """Sitemap for station pages."""
     changefreq = "monthly"
     priority = 0.5
     
     def items(self):
         return Station.objects.filter(is_active=True)
     
-    def location(self, obj):
-        return f"/stations/{obj.id}/"
-    
     def lastmod(self, obj):
         return obj.updated_at or timezone.now()
 
+
 class CombinedSitemap(Sitemap):
-    """Combined sitemap for all pages"""
+    """Combined sitemap for all pages."""
+    changefreq = "weekly"
+    priority = 0.5
     
     def items(self):
-        # Combine all sitemaps
         items = []
         
         # Static pages
         static = StaticSitemap()
-        items.extend(static.items())
+        for item in static.items():
+            items.append(('static', item))
         
-        # Recent orders (limit to 500 for performance)
+        # Recent orders
         orders = Order.objects.filter(
-            status__in=['ready', 'completed']
-        ).order_by('-created_at')[:500]
-        items.extend(orders)
+            status__in=['ready', 'collected', 'completed']
+        ).order_by('-created_at')[:200]
+        for order in orders:
+            items.append(('order', order))
         
         # Stations
         stations = Station.objects.filter(is_active=True)
-        items.extend(stations)
+        for station in stations:
+            items.append(('station', station))
         
         return items
     
     def location(self, obj):
-        if isinstance(obj, tuple):
-            return reverse(obj[0])
-        elif isinstance(obj, Order):
-            return f"/orders/{obj.id}/"
-        elif isinstance(obj, Station):
-            return f"/stations/{obj.id}/"
+        item_type, obj_data = obj
+        if item_type == 'static':
+            return reverse(obj_data[0])
+        elif item_type == 'order':
+            return f"/track/?order_id={obj_data.id}"
+        elif item_type == 'station':
+            return f"/stations/{obj_data.id}/"
         return '/'
     
     def lastmod(self, obj):
-        if isinstance(obj, tuple):
+        item_type, obj_data = obj
+        if item_type == 'static':
             return timezone.now()
-        elif hasattr(obj, 'updated_at'):
-            return obj.updated_at or obj.created_at
+        elif hasattr(obj_data, 'updated_at'):
+            return obj_data.updated_at or obj_data.created_at
         return timezone.now()
