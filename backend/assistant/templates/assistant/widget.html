@@ -1,13 +1,14 @@
 <!-- assistant/templates/assistant/widget.html -->
 <div id="assistant-chat-widget" data-user-id="{{ user.id }}">
-    <!-- Floating Action Button -->
+    <!-- Floating Action Button with Badge -->
     <button id="assistant-toggle" 
-            class="fixed bottom-6 right-6 z-50 w-14 h-14 bg-gradient-to-r from-blue-600 to-indigo-700 hover:from-blue-700 hover:to-indigo-800 text-white rounded-full shadow-lg flex items-center justify-center transition-all hover:scale-105 focus:outline-none focus:ring-4 focus:ring-indigo-500/50"
+            class="fixed bottom-6 right-6 z-50 w-14 h-14 bg-gradient-to-r from-blue-600 to-indigo-700 hover:from-blue-700 hover:to-indigo-800 text-white rounded-full shadow-lg flex items-center justify-center transition-all hover:scale-105 focus:outline-none focus:ring-4 focus:ring-indigo-500/50 group"
             aria-label="Open PrintHub Assistant">
-        <svg class="w-7 h-7" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <svg class="w-7 h-7 group-hover:rotate-12 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 10h.01M12 10h.01M16 10h.01M9 16H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-5l-5 5v-5z"/>
         </svg>
-        <span class="absolute -top-1 -right-1 w-4 h-4 bg-green-400 rounded-full animate-pulse"></span>
+        <span class="absolute -top-1 -right-1 w-4 h-4 bg-green-400 rounded-full animate-pulse ring-2 ring-slate-900"></span>
+        <span id="assistant-unread-badge" class="absolute -top-1 -right-1 w-5 h-5 bg-red-500 text-white text-[10px] font-bold rounded-full flex items-center justify-center hidden">0</span>
     </button>
 </div>
 
@@ -24,6 +25,8 @@
         let isOpen = false;
         let chatWindow = null;
         let chatHistory = [];
+        let unreadCount = 0;
+        let isFirstOpen = true;
 
         // Get CSRF token
         function getCookie(name) {
@@ -42,17 +45,60 @@
         }
         const csrftoken = getCookie('csrftoken');
 
+        // ─── SESSION STORAGE ──────────────────────────────────
+
+        function saveChatHistory() {
+            try {
+                sessionStorage.setItem('assistant_chat_history', JSON.stringify(chatHistory));
+            } catch (e) {}
+        }
+
+        function loadChatHistory() {
+            try {
+                const saved = sessionStorage.getItem('assistant_chat_history');
+                if (saved) {
+                    chatHistory = JSON.parse(saved);
+                    return true;
+                }
+            } catch (e) {}
+            return false;
+        }
+
+        // ─── LINK DETECTION ────────────────────────────────────
+
+        function linkifyText(text) {
+            // URL detection
+            let formatted = text.replace(
+                /(https?:\/\/[^\s]+)/g,
+                '<a href="$1" target="_blank" rel="noopener noreferrer" class="text-blue-400 hover:text-blue-300 underline break-all">$1</a>'
+            );
+            
+            // WhatsApp number detection (wa.me links)
+            formatted = formatted.replace(
+                /(wa\.me\/[^\s]+)/g,
+                '<a href="https://$1" target="_blank" rel="noopener noreferrer" class="text-green-400 hover:text-green-300 underline">$1</a>'
+            );
+            
+            // Phone number detection (simple)
+            formatted = formatted.replace(
+                /(\+?256[0-9]{9})/g,
+                '<a href="tel:$1" class="text-blue-400 hover:text-blue-300 underline">$1</a>'
+            );
+            
+            return formatted;
+        }
+
         function createChatWindow() {
             if (chatWindow) return chatWindow;
 
             chatWindow = document.createElement('div');
             chatWindow.id = 'assistant-chat-window';
-            chatWindow.className = 'fixed bottom-24 right-6 z-50 w-80 sm:w-96 h-[550px] bg-slate-900 border border-slate-700 rounded-2xl shadow-2xl flex flex-col overflow-hidden transition-all duration-300 transform origin-bottom-right';
+            chatWindow.className = 'fixed bottom-24 right-6 z-50 w-80 sm:w-96 h-[560px] bg-slate-900 border border-slate-700 rounded-2xl shadow-2xl flex flex-col overflow-hidden transition-all duration-300 transform origin-bottom-right';
             chatWindow.style.display = 'none';
             chatWindow.style.opacity = '0';
             chatWindow.style.transform = 'scale(0.9)';
 
-            // Header
+            // ─── HEADER ──────────────────────────────────────────
             const header = document.createElement('div');
             header.className = 'bg-gradient-to-r from-blue-600 to-indigo-700 p-4 flex items-center justify-between flex-shrink-0';
             header.innerHTML = `
@@ -66,38 +112,48 @@
                         <h3 class="text-white font-bold text-sm">PrintHub Assistant</h3>
                         <p class="text-blue-200 text-xs flex items-center gap-1">
                             <span class="w-2 h-2 bg-green-400 rounded-full animate-pulse"></span> Online
+                            <span class="text-blue-300/50 mx-1">•</span>
+                            <span class="text-blue-300/70 text-[10px]" id="assistant-time">Now</span>
                         </p>
                     </div>
                 </div>
-                <button id="assistant-close" class="text-white/80 hover:text-white transition">
-                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
-                    </svg>
-                </button>
+                <div class="flex items-center gap-2">
+                    <button id="assistant-minimize" class="text-white/60 hover:text-white transition text-sm hidden sm:block" title="Minimize">
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 12H4"/>
+                        </svg>
+                    </button>
+                    <button id="assistant-close" class="text-white/80 hover:text-white transition">
+                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
+                        </svg>
+                    </button>
+                </div>
             `;
             chatWindow.appendChild(header);
 
-            // Messages area
+            // ─── MESSAGES AREA ──────────────────────────────────
             const messages = document.createElement('div');
             messages.id = 'assistant-messages';
-            messages.className = 'flex-1 p-4 overflow-y-auto space-y-4 bg-slate-800/50 scroll-smooth';
+            messages.className = 'flex-1 p-4 overflow-y-auto space-y-3 bg-slate-800/50 scroll-smooth';
             messages.innerHTML = `
                 <div class="flex gap-2 items-start">
                     <div class="w-8 h-8 rounded-full bg-indigo-600 flex items-center justify-center text-xs font-bold text-white shrink-0">AI</div>
-                    <div class="bg-slate-700 text-slate-200 p-3 rounded-lg rounded-tl-none max-w-[80%] text-sm">
+                    <div class="bg-slate-700 text-slate-200 p-3 rounded-lg rounded-tl-none max-w-[85%] text-sm leading-relaxed">
                         👋 Hi! I'm the PrintHub Assistant. Need help with orders, pricing, or anything else?
                     </div>
                 </div>
-                <div class="flex flex-wrap gap-2 pl-10">
+                <div class="flex flex-wrap gap-1.5 pl-10">
                     <button class="assistant-chip px-3 py-1.5 bg-slate-700 hover:bg-slate-600 text-slate-200 text-xs rounded-full border border-slate-600 transition" data-command="My orders">📚 My orders</button>
                     <button class="assistant-chip px-3 py-1.5 bg-slate-700 hover:bg-slate-600 text-slate-200 text-xs rounded-full border border-slate-600 transition" data-command="Pricing">💰 Pricing</button>
                     <button class="assistant-chip px-3 py-1.5 bg-slate-700 hover:bg-slate-600 text-slate-200 text-xs rounded-full border border-slate-600 transition" data-command="Stations">📍 Stations</button>
-                    <button class="assistant-chip px-3 py-1.5 bg-slate-700 hover:bg-slate-600 text-slate-200 text-xs rounded-full border border-slate-600 transition" data-command="New order">📤 New order</button>
+                    <button class="assistant-chip px-3 py-1.5 bg-slate-700 hover:bg-slate-600 text-slate-200 text-xs rounded-full border border-slate-600 transition" data-command="Start order">📤 Start order</button>
+                    <button class="assistant-chip px-3 py-1.5 bg-slate-700 hover:bg-slate-600 text-slate-200 text-xs rounded-full border border-slate-600 transition" data-command="Human">📞 Human</button>
                 </div>
             `;
             chatWindow.appendChild(messages);
 
-            // Typing indicator
+            // ─── TYPING INDICATOR ──────────────────────────────
             const typing = document.createElement('div');
             typing.id = 'assistant-typing';
             typing.className = 'hidden px-4 py-2 bg-slate-800/50';
@@ -113,13 +169,13 @@
             `;
             chatWindow.appendChild(typing);
 
-            // Suggestions
+            // ─── SUGGESTIONS ────────────────────────────────────
             const suggestions = document.createElement('div');
             suggestions.id = 'assistant-suggestions';
             suggestions.className = 'hidden px-3 py-2 bg-slate-800/50 border-t border-slate-700 flex-shrink-0 flex flex-wrap gap-1.5';
             chatWindow.appendChild(suggestions);
 
-            // Input area
+            // ─── INPUT AREA ─────────────────────────────────────
             const inputArea = document.createElement('div');
             inputArea.className = 'p-3 bg-slate-900 border-t border-slate-700 flex-shrink-0';
             inputArea.innerHTML = `
@@ -137,13 +193,22 @@
                         </svg>
                     </button>
                 </form>
+                <div class="text-[10px] text-gray-500 mt-1 text-center hidden sm:block">
+                    <kbd class="px-1.5 py-0.5 bg-slate-700 rounded">Enter</kbd> to send · <kbd class="px-1.5 py-0.5 bg-slate-700 rounded">Esc</kbd> to close
+                </div>
             `;
             chatWindow.appendChild(inputArea);
 
             document.body.appendChild(chatWindow);
 
-            // Event listeners
+            // ─── EVENT LISTENERS ────────────────────────────────
+
             document.getElementById('assistant-close').addEventListener('click', toggleChat);
+            
+            const minimizeBtn = document.getElementById('assistant-minimize');
+            if (minimizeBtn) {
+                minimizeBtn.addEventListener('click', toggleChat);
+            }
 
             const form = document.getElementById('assistant-form');
             const input = document.getElementById('assistant-input');
@@ -157,7 +222,12 @@
                 }
             });
 
-            // Quick chips
+            document.addEventListener('keydown', function(e) {
+                if (e.key === 'Escape' && isOpen) {
+                    toggleChat();
+                }
+            });
+
             document.querySelectorAll('.assistant-chip').forEach(chip => {
                 chip.addEventListener('click', function() {
                     const text = this.dataset.command || this.textContent.trim();
@@ -166,7 +236,6 @@
                 });
             });
 
-            // File upload
             document.getElementById('assistant-upload-btn').addEventListener('click', function() {
                 document.getElementById('assistant-file-input').click();
             });
@@ -175,7 +244,8 @@
                 const file = e.target.files[0];
                 if (!file) return;
 
-                addMessage(`📤 Uploading ${file.name}...`, 'user');
+                const size = (file.size / 1024).toFixed(1);
+                addMessage(`📤 Uploading ${file.name} (${size} KB)...`, 'user');
 
                 const formData = new FormData();
                 formData.append('file', file);
@@ -198,7 +268,7 @@
                 this.value = '';
             });
 
-            // Theme support
+            // ─── THEME SUPPORT ──────────────────────────────────
             function updateTheme() {
                 const isLight = document.documentElement.getAttribute('data-theme') === 'light';
                 if (chatWindow) {
@@ -215,6 +285,26 @@
             observer.observe(document.documentElement, { attributes: true, attributeFilter: ['data-theme'] });
             updateTheme();
 
+            if (loadChatHistory()) {
+                chatHistory.forEach(msg => {
+                    if (msg.role === 'user') {
+                        addMessage(msg.content, 'user', true);
+                    } else {
+                        addMessage(msg.content, 'bot', true);
+                    }
+                });
+            }
+
+            function updateTime() {
+                const now = new Date();
+                const timeEl = document.getElementById('assistant-time');
+                if (timeEl) {
+                    timeEl.textContent = now.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+                }
+            }
+            updateTime();
+            setInterval(updateTime, 30000);
+
             return chatWindow;
         }
 
@@ -229,6 +319,14 @@
                     window.style.transform = 'scale(1)';
                 }, 10);
                 document.getElementById('assistant-input')?.focus();
+                const badge = document.getElementById('assistant-unread-badge');
+                if (badge) {
+                    badge.classList.add('hidden');
+                    unreadCount = 0;
+                }
+                if (isFirstOpen) {
+                    isFirstOpen = false;
+                }
             } else {
                 window.style.opacity = '0';
                 window.style.transform = 'scale(0.9)';
@@ -236,9 +334,9 @@
             }
         }
 
-        // ─── RICH MESSAGE RENDERER ──────────────────────────────
+        // ─── MESSAGE HANDLER ──────────────────────────────────
 
-        function addMessage(text, sender) {
+        function addMessage(text, sender, silent = false) {
             const messages = document.getElementById('assistant-messages');
             if (!messages) return;
 
@@ -246,24 +344,48 @@
             if (sender === 'user') suggestions?.classList.add('hidden');
 
             const msgDiv = document.createElement('div');
-            msgDiv.className = `flex gap-2 items-start ${sender === 'user' ? 'justify-end' : ''}`;
+            msgDiv.className = `flex gap-2 items-start ${sender === 'user' ? 'justify-end' : ''} animate-fadeIn`;
+
+            const time = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
 
             if (sender === 'bot') {
-                const formatted = text
-                    .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
+                // Clean and linkify text
+                const cleanText = text
+                    .replace(/\*\*(.*?)\*\*/g, '<strong class="text-white">$1</strong>')
                     .replace(/\n/g, '<br>');
+                const linkedText = linkifyText(cleanText);
+                
                 msgDiv.innerHTML = `
-                    <div class="w-8 h-8 rounded-full bg-indigo-600 flex items-center justify-center text-xs font-bold text-white shrink-0">AI</div>
-                    <div class="bg-slate-700 text-slate-200 p-3 rounded-lg rounded-tl-none max-w-[80%] text-sm">${formatted}</div>
+                    <div class="w-8 h-8 rounded-full bg-indigo-600 flex items-center justify-center text-xs font-bold text-white shrink-0 mt-0.5">AI</div>
+                    <div class="max-w-[85%]">
+                        <div class="bg-slate-700 text-slate-200 p-3 rounded-lg rounded-tl-none text-sm leading-relaxed">${linkedText}</div>
+                        <div class="text-[10px] text-gray-500 mt-1">${time}</div>
+                    </div>
                 `;
             } else {
-                msgDiv.innerHTML = `<div class="bg-indigo-600 text-white p-3 rounded-lg rounded-tr-none max-w-[80%] text-sm">${text}</div>`;
+                msgDiv.innerHTML = `
+                    <div class="max-w-[85%]">
+                        <div class="bg-indigo-600 text-white p-3 rounded-lg rounded-tr-none text-sm leading-relaxed">${text}</div>
+                        <div class="text-[10px] text-gray-500 mt-1 text-right">${time}</div>
+                    </div>
+                `;
             }
             messages.appendChild(msgDiv);
             messages.scrollTop = messages.scrollHeight;
 
-            chatHistory.push({ role: sender, content: text });
-            if (chatHistory.length > 20) chatHistory = chatHistory.slice(-20);
+            if (!silent) {
+                chatHistory.push({ role: sender, content: text, time: time });
+                saveChatHistory();
+            }
+
+            if (!isOpen && sender === 'bot') {
+                unreadCount++;
+                const badge = document.getElementById('assistant-unread-badge');
+                if (badge) {
+                    badge.textContent = unreadCount;
+                    badge.classList.remove('hidden');
+                }
+            }
         }
 
         // ─── RICH RESPONSE HANDLER ──────────────────────────────
@@ -276,11 +398,11 @@
             if (suggestions) suggestions.classList.add('hidden');
 
             const msgDiv = document.createElement('div');
-            msgDiv.className = `flex gap-2 items-start ${sender === 'user' ? 'justify-end' : ''}`;
+            msgDiv.className = `flex gap-2 items-start ${sender === 'user' ? 'justify-end' : ''} animate-fadeIn`;
 
             let content = '';
+            const time = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
 
-            // Check if we have structured data
             if (data.data && data.data.type) {
                 switch (data.data.type) {
                     case 'order':
@@ -298,6 +420,15 @@
                     case 'user_status':
                         content = renderStatusCard(data.data);
                         break;
+                    case 'contact':
+                        content = renderContactCard(data.data);
+                        break;
+                    case 'draft_summary':
+                        content = renderDraftSummary(data.data);
+                        break;
+                    case 'welcome':
+                        content = renderWelcomeCard(data.data);
+                        break;
                     default:
                         content = renderText(data.text);
                 }
@@ -306,76 +437,124 @@
             }
 
             msgDiv.innerHTML = `
-                <div class="w-8 h-8 rounded-full bg-indigo-600 flex items-center justify-center text-xs font-bold text-white shrink-0">AI</div>
-                <div class="max-w-[85%]">${content}</div>
+                <div class="w-8 h-8 rounded-full bg-indigo-600 flex items-center justify-center text-xs font-bold text-white shrink-0 mt-0.5">AI</div>
+                <div class="max-w-[85%]">
+                    <div>${content}</div>
+                    <div class="text-[10px] text-gray-500 mt-1">${time}</div>
+                </div>
             `;
             messages.appendChild(msgDiv);
             messages.scrollTop = messages.scrollHeight;
 
-            // Show suggestions if provided
+            chatHistory.push({ role: 'bot', content: data.text || 'Response', time: time });
+            saveChatHistory();
+
             if (data.suggestions && data.suggestions.length > 0) {
                 showSuggestions(data.suggestions);
+            }
+
+            if (!isOpen) {
+                unreadCount++;
+                const badge = document.getElementById('assistant-unread-badge');
+                if (badge) {
+                    badge.textContent = unreadCount;
+                    badge.classList.remove('hidden');
+                }
             }
         }
 
         // ─── RENDER FUNCTIONS ────────────────────────────────────
 
         function renderText(text) {
-            const formatted = text
+            const cleanText = text
                 .replace(/\*\*(.*?)\*\*/g, '<strong class="text-white">$1</strong>')
-                .replace(/\|/g, '')
                 .replace(/\n/g, '<br>');
-            return `<div class="bg-slate-700 text-slate-200 p-3 rounded-lg rounded-tl-none text-sm">${formatted}</div>`;
+            const linkedText = linkifyText(cleanText);
+            return `<div class="bg-slate-700 text-slate-200 p-3 rounded-lg rounded-tl-none text-sm leading-relaxed">${linkedText}</div>`;
+        }
+
+        function renderWelcomeCard(data) {
+            return `
+                <div class="bg-gradient-to-br from-slate-700/50 to-slate-800/50 rounded-xl p-4 border border-slate-600">
+                    <div class="flex items-center gap-3 mb-3">
+                        <div class="w-10 h-10 bg-indigo-500/20 rounded-full flex items-center justify-center text-xl">👋</div>
+                        <div>
+                            <div class="text-white font-bold text-sm">Welcome back!</div>
+                            <div class="text-gray-400 text-xs">${data.name || 'Guest'}</div>
+                        </div>
+                    </div>
+                    ${data.summary ? `
+                    <div class="grid grid-cols-2 gap-2 text-xs">
+                        <div class="bg-slate-700/30 rounded-lg p-2 text-center">
+                            <div class="text-gray-500">Orders</div>
+                            <div class="text-white font-bold">${data.summary.total || 0}</div>
+                        </div>
+                        <div class="bg-slate-700/30 rounded-lg p-2 text-center">
+                            <div class="text-gray-500">Ready</div>
+                            <div class="text-green-400 font-bold">${data.summary.ready || 0}</div>
+                        </div>
+                    </div>
+                    ` : ''}
+                    <div class="mt-3 text-gray-400 text-xs">${data.announcement || ''}</div>
+                </div>
+            `;
         }
 
         function renderOrderCard(order) {
             const statusColors = {
-                'pending': 'bg-yellow-500/20 text-yellow-400',
-                'paid': 'bg-blue-500/20 text-blue-400',
-                'printing': 'bg-purple-500/20 text-purple-400',
-                'in_transit': 'bg-orange-500/20 text-orange-400',
-                'ready': 'bg-green-500/20 text-green-400',
-                'collected': 'bg-gray-500/20 text-gray-400',
-                'cancelled': 'bg-red-500/20 text-red-400'
+                'pending': 'bg-yellow-500/20 text-yellow-400 border-yellow-500/30',
+                'paid': 'bg-blue-500/20 text-blue-400 border-blue-500/30',
+                'printing': 'bg-purple-500/20 text-purple-400 border-purple-500/30',
+                'in_transit': 'bg-orange-500/20 text-orange-400 border-orange-500/30',
+                'ready': 'bg-green-500/20 text-green-400 border-green-500/30',
+                'collected': 'bg-gray-500/20 text-gray-400 border-gray-500/30',
+                'cancelled': 'bg-red-500/20 text-red-400 border-red-500/30'
             };
-            const statusColor = statusColors[order.status] || 'bg-gray-500/20 text-gray-400';
+            const statusColor = statusColors[order.status] || 'bg-gray-500/20 text-gray-400 border-gray-500/30';
+
+            const statusSteps = ['pending', 'paid', 'printing', 'in_transit', 'ready', 'collected'];
+            const currentStep = statusSteps.indexOf(order.status);
+            const progress = currentStep >= 0 ? (currentStep / (statusSteps.length - 1) * 100) : 0;
 
             return `
-                <div class="bg-slate-700/50 rounded-xl p-4 border border-slate-600">
+                <div class="bg-slate-700/50 rounded-xl p-4 border border-slate-600 hover:border-slate-500 transition">
                     <div class="flex justify-between items-start mb-3">
                         <div>
                             <span class="text-white font-bold text-sm">Order #${order.id}</span>
-                            <span class="text-gray-400 text-xs ml-2">${order.file_name || 'Document'}</span>
+                            <span class="text-gray-400 text-xs ml-2 break-all">${order.file_name || 'Document'}</span>
                         </div>
-                        <span class="px-2 py-0.5 rounded-full text-xs font-semibold ${statusColor}">
+                        <span class="px-2 py-0.5 rounded-full text-xs font-semibold ${statusColor} border">
                             ${order.status_display || order.status}
                         </span>
                     </div>
+                    <div class="w-full bg-slate-600 rounded-full h-1.5 mb-3">
+                        <div class="bg-gradient-to-r from-indigo-500 to-purple-500 h-1.5 rounded-full transition-all duration-500" style="width: ${progress}%"></div>
+                    </div>
                     <div class="grid grid-cols-2 gap-2 text-xs">
-                        <div>
+                        <div class="bg-slate-700/30 rounded-lg p-2">
                             <span class="text-gray-500">Pages</span>
-                            <span class="text-white block">${order.page_count || 0}</span>
+                            <span class="text-white block font-medium">${order.page_count || 0}</span>
                         </div>
-                        <div>
+                        <div class="bg-slate-700/30 rounded-lg p-2">
                             <span class="text-gray-500">Total</span>
-                            <span class="text-white block font-bold">${order.total_price || 0} UGX</span>
+                            <span class="text-green-400 block font-bold">${order.total_price || 0} UGX</span>
                         </div>
                         ${order.station ? `
-                        <div>
-                            <span class="text-gray-500">Station</span>
-                            <span class="text-white block">${order.station}</span>
+                        <div class="bg-slate-700/30 rounded-lg p-2 col-span-2">
+                            <span class="text-gray-500">📍 Station</span>
+                            <span class="text-white block font-medium">${order.station}</span>
                         </div>
                         ` : ''}
                         ${order.time_left ? `
-                        <div>
-                            <span class="text-gray-500">Time Left</span>
+                        <div class="bg-slate-700/30 rounded-lg p-2 col-span-2">
+                            <span class="text-gray-500">⏱ Time Left</span>
                             <span class="text-white block font-mono">${order.time_left}</span>
                         </div>
                         ` : ''}
                     </div>
                     ${order.status === 'pending' ? `
                     <div class="mt-3 pt-3 border-t border-slate-600">
-                        <a href="#" onclick="window.location.href='/orders/${order.id}/payment/'" 
+                        <a href="/orders/${order.id}/payment/" 
                            class="block text-center bg-green-600 hover:bg-green-700 text-white text-xs font-bold py-2 rounded-lg transition">💳 Pay Now</a>
                     </div>
                     ` : ''}
@@ -387,10 +566,14 @@
                     </div>
                     ` : ''}
                     <div class="mt-2 flex gap-2">
-                        <a href="#" onclick="window.location.href='/orders/${order.id}/receipt/'" 
-                           class="flex-1 text-center bg-slate-600 hover:bg-slate-500 text-white text-xs font-medium py-1.5 rounded-lg transition">📄 Receipt</a>
-                        <a href="#" onclick="window.location.href='/track/?order_id=${order.id}'" 
-                           class="flex-1 text-center bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-medium py-1.5 rounded-lg transition">📍 Track</a>
+                        <a href="/orders/${order.id}/receipt/" 
+                           class="flex-1 text-center bg-slate-600 hover:bg-slate-500 text-white text-[10px] font-medium py-1.5 rounded-lg transition">📄 Receipt</a>
+                        <a href="/track/?order_id=${order.id}" 
+                           class="flex-1 text-center bg-indigo-600 hover:bg-indigo-500 text-white text-[10px] font-medium py-1.5 rounded-lg transition">📍 Track</a>
+                        ${order.status === 'pending' || order.status === 'paid' ? `
+                        <a href="/orders/${order.id}/cancel/" 
+                           class="flex-1 text-center bg-red-600/50 hover:bg-red-600 text-white text-[10px] font-medium py-1.5 rounded-lg transition">✕ Cancel</a>
+                        ` : ''}
                     </div>
                 </div>
             `;
@@ -399,10 +582,10 @@
         function renderOrderList(data) {
             const orders = data.orders || [];
             if (orders.length === 0) {
-                return `<div class="bg-slate-700 text-slate-200 p-3 rounded-lg rounded-tl-none text-sm">📭 No orders found.</div>`;
+                return `<div class="bg-slate-700 text-slate-200 p-3 rounded-lg rounded-tl-none text-sm leading-relaxed">📭 No orders found.</div>`;
             }
 
-            let html = `<div class="space-y-2 max-h-60 overflow-y-auto">`;
+            let html = `<div class="space-y-2 max-h-60 overflow-y-auto pr-1">`;
             orders.forEach(order => {
                 const statusColors = {
                     'pending': 'bg-yellow-500/20 text-yellow-400',
@@ -420,15 +603,21 @@
                          onclick="window.location.href='/track/?order_id=${order.id}'">
                         <div class="flex justify-between items-center">
                             <span class="text-white font-bold text-sm">#${order.id}</span>
-                            <span class="px-2 py-0.5 rounded-full text-xs font-semibold ${statusColor}">
+                            <span class="px-2 py-0.5 rounded-full text-[10px] font-semibold ${statusColor} border border-transparent">
                                 ${order.status_display || order.status}
                             </span>
                         </div>
                         <div class="flex justify-between text-xs mt-1">
-                            <span class="text-gray-400">${order.file_name || 'Document'}</span>
+                            <span class="text-gray-400 truncate max-w-[120px]">${order.file_name || 'Document'}</span>
                             <span class="text-white font-bold">${order.total_price || 0} UGX</span>
                         </div>
                         ${order.station ? `<div class="text-gray-500 text-xs mt-1">📍 ${order.station}</div>` : ''}
+                        <div class="flex gap-2 mt-2">
+                            <button onclick="event.stopPropagation(); window.location.href='/orders/${order.id}/receipt/'" 
+                                    class="flex-1 text-center bg-slate-600 hover:bg-slate-500 text-white text-[10px] font-medium py-1 rounded transition">Receipt</button>
+                            <button onclick="event.stopPropagation(); window.location.href='/track/?order_id=${order.id}'" 
+                                    class="flex-1 text-center bg-indigo-600 hover:bg-indigo-500 text-white text-[10px] font-medium py-1 rounded transition">Track</button>
+                        </div>
                     </div>
                 `;
             });
@@ -439,17 +628,17 @@
         function renderPricingTable(data) {
             const prices = data.prices || [];
             if (prices.length === 0) {
-                return `<div class="bg-slate-700 text-slate-200 p-3 rounded-lg rounded-tl-none text-sm">💰 Pricing information not available.</div>`;
+                return `<div class="bg-slate-700 text-slate-200 p-3 rounded-lg rounded-tl-none text-sm leading-relaxed">💰 Pricing information not available.</div>`;
             }
 
             let html = `
                 <div class="bg-slate-700/50 rounded-xl p-4 border border-slate-600">
                     <div class="text-white font-bold text-sm mb-3">💰 Pricing</div>
-                    <div class="space-y-2">
+                    <div class="space-y-1.5">
             `;
             prices.forEach(item => {
                 html += `
-                    <div class="flex justify-between items-center border-b border-slate-600/50 pb-2">
+                    <div class="flex justify-between items-center border-b border-slate-600/30 pb-1.5">
                         <span class="text-gray-300 text-sm">${item.name}</span>
                         <span class="text-white font-bold text-sm">${item.price}</span>
                     </div>
@@ -470,7 +659,7 @@
         function renderStationList(data) {
             const stations = data.stations || [];
             if (stations.length === 0) {
-                return `<div class="bg-slate-700 text-slate-200 p-3 rounded-lg rounded-tl-none text-sm">📍 No stations available.</div>`;
+                return `<div class="bg-slate-700 text-slate-200 p-3 rounded-lg rounded-tl-none text-sm leading-relaxed">📍 No stations available.</div>`;
             }
 
             let html = `
@@ -480,7 +669,7 @@
             `;
             stations.forEach(station => {
                 html += `
-                    <div class="flex justify-between items-center bg-slate-700/30 rounded-lg p-2">
+                    <div class="flex justify-between items-center bg-slate-700/30 rounded-lg p-2.5">
                         <div>
                             <span class="text-white text-sm font-medium">${station.name}</span>
                             ${station.active_orders ? `<span class="text-gray-400 text-xs ml-2">${station.active_orders} active</span>` : ''}
@@ -500,7 +689,7 @@
             return `
                 <div class="bg-slate-700/50 rounded-xl p-4 border border-slate-600">
                     <div class="flex items-center gap-3 mb-3">
-                        <div class="w-12 h-12 bg-indigo-500/20 rounded-full flex items-center justify-center text-white font-bold text-lg">
+                        <div class="w-12 h-12 bg-gradient-to-br from-indigo-500 to-purple-500 rounded-full flex items-center justify-center text-white font-bold text-lg">
                             ${data.name ? data.name.charAt(0).toUpperCase() : 'U'}
                         </div>
                         <div>
@@ -533,6 +722,101 @@
             `;
         }
 
+        function renderContactCard(data) {
+            const number = data.whatsapp_number || '+256791046296';
+            const link = data.whatsapp_link || `https://wa.me/${number.replace('+', '')}`;
+            const name = data.name || 'PrintHub Support';
+            const type = data.contact_type || 'support';
+            
+            const icon = type === 'agent' ? '🏢' : '👤';
+            const label = type === 'agent' ? 'Station Agent' : 'Support Team';
+            
+            return `
+                <div class="bg-slate-700/50 rounded-xl p-4 border border-slate-600">
+                    <div class="flex items-center gap-3 mb-3">
+                        <div class="w-10 h-10 bg-green-500/20 rounded-full flex items-center justify-center text-xl">${icon}</div>
+                        <div>
+                            <div class="text-white font-bold text-sm">${label}</div>
+                            <div class="text-gray-400 text-xs">${name}</div>
+                        </div>
+                    </div>
+                    ${data.station ? `<div class="text-gray-400 text-xs mb-2">📍 ${data.station}</div>` : ''}
+                    <div class="bg-slate-700/30 rounded-lg p-3 mb-3">
+                        <div class="text-gray-400 text-xs">WhatsApp</div>
+                        <a href="tel:${number}" class="text-white font-mono text-sm hover:text-green-400 transition">${number}</a>
+                    </div>
+                    <a href="${link}" target="_blank" rel="noopener noreferrer"
+                       class="block text-center bg-green-600 hover:bg-green-700 text-white font-bold py-2.5 rounded-xl transition transform hover:scale-[1.02]">
+                        💬 Open WhatsApp
+                    </a>
+                    <div class="flex justify-center gap-4 mt-2 text-gray-500 text-[10px]">
+                        <span>⏰ Response: 5-30 min</span>
+                        <span>🟢 Online</span>
+                    </div>
+                </div>
+            `;
+        }
+
+        function renderDraftSummary(data) {
+            const draft = data.draft || {};
+            const hasFile = draft.has_file || false;
+            
+            return `
+                <div class="bg-slate-700/50 rounded-xl p-4 border border-slate-600">
+                    <div class="flex items-center gap-2 mb-3">
+                        <span class="text-lg">📝</span>
+                        <span class="text-white font-bold text-sm">Your Draft</span>
+                        ${hasFile ? '<span class="px-2 py-0.5 bg-green-500/20 text-green-400 text-[10px] rounded-full border border-green-500/30">✅ File ready</span>' : '<span class="px-2 py-0.5 bg-yellow-500/20 text-yellow-400 text-[10px] rounded-full border border-yellow-500/30">⚠️ No file</span>'}
+                    </div>
+                    
+                    <div class="grid grid-cols-2 gap-2 text-sm">
+                        <div class="bg-slate-700/30 rounded-lg p-2">
+                            <span class="text-gray-500 text-[10px]">Pages</span>
+                            <div class="text-white font-bold">${draft.pages || '--'}</div>
+                        </div>
+                        <div class="bg-slate-700/30 rounded-lg p-2">
+                            <span class="text-gray-500 text-[10px]">Type</span>
+                            <div class="text-white">${draft.is_color ? '🎨 Color' : '⚫ B&W'}</div>
+                        </div>
+                        <div class="bg-slate-700/30 rounded-lg p-2">
+                            <span class="text-gray-500 text-[10px]">Sides</span>
+                            <div class="text-white">${draft.is_double_sided ? 'Double' : 'Single'}</div>
+                        </div>
+                        <div class="bg-slate-700/30 rounded-lg p-2">
+                            <span class="text-gray-500 text-[10px]">Binding</span>
+                            <div class="text-white">${draft.binding ? draft.binding.title() : 'None'}</div>
+                        </div>
+                        ${draft.station ? `
+                        <div class="bg-slate-700/30 rounded-lg p-2 col-span-2">
+                            <span class="text-gray-500 text-[10px]">Station</span>
+                            <div class="text-white">${draft.station}</div>
+                        </div>
+                        ` : ''}
+                        <div class="bg-slate-700/30 rounded-lg p-2 col-span-2">
+                            <span class="text-gray-500 text-[10px]">Estimated Total</span>
+                            <div class="text-green-400 font-bold">${draft.total ? draft.total.toLocaleString() + ' UGX' : '--'}</div>
+                        </div>
+                    </div>
+                    
+                    ${!hasFile ? `
+                    <div class="mt-3 pt-3 border-t border-slate-600">
+                        <button onclick="document.getElementById('assistant-file-input').click()" 
+                                class="w-full bg-indigo-600 hover:bg-indigo-700 text-white text-sm font-bold py-2 rounded-lg transition">
+                            📎 Upload File
+                        </button>
+                    </div>
+                    ` : `
+                    <div class="mt-3 pt-3 border-t border-slate-600 flex gap-2">
+                        <button onclick="window.location.href='/upload/'" 
+                                class="flex-1 bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-bold py-2 rounded-lg transition">📤 Go to Upload</button>
+                        <button onclick="window.location.href='/track/?order_id=' + document.querySelector('[data-order-id]')?.dataset?.orderId || ''" 
+                                class="flex-1 bg-slate-600 hover:bg-slate-500 text-white text-xs font-bold py-2 rounded-lg transition">📍 Track</button>
+                    </div>
+                    `}
+                </div>
+            `;
+        }
+
         function showSuggestions(suggestionsList) {
             const container = document.getElementById('assistant-suggestions');
             if (!container) return;
@@ -542,9 +826,12 @@
                 return;
             }
 
-            container.innerHTML = suggestionsList.map(s =>
-                `<button class="suggestion-chip px-3 py-1.5 bg-slate-700 hover:bg-slate-600 text-slate-200 text-xs rounded-full border border-slate-600 transition">${s}</button>`
-            ).join('');
+            container.innerHTML = suggestionsList.map(s => {
+                if (s === 'Open WhatsApp' || s.includes('WhatsApp')) {
+                    return `<button class="suggestion-chip px-3 py-1.5 bg-green-600 hover:bg-green-700 text-white text-xs rounded-full border border-green-500 transition font-medium">💬 ${s}</button>`;
+                }
+                return `<button class="suggestion-chip px-3 py-1.5 bg-slate-700 hover:bg-slate-600 text-slate-200 text-xs rounded-full border border-slate-600 transition">${s}</button>`;
+            }).join('');
 
             container.querySelectorAll('.suggestion-chip').forEach(chip => {
                 chip.addEventListener('click', function() {
@@ -581,7 +868,6 @@
                 typing?.classList.add('hidden');
 
                 if (response.ok) {
-                    // Use rich rendering if data has structure
                     if (data.data && data.data.type) {
                         addRichMessage(data, 'bot');
                     } else {
@@ -589,7 +875,7 @@
                     }
                     if (data.suggestions) showSuggestions(data.suggestions);
                 } else {
-                    addMessage("⚠️ Sorry, I encountered an error.", 'bot');
+                    addMessage("⚠️ Sorry, I encountered an error. Please try again.", 'bot');
                 }
             } catch (error) {
                 typing?.classList.add('hidden');
@@ -598,7 +884,8 @@
             }
         }
 
-        // Click outside to close
+        // ─── CLOSE ON OUTSIDE CLICK ─────────────────────────────
+
         document.addEventListener('click', function(e) {
             if (isOpen && chatWindow) {
                 if (!chatWindow.contains(e.target) && e.target !== toggleBtn && !toggleBtn.contains(e.target)) {
@@ -613,11 +900,26 @@
         });
 
         console.log('🎨 PrintHub Assistant Widget Loaded');
+        console.log('📋 Commands: Help, My orders, Track #id, Pricing, Stations, Start order, Human, Templates');
+        
+        // ─── ADD ANIMATION STYLES ──────────────────────────────
+        const style = document.createElement('style');
+        style.textContent = `
+            @keyframes fadeIn {
+                from { opacity: 0; transform: translateY(6px); }
+                to { opacity: 1; transform: translateY(0); }
+            }
+            .animate-fadeIn {
+                animation: fadeIn 0.25s ease-out;
+            }
+        `;
+        document.head.appendChild(style);
+        
     })();
 </script>
 
 <style>
-    /* Dark theme default */
+    /* ─── DARK THEME ─────────────────────────────────────────── */
     #assistant-chat-window {
         background: #1e293b !important;
         border-color: #334155 !important;
@@ -650,24 +952,15 @@
         color: #e2e8f0 !important;
         border-color: #334155 !important;
     }
+    #assistant-form input::placeholder {
+        color: #64748b !important;
+    }
     #assistant-form .p-3 {
         background: #0f172a !important;
         border-color: #334155 !important;
     }
 
-    /* Scrollbar styling */
-    #assistant-messages::-webkit-scrollbar {
-        width: 4px;
-    }
-    #assistant-messages::-webkit-scrollbar-track {
-        background: transparent;
-    }
-    #assistant-messages::-webkit-scrollbar-thumb {
-        background: #475569;
-        border-radius: 4px;
-    }
-
-    /* Light theme */
+    /* ─── LIGHT THEME ─────────────────────────────────────────── */
     html[data-theme="light"] #assistant-chat-window {
         background: #ffffff !important;
         border-color: #cbd5e1 !important;
@@ -684,6 +977,9 @@
     html[data-theme="light"] #assistant-messages .bg-slate-700/50 {
         background: #f1f5f9 !important;
         border: 1px solid #e2e8f0 !important;
+    }
+    html[data-theme="light"] #assistant-messages .bg-slate-700/30 {
+        background: #f1f5f9 !important;
     }
     html[data-theme="light"] .assistant-chip {
         background: #f1f5f9 !important;
@@ -706,6 +1002,9 @@
         color: #1e293b !important;
         border-color: #cbd5e1 !important;
     }
+    html[data-theme="light"] #assistant-form input::placeholder {
+        color: #94a3b8 !important;
+    }
     html[data-theme="light"] #assistant-form .p-3 {
         background: #ffffff !important;
         border-color: #e2e8f0 !important;
@@ -713,17 +1012,129 @@
     html[data-theme="light"] #assistant-messages .bg-slate-700/30 {
         background: #f1f5f9 !important;
     }
+    html[data-theme="light"] a.text-blue-400 {
+        color: #2563eb !important;
+    }
+    html[data-theme="light"] a.text-blue-400:hover {
+        color: #1d4ed8 !important;
+    }
+    html[data-theme="light"] a.text-green-400 {
+        color: #16a34a !important;
+    }
+    html[data-theme="light"] a.text-green-400:hover {
+        color: #15803d !important;
+    }
+    html[data-theme="light"] .text-white {
+        color: #1e293b !important;
+    }
+    html[data-theme="light"] .text-gray-400 {
+        color: #64748b !important;
+    }
+    html[data-theme="light"] .text-gray-500 {
+        color: #94a3b8 !important;
+    }
+    html[data-theme="light"] .text-gray-300 {
+        color: #475569 !important;
+    }
+    html[data-theme="light"] .bg-slate-700/50 {
+        background: #f1f5f9 !important;
+    }
+    html[data-theme="light"] .bg-slate-700/30 {
+        background: #f1f5f9 !important;
+    }
+    html[data-theme="light"] .bg-slate-700 {
+        background: #f1f5f9 !important;
+    }
+    html[data-theme="light"] .border-slate-600 {
+        border-color: #e2e8f0 !important;
+    }
+    html[data-theme="light"] .border-slate-700 {
+        border-color: #e2e8f0 !important;
+    }
 
+    /* ─── ANIMATIONS ──────────────────────────────────────────── */
     #assistant-suggestions .suggestion-chip {
         animation: fadeInUp 0.2s ease-out;
     }
     @keyframes fadeInUp {
-        from { opacity: 0; transform: translateY(8px); }
+        from { opacity: 0; transform: translateY(6px); }
         to { opacity: 1; transform: translateY(0); }
     }
 
-    /* Smooth scrolling for messages */
+    /* ─── SCROLLBAR ───────────────────────────────────────────── */
+    #assistant-messages::-webkit-scrollbar {
+        width: 4px;
+    }
+    #assistant-messages::-webkit-scrollbar-track {
+        background: transparent;
+    }
+    #assistant-messages::-webkit-scrollbar-thumb {
+        background: #475569;
+        border-radius: 4px;
+    }
+    html[data-theme="light"] #assistant-messages::-webkit-scrollbar-thumb {
+        background: #cbd5e1;
+    }
+
+    /* ─── SMOOTH SCROLLING ────────────────────────────────────── */
     #assistant-messages {
         scroll-behavior: smooth;
+    }
+
+    /* ─── KEYBOARD SHORTCUT HINT ─────────────────────────────── */
+    kbd {
+        font-family: inherit;
+        background: #334155;
+        padding: 0 6px;
+        border-radius: 3px;
+        font-size: 9px;
+        color: #e2e8f0;
+    }
+    html[data-theme="light"] kbd {
+        background: #e2e8f0;
+        color: #1e293b;
+    }
+
+    /* ─── LINK STYLES ─────────────────────────────────────────── */
+    a {
+        word-break: break-word;
+    }
+    a.text-blue-400 {
+        color: #60a5fa;
+    }
+    a.text-blue-400:hover {
+        color: #93c5fd;
+        text-decoration: underline;
+    }
+    a.text-green-400 {
+        color: #4ade80;
+    }
+    a.text-green-400:hover {
+        color: #86efac;
+        text-decoration: underline;
+    }
+    html[data-theme="light"] a.text-blue-400 {
+        color: #2563eb;
+    }
+    html[data-theme="light"] a.text-blue-400:hover {
+        color: #1d4ed8;
+    }
+    html[data-theme="light"] a.text-green-400 {
+        color: #16a34a;
+    }
+    html[data-theme="light"] a.text-green-400:hover {
+        color: #15803d;
+    }
+
+    /* ─── CODE / MONO SPACE ──────────────────────────────────── */
+    code, .font-mono {
+        font-family: 'Courier New', monospace;
+        background: #1e293b;
+        padding: 0 4px;
+        border-radius: 3px;
+        font-size: 0.85em;
+    }
+    html[data-theme="light"] code, html[data-theme="light"] .font-mono {
+        background: #e2e8f0;
     }
 </style>
