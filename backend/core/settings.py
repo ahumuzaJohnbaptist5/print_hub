@@ -47,6 +47,7 @@ INSTALLED_APPS = [
     'whatsapp_bot',
     'referrals',
     'assistant',
+    'employees',
 ]
 
 MIDDLEWARE = [
