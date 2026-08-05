@@ -67,12 +67,10 @@
 
 <!-- ─── HERO SECTION ────────────────────────────────────────── -->
 <section class="relative overflow-hidden pt-8 pb-16">
-    <!-- Background gradient -->
     <div class="absolute inset-0 bg-gradient-to-br from-blue-600/10 via-indigo-600/5 to-purple-600/10"></div>
     
     <div class="max-w-6xl mx-auto px-4 relative">
         <div class="flex flex-col lg:flex-row items-center gap-12">
-            <!-- Left Content -->
             <div class="flex-1 text-center lg:text-left">
                 <div class="inline-block bg-blue-500/20 border border-blue-500/30 rounded-full px-4 py-1 text-xs text-blue-400 font-medium mb-4">
                     🖨️ Kabale's Trusted Printing Service
@@ -86,25 +84,12 @@
                     Most orders ready in <span class="text-white font-semibold">2 hours</span>.
                 </p>
                 <div class="flex flex-wrap gap-4 justify-center lg:justify-start">
-                    <a href="{% url 'upload' %}" 
-                       class="inline-flex items-center gap-2 bg-blue-600 hover:bg-blue-700 text-white font-bold px-8 py-4 rounded-xl transition transform hover:scale-105">
-                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/>
-                        </svg>
-                        Start Printing
-                    </a>
-                    <a href="#apply" 
-                       class="inline-flex items-center gap-2 bg-green-600 hover:bg-green-700 text-white font-bold px-8 py-4 rounded-xl transition transform hover:scale-105">
-                        📝 Apply Now
-                    </a>
-                    <a href="#how-it-works" 
-                       class="inline-flex items-center gap-2 bg-slate-700 hover:bg-slate-600 text-white font-bold px-8 py-4 rounded-xl transition">
-                        Learn More ↓
-                    </a>
+                    <a href="{% url 'upload' %}" class="inline-flex items-center gap-2 bg-blue-600 hover:bg-blue-700 text-white font-bold px-8 py-4 rounded-xl transition transform hover:scale-105">Start Printing</a>
+                    <a href="#apply" class="inline-flex items-center gap-2 bg-green-600 hover:bg-green-700 text-white font-bold px-8 py-4 rounded-xl transition transform hover:scale-105">📝 Apply Now</a>
+                    <a href="#how-it-works" class="inline-flex items-center gap-2 bg-slate-700 hover:bg-slate-600 text-white font-bold px-8 py-4 rounded-xl transition">Learn More ↓</a>
                 </div>
             </div>
             
-            <!-- Right Content - Stats -->
             <div class="flex-1 grid grid-cols-2 gap-4 max-w-md mx-auto lg:mx-0">
                 <div class="bg-slate-800/50 border border-slate-700 rounded-2xl p-6 text-center hover:border-blue-500/50 transition">
                     <p class="text-3xl font-bold text-white">2</p>
@@ -115,8 +100,8 @@
                     <p class="text-gray-400 text-sm">Orders Completed</p>
                 </div>
                 <div class="bg-slate-800/50 border border-slate-700 rounded-2xl p-6 text-center hover:border-blue-500/50 transition">
-                    <p class="text-3xl font-bold text-white">4</p>
-                    <p class="text-gray-400 text-sm">Stations</p>
+                    <p class="text-3xl font-bold text-white">3</p>
+                    <p class="text-gray-400 text-sm">Campus Stations</p>
                 </div>
                 <div class="bg-slate-800/50 border border-slate-700 rounded-2xl p-6 text-center hover:border-blue-500/50 transition">
                     <p class="text-3xl font-bold text-white">10%</p>
@@ -142,23 +127,17 @@
             <div class="bg-slate-800/50 border border-slate-700 rounded-2xl p-6 text-center hover:border-blue-500/50 transition">
                 <div class="text-4xl mb-3">🎯</div>
                 <h3 class="text-white font-bold text-lg mb-2">Our Mission</h3>
-                <p class="text-gray-400 text-sm">
-                    To provide fast, reliable, and affordable printing services to students at Kabale University.
-                </p>
+                <p class="text-gray-400 text-sm">To provide fast, reliable, and affordable printing services to students at Kabale University.</p>
             </div>
             <div class="bg-slate-800/50 border border-slate-700 rounded-2xl p-6 text-center hover:border-blue-500/50 transition">
                 <div class="text-4xl mb-3">👥</div>
                 <h3 class="text-white font-bold text-lg mb-2">Who We Serve</h3>
-                <p class="text-gray-400 text-sm">
-                    Students, lecturers, and residents in Kabale who need quality printing services.
-                </p>
+                <p class="text-gray-400 text-sm">Students, lecturers, and residents in Kabale who need quality printing services.</p>
             </div>
             <div class="bg-slate-800/50 border border-slate-700 rounded-2xl p-6 text-center hover:border-blue-500/50 transition">
                 <div class="text-4xl mb-3">🏆</div>
                 <h3 class="text-white font-bold text-lg mb-2">Our Promise</h3>
-                <p class="text-gray-400 text-sm">
-                    Quality prints, fair prices, and on-time delivery. Every time.
-                </p>
+                <p class="text-gray-400 text-sm">Quality prints, fair prices, and on-time delivery. Every time.</p>
             </div>
         </div>
     </div>
@@ -169,9 +148,7 @@
     <div class="max-w-6xl mx-auto px-4">
         <div class="text-center mb-12">
             <h2 class="text-3xl font-bold text-white mb-4">Our Services</h2>
-            <p class="text-gray-400 max-w-2xl mx-auto">
-                Everything you need for your printing needs, all in one place.
-            </p>
+            <p class="text-gray-400 max-w-2xl mx-auto">Everything you need for your printing needs, all in one place.</p>
         </div>
         
         <div class="grid grid-cols-2 md:grid-cols-3 gap-6">
@@ -214,9 +191,7 @@
     <div class="max-w-6xl mx-auto px-4">
         <div class="text-center mb-12">
             <h2 class="text-3xl font-bold text-white mb-4">How PrintHub Works</h2>
-            <p class="text-gray-400 max-w-2xl mx-auto">
-                Four simple steps to get your documents printed.
-            </p>
+            <p class="text-gray-400 max-w-2xl mx-auto">Four simple steps to get your documents printed.</p>
         </div>
         
         <div class="grid grid-cols-1 md:grid-cols-4 gap-6">
@@ -246,9 +221,7 @@
         </div>
         
         <div class="text-center mt-8">
-            <a href="{% url 'upload' %}" class="inline-block bg-blue-600 hover:bg-blue-700 text-white font-bold px-8 py-3 rounded-xl transition">
-                📤 Place Your Order Now
-            </a>
+            <a href="{% url 'upload' %}" class="inline-block bg-blue-600 hover:bg-blue-700 text-white font-bold px-8 py-3 rounded-xl transition">📤 Place Your Order Now</a>
         </div>
     </div>
 </section>
@@ -258,9 +231,7 @@
     <div class="max-w-6xl mx-auto px-4">
         <div class="text-center mb-12">
             <h2 class="text-3xl font-bold text-white mb-4">Affordable Pricing</h2>
-            <p class="text-gray-400 max-w-2xl mx-auto">
-                Student-friendly prices with no hidden fees.
-            </p>
+            <p class="text-gray-400 max-w-2xl mx-auto">Student-friendly prices with no hidden fees.</p>
         </div>
         
         <div class="grid grid-cols-1 md:grid-cols-3 gap-6 max-w-4xl mx-auto">
@@ -283,9 +254,7 @@
         </div>
         
         <div class="text-center mt-6">
-            <p class="text-gray-400 text-sm">
-                <span class="text-green-400">✓</span> Students get 10% off on first order
-            </p>
+            <p class="text-gray-400 text-sm"><span class="text-green-400">✓</span> Students get 10% off on first order</p>
         </div>
     </div>
 </section>
@@ -295,12 +264,10 @@
     <div class="max-w-6xl mx-auto px-4">
         <div class="text-center mb-12">
             <h2 class="text-3xl font-bold text-white mb-4">Pickup Stations</h2>
-            <p class="text-gray-400 max-w-2xl mx-auto">
-                Convenient locations across Kabale.
-            </p>
+            <p class="text-gray-400 max-w-2xl mx-auto">Convenient locations across Kabale.</p>
         </div>
 
-        <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+        <div class="grid grid-cols-1 md:grid-cols-4 gap-6">
             <div class="bg-slate-800/50 border border-slate-700 rounded-2xl p-6">
                 <div class="flex items-start gap-4">
                     <div class="text-2xl">🏢</div>
@@ -311,7 +278,6 @@
                     </div>
                 </div>
             </div>
-
             <div class="bg-slate-800/50 border border-slate-700 rounded-2xl p-6">
                 <div class="flex items-start gap-4">
                     <div class="text-2xl">🏢</div>
@@ -322,7 +288,6 @@
                     </div>
                 </div>
             </div>
-
             <div class="bg-slate-800/50 border border-slate-700 rounded-2xl p-6">
                 <div class="flex items-start gap-4">
                     <div class="text-2xl">🏫</div>
@@ -333,7 +298,6 @@
                     </div>
                 </div>
             </div>
-
             <div class="bg-slate-800/50 border border-slate-700 rounded-2xl p-6">
                 <div class="flex items-start gap-4">
                     <div class="text-2xl">🏪</div>
@@ -353,9 +317,7 @@
     <div class="max-w-6xl mx-auto px-4">
         <div class="text-center mb-12">
             <h2 class="text-3xl font-bold text-white mb-4">What Students Say</h2>
-            <p class="text-gray-400 max-w-2xl mx-auto">
-                Real reviews from real students.
-            </p>
+            <p class="text-gray-400 max-w-2xl mx-auto">Real reviews from real students.</p>
         </div>
         
         <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
@@ -383,9 +345,7 @@
     <div class="max-w-6xl mx-auto px-4">
         <div class="text-center mb-12">
             <h2 class="text-3xl font-bold text-white mb-4">Frequently Asked Questions</h2>
-            <p class="text-gray-400 max-w-2xl mx-auto">
-                Quick answers to common questions.
-            </p>
+            <p class="text-gray-400 max-w-2xl mx-auto">Quick answers to common questions.</p>
         </div>
         
         <div class="max-w-3xl mx-auto space-y-4">
@@ -419,91 +379,71 @@
         <div class="text-center mb-12">
             <h2 class="text-3xl font-bold text-white mb-4">📝 Join the PrintHub Team</h2>
             <p class="text-gray-400 max-w-2xl mx-auto">
-                We're hiring! Fill out the form below to apply. Your application will be compiled into a PDF and sent via WhatsApp.
+                We're hiring! Fill out the form below to apply. Your application will be compiled into a professional PDF and sent via WhatsApp.
             </p>
         </div>
         
         <!-- ─── APPLICATION FORM ────────────────────────────────── -->
-        <div class="max-w-3xl mx-auto bg-slate-800/50 border border-slate-700 rounded-2xl p-6">
+        <div class="max-w-4xl mx-auto bg-slate-800/50 border border-slate-700 rounded-2xl p-6">
             <div id="form-message" class="hidden p-4 rounded-lg mb-4"></div>
 
             <form id="application-form" class="space-y-6">
                 {% csrf_token %}
 
-                <!-- Personal Information -->
+                <!-- 1. Personal Information -->
                 <div>
-                    <h3 class="text-lg font-bold text-white mb-4">Personal Information</h3>
+                    <h3 class="text-lg font-bold text-white mb-4">1. Personal Information</h3>
                     <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
                         <div>
                             <label class="block text-sm font-medium text-gray-300 mb-2">First Name *</label>
-                            <input type="text" id="first_name" required
-                                   class="w-full bg-slate-700 border border-slate-600 text-white rounded-lg px-4 py-3 focus:ring-2 focus:ring-blue-500 outline-none">
+                            <input type="text" id="first_name" required class="w-full bg-slate-700 border border-slate-600 text-white rounded-lg px-4 py-3 focus:ring-2 focus:ring-blue-500 outline-none">
                         </div>
                         <div>
                             <label class="block text-sm font-medium text-gray-300 mb-2">Last Name *</label>
-                            <input type="text" id="last_name" required
-                                   class="w-full bg-slate-700 border border-slate-600 text-white rounded-lg px-4 py-3 focus:ring-2 focus:ring-blue-500 outline-none">
+                            <input type="text" id="last_name" required class="w-full bg-slate-700 border border-slate-600 text-white rounded-lg px-4 py-3 focus:ring-2 focus:ring-blue-500 outline-none">
                         </div>
                     </div>
                     <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mt-4">
                         <div>
                             <label class="block text-sm font-medium text-gray-300 mb-2">Email *</label>
-                            <input type="email" id="email" required
-                                   class="w-full bg-slate-700 border border-slate-600 text-white rounded-lg px-4 py-3 focus:ring-2 focus:ring-blue-500 outline-none"
-                                   placeholder="you@example.com">
+                            <input type="email" id="email" required class="w-full bg-slate-700 border border-slate-600 text-white rounded-lg px-4 py-3 focus:ring-2 focus:ring-blue-500 outline-none" placeholder="you@example.com">
                         </div>
                         <div>
                             <label class="block text-sm font-medium text-gray-300 mb-2">Phone *</label>
-                            <input type="tel" id="phone" required
-                                   class="w-full bg-slate-700 border border-slate-600 text-white rounded-lg px-4 py-3 focus:ring-2 focus:ring-blue-500 outline-none"
-                                   placeholder="+256 7XX XXX XXX">
+                            <input type="tel" id="phone" required class="w-full bg-slate-700 border border-slate-600 text-white rounded-lg px-4 py-3 focus:ring-2 focus:ring-blue-500 outline-none" placeholder="+256 7XX XXX XXX">
                         </div>
                     </div>
                     <div class="mt-4">
                         <label class="block text-sm font-medium text-gray-300 mb-2">Location *</label>
-                        <input type="text" id="location" required
-                               class="w-full bg-slate-700 border border-slate-600 text-white rounded-lg px-4 py-3 focus:ring-2 focus:ring-blue-500 outline-none"
-                               placeholder="e.g., Kabale, Uganda">
+                        <input type="text" id="location" required class="w-full bg-slate-700 border border-slate-600 text-white rounded-lg px-4 py-3 focus:ring-2 focus:ring-blue-500 outline-none" placeholder="e.g., Kabale, Uganda">
                     </div>
                 </div>
 
-                <!-- Photo -->
+                <!-- 2. Photo -->
                 <div class="border-t border-slate-700 pt-6">
-                    <h3 class="text-lg font-bold text-white mb-4">Photo</h3>
+                    <h3 class="text-lg font-bold text-white mb-4">2. Photo</h3>
                     <div class="flex flex-col items-center gap-4">
                         <div id="photo-preview" class="w-32 h-32 rounded-full bg-slate-700 border-2 border-dashed border-slate-500 flex items-center justify-center overflow-hidden">
                             <span class="text-gray-500 text-sm text-center">No photo</span>
                         </div>
                         <div class="flex gap-3 flex-wrap justify-center">
-                            <button type="button" onclick="capturePhoto()"
-                                    class="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-sm transition">
-                                📸 Take Photo
-                            </button>
-                            <button type="button" onclick="uploadPhoto()"
-                                    class="px-4 py-2 bg-slate-600 hover:bg-slate-500 text-white rounded-lg text-sm transition">
-                                📁 Upload Photo
-                            </button>
-                            <button type="button" onclick="clearPhoto()"
-                                    class="px-4 py-2 bg-red-600/50 hover:bg-red-600 text-white rounded-lg text-sm transition">
-                                ✕ Remove
-                            </button>
+                            <button type="button" onclick="capturePhoto()" class="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-sm transition">📸 Take Photo</button>
+                            <button type="button" onclick="uploadPhoto()" class="px-4 py-2 bg-slate-600 hover:bg-slate-500 text-white rounded-lg text-sm transition">📁 Upload Photo</button>
+                            <button type="button" onclick="clearPhoto()" class="px-4 py-2 bg-red-600/50 hover:bg-red-600 text-white rounded-lg text-sm transition">✕ Remove</button>
                         </div>
                         <input type="file" id="photo-input" accept="image/*" class="hidden" onchange="handlePhotoUpload(event)">
                         <video id="camera-preview" class="hidden w-64 rounded-lg border border-slate-600" autoplay playsinline></video>
-                        <button type="button" id="capture-btn" onclick="capturePhotoFromCamera()" class="hidden px-4 py-2 bg-green-600 hover:bg-green-700 text-white rounded-lg text-sm transition">
-                            📸 Capture
-                        </button>
+                        <button type="button" id="capture-btn" onclick="capturePhotoFromCamera()" class="hidden px-4 py-2 bg-green-600 hover:bg-green-700 text-white rounded-lg text-sm transition">📸 Capture</button>
                     </div>
                 </div>
 
-                <!-- Position -->
+                <!-- 3. Position & Availability -->
                 <div class="border-t border-slate-700 pt-6">
-                    <h3 class="text-lg font-bold text-white mb-4">Position</h3>
+                    <h3 class="text-lg font-bold text-white mb-4">3. Position & Availability</h3>
                     <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
                         <div>
                             <label class="block text-sm font-medium text-gray-300 mb-2">Position Applying For *</label>
-                            <select id="position" required
-                                    class="w-full bg-slate-700 border border-slate-600 text-white rounded-lg px-4 py-3 focus:ring-2 focus:ring-blue-500 outline-none">
+                            <select id="position" required class="w-full bg-slate-700 border border-slate-600 text-white rounded-lg px-4 py-3 focus:ring-2 focus:ring-blue-500 outline-none">
                                 <option value="">Select a position...</option>
                                 <option value="Station Operator">Station Operator</option>
                                 <option value="Courier">Courier</option>
@@ -515,69 +455,195 @@
                         </div>
                         <div>
                             <label class="block text-sm font-medium text-gray-300 mb-2">Years of Experience *</label>
-                            <input type="number" id="experience_years" required min="0" max="50"
-                                   class="w-full bg-slate-700 border border-slate-600 text-white rounded-lg px-4 py-3 focus:ring-2 focus:ring-blue-500 outline-none">
+                            <input type="number" id="experience_years" required min="0" max="50" class="w-full bg-slate-700 border border-slate-600 text-white rounded-lg px-4 py-3 focus:ring-2 focus:ring-blue-500 outline-none">
                         </div>
                     </div>
                     <div class="mt-4">
                         <label class="block text-sm font-medium text-gray-300 mb-2">Availability *</label>
-                        <input type="text" id="availability" required
-                               class="w-full bg-slate-700 border border-slate-600 text-white rounded-lg px-4 py-3 focus:ring-2 focus:ring-blue-500 outline-none"
-                               placeholder="e.g., Immediately, 2 weeks notice">
+                        <input type="text" id="availability" required class="w-full bg-slate-700 border border-slate-600 text-white rounded-lg px-4 py-3 focus:ring-2 focus:ring-blue-500 outline-none" placeholder="e.g., Immediately, 2 weeks notice">
                     </div>
                 </div>
 
-                <!-- Experience -->
+                <!-- 4. Work Experience -->
                 <div class="border-t border-slate-700 pt-6">
-                    <h3 class="text-lg font-bold text-white mb-4">Experience</h3>
-                    <div>
-                        <label class="block text-sm font-medium text-gray-300 mb-2">Describe your relevant experience *</label>
-                        <textarea id="experience" required rows="4"
-                                  class="w-full bg-slate-700 border border-slate-600 text-white rounded-lg px-4 py-3 focus:ring-2 focus:ring-blue-500 outline-none"
-                                  placeholder="Tell us about your experience..."></textarea>
+                    <h3 class="text-lg font-bold text-white mb-4">4. Work Experience</h3>
+                    
+                    <!-- Experience Entry 1 -->
+                    <div class="bg-slate-700/30 rounded-lg p-4 mb-4">
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            <div>
+                                <label class="block text-sm font-medium text-gray-300 mb-2">Company/Organization</label>
+                                <input type="text" id="exp_company_1" class="w-full bg-slate-700 border border-slate-600 text-white rounded-lg px-4 py-3 focus:ring-2 focus:ring-blue-500 outline-none" placeholder="Company name">
+                            </div>
+                            <div>
+                                <label class="block text-sm font-medium text-gray-300 mb-2">Job Title</label>
+                                <input type="text" id="exp_title_1" class="w-full bg-slate-700 border border-slate-600 text-white rounded-lg px-4 py-3 focus:ring-2 focus:ring-blue-500 outline-none" placeholder="Your role">
+                            </div>
+                        </div>
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mt-4">
+                            <div>
+                                <label class="block text-sm font-medium text-gray-300 mb-2">Start Date</label>
+                                <input type="date" id="exp_start_1" class="w-full bg-slate-700 border border-slate-600 text-white rounded-lg px-4 py-3 focus:ring-2 focus:ring-blue-500 outline-none">
+                            </div>
+                            <div>
+                                <label class="block text-sm font-medium text-gray-300 mb-2">End Date</label>
+                                <input type="date" id="exp_end_1" class="w-full bg-slate-700 border border-slate-600 text-white rounded-lg px-4 py-3 focus:ring-2 focus:ring-blue-500 outline-none">
+                            </div>
+                        </div>
+                        <div class="mt-4">
+                            <label class="block text-sm font-medium text-gray-300 mb-2">Responsibilities</label>
+                            <textarea id="exp_responsibilities_1" rows="2" class="w-full bg-slate-700 border border-slate-600 text-white rounded-lg px-4 py-3 focus:ring-2 focus:ring-blue-500 outline-none" placeholder="Describe your responsibilities..."></textarea>
+                        </div>
                     </div>
+                    
+                    <!-- Add more experience button -->
+                    <button type="button" onclick="addExperience()" class="text-blue-400 hover:text-blue-300 text-sm transition">+ Add another experience</button>
+                    <div id="experience-container"></div>
                 </div>
 
-                <!-- Education -->
+                <!-- 5. Education -->
                 <div class="border-t border-slate-700 pt-6">
-                    <h3 class="text-lg font-bold text-white mb-4">Education</h3>
+                    <h3 class="text-lg font-bold text-white mb-4">5. Education</h3>
                     <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
                         <div>
                             <label class="block text-sm font-medium text-gray-300 mb-2">Highest Level *</label>
-                            <select id="education_level" required
-                                    class="w-full bg-slate-700 border border-slate-600 text-white rounded-lg px-4 py-3 focus:ring-2 focus:ring-blue-500 outline-none">
+                            <select id="education_level" required class="w-full bg-slate-700 border border-slate-600 text-white rounded-lg px-4 py-3 focus:ring-2 focus:ring-blue-500 outline-none">
                                 <option value="">Select...</option>
                                 <option value="High School">High School</option>
                                 <option value="Certificate">Certificate</option>
                                 <option value="Diploma">Diploma</option>
                                 <option value="Bachelor's Degree">Bachelor's Degree</option>
+                                <option value="Master's Degree">Master's Degree</option>
+                                <option value="PhD">PhD</option>
                             </select>
                         </div>
                         <div>
+                            <label class="block text-sm font-medium text-gray-300 mb-2">Field of Study</label>
+                            <input type="text" id="field_of_study" class="w-full bg-slate-700 border border-slate-600 text-white rounded-lg px-4 py-3 focus:ring-2 focus:ring-blue-500 outline-none" placeholder="e.g., Computer Science">
+                        </div>
+                    </div>
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mt-4">
+                        <div>
                             <label class="block text-sm font-medium text-gray-300 mb-2">Institution *</label>
-                            <input type="text" id="institution" required
-                                   class="w-full bg-slate-700 border border-slate-600 text-white rounded-lg px-4 py-3 focus:ring-2 focus:ring-blue-500 outline-none"
-                                   placeholder="e.g., Kabale University">
+                            <input type="text" id="institution" required class="w-full bg-slate-700 border border-slate-600 text-white rounded-lg px-4 py-3 focus:ring-2 focus:ring-blue-500 outline-none" placeholder="e.g., Kabale University">
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-gray-300 mb-2">Year of Graduation</label>
+                            <input type="number" id="grad_year" class="w-full bg-slate-700 border border-slate-600 text-white rounded-lg px-4 py-3 focus:ring-2 focus:ring-blue-500 outline-none" placeholder="e.g., 2024" min="1900" max="2099">
                         </div>
                     </div>
                 </div>
 
-                <!-- Skills -->
+                <!-- 6. Skills -->
                 <div class="border-t border-slate-700 pt-6">
-                    <h3 class="text-lg font-bold text-white mb-4">Skills</h3>
-                    <div>
-                        <label class="block text-sm font-medium text-gray-300 mb-2">List your skills *</label>
-                        <textarea id="skills" required rows="3"
-                                  class="w-full bg-slate-700 border border-slate-600 text-white rounded-lg px-4 py-3 focus:ring-2 focus:ring-blue-500 outline-none"
-                                  placeholder="e.g., Adobe Photoshop, Printer maintenance, Customer service..."></textarea>
+                    <h3 class="text-lg font-bold text-white mb-4">6. Skills</h3>
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div>
+                            <label class="block text-sm font-medium text-gray-300 mb-2">Technical Skills</label>
+                            <textarea id="technical_skills" rows="3" class="w-full bg-slate-700 border border-slate-600 text-white rounded-lg px-4 py-3 focus:ring-2 focus:ring-blue-500 outline-none" placeholder="List technical skills separated by commas..."></textarea>
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-gray-300 mb-2">Soft Skills</label>
+                            <textarea id="soft_skills" rows="3" class="w-full bg-slate-700 border border-slate-600 text-white rounded-lg px-4 py-3 focus:ring-2 focus:ring-blue-500 outline-none" placeholder="List soft skills separated by commas..."></textarea>
+                        </div>
                     </div>
                 </div>
 
-                <!-- Agreement -->
+                <!-- 7. Certifications -->
+                <div class="border-t border-slate-700 pt-6">
+                    <h3 class="text-lg font-bold text-white mb-4">7. Certifications</h3>
+                    <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                        <div>
+                            <label class="block text-sm font-medium text-gray-300 mb-2">Certification Name</label>
+                            <input type="text" id="cert_name" class="w-full bg-slate-700 border border-slate-600 text-white rounded-lg px-4 py-3 focus:ring-2 focus:ring-blue-500 outline-none" placeholder="Certification name">
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-gray-300 mb-2">Issuing Organization</label>
+                            <input type="text" id="cert_org" class="w-full bg-slate-700 border border-slate-600 text-white rounded-lg px-4 py-3 focus:ring-2 focus:ring-blue-500 outline-none" placeholder="Organization name">
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-gray-300 mb-2">Year</label>
+                            <input type="number" id="cert_year" class="w-full bg-slate-700 border border-slate-600 text-white rounded-lg px-4 py-3 focus:ring-2 focus:ring-blue-500 outline-none" placeholder="e.g., 2023" min="1900" max="2099">
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 8. Languages -->
+                <div class="border-t border-slate-700 pt-6">
+                    <h3 class="text-lg font-bold text-white mb-4">8. Languages</h3>
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div>
+                            <label class="block text-sm font-medium text-gray-300 mb-2">Language</label>
+                            <input type="text" id="language_1" class="w-full bg-slate-700 border border-slate-600 text-white rounded-lg px-4 py-3 focus:ring-2 focus:ring-blue-500 outline-none" placeholder="e.g., English">
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-gray-300 mb-2">Proficiency</label>
+                            <select id="language_proficiency_1" class="w-full bg-slate-700 border border-slate-600 text-white rounded-lg px-4 py-3 focus:ring-2 focus:ring-blue-500 outline-none">
+                                <option value="Native">Native</option>
+                                <option value="Fluent">Fluent</option>
+                                <option value="Intermediate">Intermediate</option>
+                                <option value="Beginner">Beginner</option>
+                            </select>
+                        </div>
+                    </div>
+                    <button type="button" onclick="addLanguage()" class="text-blue-400 hover:text-blue-300 text-sm mt-2 transition">+ Add another language</button>
+                    <div id="language-container"></div>
+                </div>
+
+                <!-- 9. References -->
+                <div class="border-t border-slate-700 pt-6">
+                    <h3 class="text-lg font-bold text-white mb-4">9. References</h3>
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div>
+                            <label class="block text-sm font-medium text-gray-300 mb-2">Reference Name</label>
+                            <input type="text" id="ref_name" class="w-full bg-slate-700 border border-slate-600 text-white rounded-lg px-4 py-3 focus:ring-2 focus:ring-blue-500 outline-none" placeholder="Full name">
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-gray-300 mb-2">Relationship</label>
+                            <input type="text" id="ref_relationship" class="w-full bg-slate-700 border border-slate-600 text-white rounded-lg px-4 py-3 focus:ring-2 focus:ring-blue-500 outline-none" placeholder="e.g., Former Manager">
+                        </div>
+                    </div>
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mt-4">
+                        <div>
+                            <label class="block text-sm font-medium text-gray-300 mb-2">Reference Phone</label>
+                            <input type="tel" id="ref_phone" class="w-full bg-slate-700 border border-slate-600 text-white rounded-lg px-4 py-3 focus:ring-2 focus:ring-blue-500 outline-none" placeholder="+256 7XX XXX XXX">
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-gray-300 mb-2">Reference Email</label>
+                            <input type="email" id="ref_email" class="w-full bg-slate-700 border border-slate-600 text-white rounded-lg px-4 py-3 focus:ring-2 focus:ring-blue-500 outline-none" placeholder="reference@example.com">
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 10. Additional Information -->
+                <div class="border-t border-slate-700 pt-6">
+                    <h3 class="text-lg font-bold text-white mb-4">10. Additional Information</h3>
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div>
+                            <label class="block text-sm font-medium text-gray-300 mb-2">LinkedIn URL</label>
+                            <input type="url" id="linkedin" class="w-full bg-slate-700 border border-slate-600 text-white rounded-lg px-4 py-3 focus:ring-2 focus:ring-blue-500 outline-none" placeholder="https://linkedin.com/in/username">
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-gray-300 mb-2">Portfolio URL</label>
+                            <input type="url" id="portfolio" class="w-full bg-slate-700 border border-slate-600 text-white rounded-lg px-4 py-3 focus:ring-2 focus:ring-blue-500 outline-none" placeholder="https://yourportfolio.com">
+                        </div>
+                    </div>
+                    <div class="mt-4">
+                        <label class="block text-sm font-medium text-gray-300 mb-2">Driving License</label>
+                        <select id="driving_license" class="w-full bg-slate-700 border border-slate-600 text-white rounded-lg px-4 py-3 focus:ring-2 focus:ring-blue-500 outline-none">
+                            <option value="No">No</option>
+                            <option value="Yes - Class A">Yes - Class A</option>
+                            <option value="Yes - Class B">Yes - Class B</option>
+                            <option value="Yes - Class C">Yes - Class C</option>
+                            <option value="Yes - Class D">Yes - Class D</option>
+                        </select>
+                    </div>
+                </div>
+
+                <!-- 11. Agreement -->
                 <div class="border-t border-slate-700 pt-6">
                     <label class="flex items-center gap-3">
-                        <input type="checkbox" id="agreement" required
-                               class="w-4 h-4 text-blue-600 bg-slate-700 border-slate-600 rounded focus:ring-blue-500">
+                        <input type="checkbox" id="agreement" required class="w-4 h-4 text-blue-600 bg-slate-700 border-slate-600 rounded focus:ring-blue-500">
                         <span class="text-gray-300 text-sm">
                             I confirm that all information provided is true and accurate. *
                         </span>
@@ -585,11 +651,10 @@
                 </div>
 
                 <!-- Submit -->
-                <button type="submit" id="submit-btn"
-                        class="w-full bg-green-600 hover:bg-green-700 text-white font-bold py-4 rounded-xl transition text-lg flex items-center justify-center gap-2">
-                    <span>📱</span> Send via WhatsApp
+                <button type="submit" id="submit-btn" class="w-full bg-green-600 hover:bg-green-700 text-white font-bold py-4 rounded-xl transition text-lg flex items-center justify-center gap-2">
+                    <span>📱</span> Generate CV & Send via WhatsApp
                 </button>
-                <p class="text-gray-500 text-xs text-center">Your application will be compiled into a PDF and sent via WhatsApp, please find the generated pdf and attach it to the message</p>
+                <p class="text-gray-500 text-xs text-center">Your application will be compiled into a professional PDF and sent via WhatsApp. Please find the generated PDF and attach it to the message.</p>
             </form>
         </div>
     </div>
@@ -602,15 +667,9 @@
             <h2 class="text-2xl font-bold text-white mb-4">Ready to Print?</h2>
             <p class="text-gray-400 mb-6">Upload your document and get it printed in 2 hours.</p>
             <div class="flex flex-wrap gap-4 justify-center">
-                <a href="{% url 'upload' %}" class="bg-blue-600 hover:bg-blue-700 text-white font-bold px-8 py-3 rounded-xl transition">
-                    📤 Place an Order
-                </a>
-                <a href="{% url 'home' %}" class="bg-slate-700 hover:bg-slate-600 text-white font-bold px-8 py-3 rounded-xl transition">
-                    🏠 Back to Home
-                </a>
-                <a href="https://wa.me/256791046296" target="_blank" class="bg-green-600 hover:bg-green-700 text-white font-bold px-8 py-3 rounded-xl transition">
-                    💬 Contact on WhatsApp
-                </a>
+                <a href="{% url 'upload' %}" class="bg-blue-600 hover:bg-blue-700 text-white font-bold px-8 py-3 rounded-xl transition">📤 Place an Order</a>
+                <a href="{% url 'home' %}" class="bg-slate-700 hover:bg-slate-600 text-white font-bold px-8 py-3 rounded-xl transition">🏠 Back to Home</a>
+                <a href="https://wa.me/256791046296" target="_blank" class="bg-green-600 hover:bg-green-700 text-white font-bold px-8 py-3 rounded-xl transition">💬 Contact on WhatsApp</a>
             </div>
         </div>
     </div>
@@ -618,6 +677,83 @@
 
 <!-- ─── JAVASCRIPT ───────────────────────────────────────────── -->
 <script>
+    // ─── DYNAMIC FIELDS ──────────────────────────────────────────
+    
+    let experienceCount = 1;
+    let languageCount = 1;
+    
+    function addExperience() {
+        experienceCount++;
+        const container = document.getElementById('experience-container');
+        const entry = document.createElement('div');
+        entry.className = 'bg-slate-700/30 rounded-lg p-4 mt-4';
+        entry.id = `exp_entry_${experienceCount}`;
+        entry.innerHTML = `
+            <div class="flex justify-between items-center mb-3">
+                <span class="text-gray-400 text-sm">Experience #${experienceCount}</span>
+                <button type="button" onclick="removeExperience(${experienceCount})" class="text-red-400 hover:text-red-300 text-sm">✕ Remove</button>
+            </div>
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                    <label class="block text-sm font-medium text-gray-300 mb-2">Company/Organization</label>
+                    <input type="text" id="exp_company_${experienceCount}" class="w-full bg-slate-700 border border-slate-600 text-white rounded-lg px-4 py-3 focus:ring-2 focus:ring-blue-500 outline-none" placeholder="Company name">
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-gray-300 mb-2">Job Title</label>
+                    <input type="text" id="exp_title_${experienceCount}" class="w-full bg-slate-700 border border-slate-600 text-white rounded-lg px-4 py-3 focus:ring-2 focus:ring-blue-500 outline-none" placeholder="Your role">
+                </div>
+            </div>
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mt-4">
+                <div>
+                    <label class="block text-sm font-medium text-gray-300 mb-2">Start Date</label>
+                    <input type="date" id="exp_start_${experienceCount}" class="w-full bg-slate-700 border border-slate-600 text-white rounded-lg px-4 py-3 focus:ring-2 focus:ring-blue-500 outline-none">
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-gray-300 mb-2">End Date</label>
+                    <input type="date" id="exp_end_${experienceCount}" class="w-full bg-slate-700 border border-slate-600 text-white rounded-lg px-4 py-3 focus:ring-2 focus:ring-blue-500 outline-none">
+                </div>
+            </div>
+            <div class="mt-4">
+                <label class="block text-sm font-medium text-gray-300 mb-2">Responsibilities</label>
+                <textarea id="exp_responsibilities_${experienceCount}" rows="2" class="w-full bg-slate-700 border border-slate-600 text-white rounded-lg px-4 py-3 focus:ring-2 focus:ring-blue-500 outline-none" placeholder="Describe your responsibilities..."></textarea>
+            </div>
+        `;
+        container.appendChild(entry);
+    }
+    
+    function removeExperience(id) {
+        const entry = document.getElementById(`exp_entry_${id}`);
+        if (entry) entry.remove();
+    }
+    
+    function addLanguage() {
+        languageCount++;
+        const container = document.getElementById('language-container');
+        const entry = document.createElement('div');
+        entry.className = 'grid grid-cols-1 md:grid-cols-2 gap-4 mt-2';
+        entry.id = `lang_entry_${languageCount}`;
+        entry.innerHTML = `
+            <div class="flex items-center gap-2">
+                <input type="text" id="language_${languageCount}" class="w-full bg-slate-700 border border-slate-600 text-white rounded-lg px-4 py-3 focus:ring-2 focus:ring-blue-500 outline-none" placeholder="Language name">
+                <button type="button" onclick="removeLanguage(${languageCount})" class="text-red-400 hover:text-red-300 text-sm">✕</button>
+            </div>
+            <div>
+                <select id="language_proficiency_${languageCount}" class="w-full bg-slate-700 border border-slate-600 text-white rounded-lg px-4 py-3 focus:ring-2 focus:ring-blue-500 outline-none">
+                    <option value="Native">Native</option>
+                    <option value="Fluent">Fluent</option>
+                    <option value="Intermediate">Intermediate</option>
+                    <option value="Beginner">Beginner</option>
+                </select>
+            </div>
+        `;
+        container.appendChild(entry);
+    }
+    
+    function removeLanguage(id) {
+        const entry = document.getElementById(`lang_entry_${id}`);
+        if (entry) entry.remove();
+    }
+
     // ─── PHOTO HANDLING ───────────────────────────────────────────
 
     let photoData = null;
@@ -655,7 +791,6 @@
         }
         document.getElementById('camera-preview').classList.add('hidden');
         document.getElementById('capture-btn').classList.add('hidden');
-
         displayPhoto(photoData);
     }
 
@@ -692,6 +827,16 @@
         document.getElementById('capture-btn').classList.add('hidden');
     }
 
+    // ─── PDF LOGO (Base64 encoded PrintHub logo) ──────────────
+    // This is a fallback in case the icon.svg can't be loaded
+    const PRINTHUB_LOGO_SVG = `
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100">
+            <rect width="100" height="100" rx="20" fill="#4f46e5"/>
+            <text x="50" y="65" font-family="Arial, sans-serif" font-size="50" font-weight="bold" text-anchor="middle" fill="white">P</text>
+            <text x="50" y="85" font-family="Arial, sans-serif" font-size="12" font-weight="bold" text-anchor="middle" fill="#a5b4fc">HUB</text>
+        </svg>
+    `;
+
     // ─── FORM SUBMISSION ──────────────────────────────────────────
 
     document.getElementById('application-form').addEventListener('submit', async function(e) {
@@ -700,7 +845,7 @@
         const submitBtn = document.getElementById('submit-btn');
         const messageDiv = document.getElementById('form-message');
 
-        // ─── 1. Validate ──────────────────────────────────────────
+        // ─── 1. Collect All Data ──────────────────────────────────
         const data = {
             first_name: document.getElementById('first_name').value.trim(),
             last_name: document.getElementById('last_name').value.trim(),
@@ -710,17 +855,65 @@
             position: document.getElementById('position').value,
             experience_years: document.getElementById('experience_years').value,
             availability: document.getElementById('availability').value.trim(),
-            experience: document.getElementById('experience').value.trim(),
             education_level: document.getElementById('education_level').value,
+            field_of_study: document.getElementById('field_of_study').value.trim(),
             institution: document.getElementById('institution').value.trim(),
-            skills: document.getElementById('skills').value.trim(),
+            grad_year: document.getElementById('grad_year').value,
+            technical_skills: document.getElementById('technical_skills').value.trim(),
+            soft_skills: document.getElementById('soft_skills').value.trim(),
+            cert_name: document.getElementById('cert_name').value.trim(),
+            cert_org: document.getElementById('cert_org').value.trim(),
+            cert_year: document.getElementById('cert_year').value,
+            language_1: document.getElementById('language_1').value.trim(),
+            language_proficiency_1: document.getElementById('language_proficiency_1').value,
+            ref_name: document.getElementById('ref_name').value.trim(),
+            ref_relationship: document.getElementById('ref_relationship').value.trim(),
+            ref_phone: document.getElementById('ref_phone').value.trim(),
+            ref_email: document.getElementById('ref_email').value.trim(),
+            linkedin: document.getElementById('linkedin').value.trim(),
+            portfolio: document.getElementById('portfolio').value.trim(),
+            driving_license: document.getElementById('driving_license').value,
             agreement: document.getElementById('agreement').checked,
         };
 
-        const requiredFields = ['first_name', 'last_name', 'email', 'phone', 'location', 'position', 'experience_years', 'availability', 'experience', 'education_level', 'institution', 'skills'];
+        // ─── 2. Collect Multiple Experiences ──────────────────────
+        const experiences = [];
+        for (let i = 1; i <= experienceCount; i++) {
+            const company = document.getElementById(`exp_company_${i}`);
+            const title = document.getElementById(`exp_title_${i}`);
+            const start = document.getElementById(`exp_start_${i}`);
+            const end = document.getElementById(`exp_end_${i}`);
+            const resp = document.getElementById(`exp_responsibilities_${i}`);
+            if (company && company.value.trim()) {
+                experiences.push({
+                    company: company.value.trim(),
+                    title: title ? title.value.trim() : '',
+                    start: start ? start.value : '',
+                    end: end ? end.value : '',
+                    responsibilities: resp ? resp.value.trim() : '',
+                });
+            }
+        }
+
+        // ─── 3. Collect Multiple Languages ────────────────────────
+        const languages = [];
+        const langInputs = document.querySelectorAll('[id^="language_"]');
+        langInputs.forEach(input => {
+            const id = input.id.replace('language_', '');
+            const proficiency = document.getElementById(`language_proficiency_${id}`);
+            if (input.value.trim()) {
+                languages.push({
+                    name: input.value.trim(),
+                    proficiency: proficiency ? proficiency.value : 'Intermediate',
+                });
+            }
+        });
+
+        // ─── 4. Validate ───────────────────────────────────────────
+        const requiredFields = ['first_name', 'last_name', 'email', 'phone', 'location', 'position', 'experience_years', 'availability', 'education_level', 'institution'];
         for (const field of requiredFields) {
             if (!data[field]) {
-                showMessage('Please fill in all required fields.', 'error');
+                showMessage(`Please fill in all required fields.`, 'error');
                 return;
             }
         }
@@ -730,123 +923,230 @@
             return;
         }
 
-        // ─── 2. Show Loading ──────────────────────────────────────
+        // ─── 5. Show Loading ──────────────────────────────────────
         submitBtn.disabled = true;
-        submitBtn.innerHTML = '<span class="animate-spin">⏳</span> Generating PDF...';
-        showMessage('Generating your application PDF...', 'info');
+        submitBtn.innerHTML = '<span class="animate-spin">⏳</span> Generating Professional CV...';
+        showMessage('Generating your professional CV and application...', 'info');
 
         try {
-            // ─── 3. Generate PDF ──────────────────────────────────
-            const pdfBlob = await generatePDF(data, photoData);
+            // ─── 6. Generate PDF ──────────────────────────────────
+            const pdfBlob = await generatePDF(data, experiences, languages, photoData);
             const pdfUrl = URL.createObjectURL(pdfBlob);
 
-            // ─── 4. Open WhatsApp with PDF ─────────────────────────
+            // ─── 7. Prepare WhatsApp Message ──────────────────────
             const displayName = `${data.first_name} ${data.last_name}`;
-            const positionLabel = data.position;
 
             const message = `Hi PrintHub! 👋
 
-I'm submitting my job application for the ${positionLabel} position.
+I'm submitting my job application for the ${data.position} position.
 
 Name: ${displayName}
 Email: ${data.email}
 Phone: ${data.phone}
 Experience: ${data.experience_years} years
+Education: ${data.education_level} - ${data.institution}
 
-Please find my full application PDF attached.`;
+Please find my complete CV and application attached.`;
 
             const encodedMessage = encodeURIComponent(message);
             const whatsappUrl = `https://wa.me/256791046296?text=${encodedMessage}`;
 
-            // ─── 5. Download PDF ──────────────────────────────────
+            // ─── 8. Download PDF ──────────────────────────────────
             const downloadLink = document.createElement('a');
             downloadLink.href = pdfUrl;
-            downloadLink.download = `Application-${displayName.replace(' ', '_')}.pdf`;
+            downloadLink.download = `CV-Application-${displayName.replace(' ', '_')}.pdf`;
             downloadLink.click();
 
-            // ─── 6. Show Success and Open WhatsApp ──────────────────
-            showMessage('✅ PDF generated! WhatsApp will open. Please send the message with the attached PDF.', 'success');
+            // ─── 9. Show Success and Open WhatsApp ──────────────────
+            showMessage('✅ Professional CV generated! WhatsApp will open. Please send the message with the attached PDF.', 'success');
             submitBtn.innerHTML = '✅ Opening WhatsApp...';
 
             setTimeout(() => {
                 window.open(whatsappUrl, '_blank');
                 submitBtn.disabled = false;
-                submitBtn.innerHTML = '📱 Send via WhatsApp';
+                submitBtn.innerHTML = '📱 Generate CV & Send';
             }, 1500);
 
             setTimeout(() => {
                 document.getElementById('application-form').reset();
                 clearPhoto();
-                submitBtn.innerHTML = '📱 Send via WhatsApp';
+                submitBtn.innerHTML = '📱 Generate CV & Send';
                 submitBtn.disabled = false;
-            }, 10000);
+                // Reset dynamic fields
+                document.getElementById('experience-container').innerHTML = '';
+                document.getElementById('language-container').innerHTML = '';
+                experienceCount = 1;
+                languageCount = 1;
+            }, 12000);
 
         } catch (error) {
             console.error('Error:', error);
             showMessage('❌ Error generating PDF. Please try again.', 'error');
             submitBtn.disabled = false;
-            submitBtn.innerHTML = '📱 Send via WhatsApp';
+            submitBtn.innerHTML = '📱 Generate CV & Send';
         }
     });
 
     // ─── PDF GENERATION ───────────────────────────────────────────
 
-    async function generatePDF(data, photo) {
+    async function generatePDF(data, experiences, languages, photo) {
         const pdfContainer = document.createElement('div');
         pdfContainer.style.cssText = `
             position: absolute; left: -9999px; top: 0;
-            width: 595px; padding: 40px;
+            width: 595px; padding: 40px 35px;
             background: white;
-            font-family: Arial, sans-serif;
+            font-family: 'Helvetica', Arial, sans-serif;
             color: #1e293b;
         `;
         document.body.appendChild(pdfContainer);
 
-        pdfContainer.innerHTML = `
-            <div style="border-bottom: 3px solid #4f46e5; padding-bottom: 20px; margin-bottom: 20px;">
-                <div style="display: flex; align-items: center; gap: 15px;">
-                    ${photo ? `<img src="${photo}" style="width: 80px; height: 80px; border-radius: 50%; object-fit: cover; border: 3px solid #4f46e5;">` : ''}
-                    <div>
-                        <div style="font-size: 24px; font-weight: bold; color: #4f46e5;">PRINTHUB</div>
-                        <div style="font-size: 12px; color: #64748b;">Kabale University Printing Service</div>
-                        <div style="font-size: 14px; font-weight: bold; color: #1e293b; margin-top: 5px;">JOB APPLICATION & CV</div>
+        // Build experience HTML
+        let expHTML = '';
+        if (experiences.length > 0) {
+            experiences.forEach(exp => {
+                expHTML += `
+                    <div style="margin-bottom: 10px;">
+                        <div style="display: flex; justify-content: space-between; font-weight: bold; color: #1e293b;">
+                            <span>${exp.title} - ${exp.company}</span>
+                            <span style="font-weight: normal; color: #64748b; font-size: 11px;">${exp.start} - ${exp.end || 'Present'}</span>
+                        </div>
+                        <div style="font-size: 11px; color: #475569; margin-top: 3px; white-space: pre-wrap;">${exp.responsibilities || ''}</div>
                     </div>
+                `;
+            });
+        } else {
+            expHTML = `<div style="font-size: 11px; color: #94a3b8; font-style: italic;">No experience listed</div>`;
+        }
+
+        // Build languages HTML
+        let langHTML = '';
+        const allLanguages = [...languages];
+        if (data.language_1) {
+            allLanguages.unshift({ name: data.language_1, proficiency: data.language_proficiency_1 });
+        }
+        if (allLanguages.length > 0) {
+            allLanguages.forEach(lang => {
+                langHTML += `<span style="background: #eef2ff; color: #4f46e5; padding: 2px 10px; border-radius: 12px; font-size: 10px; margin-right: 6px;">${lang.name} - ${lang.proficiency}</span>`;
+            });
+        } else {
+            langHTML = `<span style="font-size: 11px; color: #94a3b8; font-style: italic;">No languages listed</span>`;
+        }
+
+        // Build skills HTML
+        const techSkills = data.technical_skills ? data.technical_skills.split(',').map(s => s.trim()).filter(s => s) : [];
+        const softSkills = data.soft_skills ? data.soft_skills.split(',').map(s => s.trim()).filter(s => s) : [];
+
+        pdfContainer.innerHTML = `
+            <!-- Header with Logo -->
+            <div style="border-bottom: 3px solid #4f46e5; padding-bottom: 15px; margin-bottom: 20px; display: flex; align-items: center; gap: 15px;">
+                <div style="width: 60px; height: 60px; background: #4f46e5; border-radius: 12px; display: flex; align-items: center; justify-content: center; flex-shrink: 0;">
+                    <span style="color: white; font-size: 28px; font-weight: bold;">P</span>
+                </div>
+                <div>
+                    <div style="font-size: 22px; font-weight: bold; color: #4f46e5; letter-spacing: 1px;">PRINTHUB</div>
+                    <div style="font-size: 10px; color: #64748b; letter-spacing: 2px;">KABALE UNIVERSITY PRINTING SERVICE</div>
+                </div>
+                <div style="margin-left: auto; text-align: right; font-size: 9px; color: #94a3b8;">
+                    <div>Application Date: ${new Date().toLocaleDateString()}</div>
+                    <div style="font-weight: bold; color: #4f46e5;">Ref: PH-${String(Math.floor(1000 + Math.random() * 9000))}</div>
                 </div>
             </div>
 
-            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px; font-size: 12px; margin-bottom: 15px;">
-                <div><strong>Date:</strong> ${new Date().toLocaleDateString()}</div>
-                <div><strong>Position:</strong> ${data.position}</div>
+            <div style="display: flex; gap: 25px; margin-bottom: 20px;">
+                <!-- Left Column: Photo + Personal Info -->
+                <div style="width: 130px; flex-shrink: 0; text-align: center;">
+                    ${photo ? `<img src="${photo}" style="width: 110px; height: 110px; border-radius: 50%; object-fit: cover; border: 3px solid #4f46e5; margin: 0 auto 10px;">` : `<div style="width: 110px; height: 110px; border-radius: 50%; background: #e2e8f0; margin: 0 auto 10px; display: flex; align-items: center; justify-content: center; font-size: 40px; color: #94a3b8;">📸</div>`}
+                    <div style="font-size: 11px; color: #475569; text-align: left;">
+                        <div><strong style="color: #1e293b;">Phone:</strong> ${data.phone}</div>
+                        <div><strong style="color: #1e293b;">Email:</strong> ${data.email}</div>
+                        <div><strong style="color: #1e293b;">Location:</strong> ${data.location}</div>
+                        ${data.linkedin ? `<div><strong style="color: #1e293b;">LinkedIn:</strong> <a href="${data.linkedin}" style="color: #4f46e5; text-decoration: none;">View Profile</a></div>` : ''}
+                    </div>
+                </div>
+
+                <!-- Right Column: Main Content -->
+                <div style="flex: 1;">
+                    <!-- Name & Position -->
+                    <div style="margin-bottom: 15px;">
+                        <div style="font-size: 24px; font-weight: bold; color: #1e293b;">${data.first_name} ${data.last_name}</div>
+                        <div style="font-size: 14px; color: #4f46e5; font-weight: 600;">${data.position}</div>
+                        <div style="font-size: 11px; color: #64748b; margin-top: 2px;">${data.experience_years} years experience | Available: ${data.availability}</div>
+                    </div>
+
+                    <!-- Professional Summary -->
+                    <div style="margin-bottom: 15px; background: #f8fafc; padding: 10px 12px; border-radius: 6px; border-left: 3px solid #4f46e5;">
+                        <div style="font-size: 10px; font-weight: bold; color: #4f46e5; text-transform: uppercase; letter-spacing: 1px; margin-bottom: 3px;">Professional Summary</div>
+                        <div style="font-size: 11px; color: #475569;">Dedicated professional with ${data.experience_years} years of experience seeking the ${data.position} position at PrintHub.</div>
+                    </div>
+
+                    <!-- Work Experience -->
+                    <div style="margin-bottom: 15px;">
+                        <div style="font-size: 11px; font-weight: bold; color: #4f46e5; text-transform: uppercase; letter-spacing: 1px; border-bottom: 1px solid #e2e8f0; padding-bottom: 3px;">Work Experience</div>
+                        ${expHTML}
+                    </div>
+
+                    <!-- Education -->
+                    <div style="margin-bottom: 15px;">
+                        <div style="font-size: 11px; font-weight: bold; color: #4f46e5; text-transform: uppercase; letter-spacing: 1px; border-bottom: 1px solid #e2e8f0; padding-bottom: 3px;">Education</div>
+                        <div style="font-size: 12px; font-weight: 600; color: #1e293b;">${data.education_level}</div>
+                        <div style="font-size: 11px; color: #475569;">${data.institution}${data.field_of_study ? ' - ' + data.field_of_study : ''}</div>
+                        ${data.grad_year ? `<div style="font-size: 10px; color: #64748b;">Graduated: ${data.grad_year}</div>` : ''}
+                    </div>
+
+                    <!-- Skills -->
+                    <div style="margin-bottom: 15px;">
+                        <div style="font-size: 11px; font-weight: bold; color: #4f46e5; text-transform: uppercase; letter-spacing: 1px; border-bottom: 1px solid #e2e8f0; padding-bottom: 3px;">Skills</div>
+                        <div style="font-size: 11px; margin-top: 5px;">
+                            ${techSkills.length > 0 ? `<div><strong style="color: #1e293b;">Technical:</strong> ${techSkills.join(', ')}</div>` : ''}
+                            ${softSkills.length > 0 ? `<div><strong style="color: #1e293b;">Soft Skills:</strong> ${softSkills.join(', ')}</div>` : ''}
+                            ${!techSkills.length && !softSkills.length ? '<div style="color: #94a3b8; font-style: italic;">No skills listed</div>' : ''}
+                        </div>
+                    </div>
+
+                    <!-- Certifications & Languages -->
+                    <div style="display: flex; gap: 20px; margin-bottom: 10px;">
+                        ${data.cert_name ? `
+                        <div style="flex: 1;">
+                            <div style="font-size: 10px; font-weight: bold; color: #4f46e5; text-transform: uppercase; letter-spacing: 1px; border-bottom: 1px solid #e2e8f0; padding-bottom: 2px;">Certification</div>
+                            <div style="font-size: 11px; margin-top: 3px;">
+                                <strong style="color: #1e293b;">${data.cert_name}</strong>
+                                ${data.cert_org ? `<span style="color: #475569;"> - ${data.cert_org}</span>` : ''}
+                                ${data.cert_year ? `<span style="color: #64748b;"> (${data.cert_year})</span>` : ''}
+                            </div>
+                        </div>
+                        ` : ''}
+                        <div style="flex: 1;">
+                            <div style="font-size: 10px; font-weight: bold; color: #4f46e5; text-transform: uppercase; letter-spacing: 1px; border-bottom: 1px solid #e2e8f0; padding-bottom: 2px;">Languages</div>
+                            <div style="font-size: 11px; margin-top: 3px;">${langHTML}</div>
+                        </div>
+                    </div>
+
+                    ${data.driving_license && data.driving_license !== 'No' ? `
+                    <div style="font-size: 10px; color: #475569; margin-top: 5px;">
+                        <strong>Driving License:</strong> ${data.driving_license}
+                    </div>
+                    ` : ''}
+
+                    <!-- References -->
+                    ${data.ref_name ? `
+                    <div style="margin-top: 10px; border-top: 1px solid #e2e8f0; padding-top: 8px;">
+                        <div style="font-size: 10px; font-weight: bold; color: #4f46e5; text-transform: uppercase; letter-spacing: 1px;">Reference</div>
+                        <div style="font-size: 11px; margin-top: 3px;">
+                            <strong style="color: #1e293b;">${data.ref_name}</strong>
+                            ${data.ref_relationship ? `<span style="color: #475569;"> (${data.ref_relationship})</span>` : ''}
+                            ${data.ref_phone ? `<span style="color: #64748b;"> | ${data.ref_phone}</span>` : ''}
+                            ${data.ref_email ? `<span style="color: #64748b;"> | ${data.ref_email}</span>` : ''}
+                        </div>
+                    </div>
+                    ` : ''}
+                </div>
             </div>
 
-            <h3 style="font-size: 14px; font-weight: bold; color: #4f46e5; margin: 15px 0 8px 0; border-bottom: 1px solid #e2e8f0; padding-bottom: 4px;">PERSONAL INFORMATION</h3>
-            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 4px; font-size: 12px;">
-                <div><strong>Name:</strong> ${data.first_name} ${data.last_name}</div>
-                <div><strong>Email:</strong> ${data.email}</div>
-                <div><strong>Phone:</strong> ${data.phone}</div>
-                <div><strong>Location:</strong> ${data.location}</div>
-            </div>
-
-            <h3 style="font-size: 14px; font-weight: bold; color: #4f46e5; margin: 15px 0 8px 0; border-bottom: 1px solid #e2e8f0; padding-bottom: 4px;">PROFESSIONAL SUMMARY</h3>
-            <div style="font-size: 12px; line-height: 1.6;">
-                <div><strong>Experience:</strong> ${data.experience_years} years</div>
-                <div><strong>Availability:</strong> ${data.availability}</div>
-            </div>
-
-            <h3 style="font-size: 14px; font-weight: bold; color: #4f46e5; margin: 15px 0 8px 0; border-bottom: 1px solid #e2e8f0; padding-bottom: 4px;">WORK EXPERIENCE</h3>
-            <div style="font-size: 12px; line-height: 1.6; white-space: pre-wrap;">${data.experience}</div>
-
-            <h3 style="font-size: 14px; font-weight: bold; color: #4f46e5; margin: 15px 0 8px 0; border-bottom: 1px solid #e2e8f0; padding-bottom: 4px;">EDUCATION</h3>
-            <div style="font-size: 12px; line-height: 1.6;">
-                <div><strong>${data.education_level}</strong> - ${data.institution}</div>
-            </div>
-
-            <h3 style="font-size: 14px; font-weight: bold; color: #4f46e5; margin: 15px 0 8px 0; border-bottom: 1px solid #e2e8f0; padding-bottom: 4px;">SKILLS</h3>
-            <div style="font-size: 12px; line-height: 1.6; white-space: pre-wrap;">${data.skills}</div>
-
-            <div style="margin-top: 30px; border-top: 2px solid #4f46e5; padding-top: 15px; text-align: center; font-size: 11px; color: #64748b;">
-                <div>PrintHub © 2026 | www.printhubug.com | +256 791 046 296</div>
-                <div style="font-size: 10px; color: #94a3b8; margin-top: 4px;">This is an auto-generated combined CV and application document.</div>
+            <!-- Footer -->
+            <div style="border-top: 2px solid #4f46e5; padding-top: 10px; margin-top: 10px; text-align: center; font-size: 9px; color: #94a3b8;">
+                <div style="font-weight: bold; color: #4f46e5;">PrintHub © ${new Date().getFullYear()}</div>
+                <div style="letter-spacing: 1px;">www.printhubug.com | +256 791 046 296 | Kabale, Uganda</div>
+                <div style="font-size: 8px; color: #cbd5e1; margin-top: 3px;">This is an auto-generated combined CV and job application document.</div>
             </div>
         `;
 
