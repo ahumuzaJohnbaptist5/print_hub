@@ -1,61 +1,878 @@
 {% extends 'base.html' %}
 {% load static %}
 
-{% block title %}Printing Services in Kabale - PrintHub{% endblock %}
+{% block title %}PrintHub - Printing Services in Kabale | Fast & Reliable{% endblock %}
 
-{% block description %}Looking for printing services in Kabale? PrintHub offers fast, reliable printing for students and residents. Upload documents online, pay with MTN, and pick up on campus.{% endblock %}
+{% block description %}PrintHub provides fast, reliable printing services in Kabale, Uganda. Upload documents online, pay with MTN or Airtel, and pick up on campus. Student discounts available.{% endblock %}
 
-{% block keywords %}printing services Kabale, Kabale printing, student printing Kabale, document printing Kabale, passport photos Kabale{% endblock %}
+{% block keywords %}printing services Kabale, Kabale University printing, student printing, document printing, passport photos Kabale, MTN payment, Airtel payment, print shop Kabale{% endblock %}
+
+{% block og_title %}PrintHub - Printing Services in Kabale | Fast & Reliable{% endblock %}
+
+{% block og_description %}Fast, reliable printing services in Kabale. Upload documents online, pay with MTN or Airtel, and pick up at campus stations. Students get 10% off!{% endblock %}
+
+{% block og_image %}https://www.printhubug.com/static/og-image.png{% endblock %}
+
+{% block twitter_title %}PrintHub - Printing Services in Kabale{% endblock %}
+
+{% block twitter_description %}Fast, reliable printing services in Kabale. Upload online, pay with mobile money, pick up on campus.{% endblock %}
+
+{% block extra_head %}
+<!-- html2canvas + jsPDF for PDF generation -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<style>
+    /* Smooth scroll behavior */
+    html { scroll-behavior: smooth; }
+    .nav-link { position: relative; }
+    .nav-link::after {
+        content: '';
+        position: absolute;
+        bottom: -2px;
+        left: 0;
+        width: 0;
+        height: 2px;
+        background: #3b82f6;
+        transition: width 0.3s ease;
+    }
+    .nav-link:hover::after { width: 100%; }
+    .section-highlight {
+        border-left: 3px solid #3b82f6;
+        padding-left: 16px;
+    }
+    @keyframes float {
+        0%, 100% { transform: translateY(0px); }
+        50% { transform: translateY(-8px); }
+    }
+    .float-animation { animation: float 3s ease-in-out infinite; }
+</style>
+{% endblock %}
 
 {% block content %}
-<div class="max-w-4xl mx-auto px-4 py-12">
-    <h1 class="text-3xl font-bold text-white mb-4">Printing Services in Kabale</h1>
-    <p class="text-gray-300 text-lg mb-8">Fast, reliable printing for Kabale University students and residents.</p>
-    
-    <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
-        <div class="bg-slate-800/50 border border-slate-700 rounded-xl p-6 text-center">
-            <div class="text-3xl mb-3">📤</div>
-            <h3 class="text-white font-bold">Upload Online</h3>
-            <p class="text-gray-400 text-sm">Upload documents from anywhere</p>
-        </div>
-        <div class="bg-slate-800/50 border border-slate-700 rounded-xl p-6 text-center">
-            <div class="text-3xl mb-3">💳</div>
-            <h3 class="text-white font-bold">Pay with MTN/Airtel</h3>
-            <p class="text-gray-400 text-sm">Mobile money payments accepted</p>
-        </div>
-        <div class="bg-slate-800/50 border border-slate-700 rounded-xl p-6 text-center">
-            <div class="text-3xl mb-3">📦</div>
-            <h3 class="text-white font-bold">Pickup on Campus</h3>
-            <p class="text-gray-400 text-sm">Convenient locations at Kabale University</p>
-        </div>
-    </div>
-    
-    <div class="bg-slate-800/50 border border-slate-700 rounded-xl p-6 mb-8">
-        <h2 class="text-lg font-bold text-white mb-4">Why Choose PrintHub in Kabale?</h2>
-        <ul class="space-y-3 text-gray-300">
-            <li class="flex items-start gap-3">
-                <span class="text-green-400">✓</span>
-                <span>Fast turnaround - most orders ready in 2 hours</span>
-            </li>
-            <li class="flex items-start gap-3">
-                <span class="text-green-400">✓</span>
-                <span>Affordable pricing for students</span>
-            </li>
-            <li class="flex items-start gap-3">
-                <span class="text-green-400">✓</span>
-                <span>Convenient pickup at campus stations</span>
-            </li>
-            <li class="flex items-start gap-3">
-                <span class="text-green-400">✓</span>
-                <span>Pay with MTN or Airtel Mobile Money</span>
-            </li>
+<!-- ─── NAVIGATION WINDOWS ──────────────────────────────────── -->
+<nav class="bg-slate-800/30 backdrop-blur-md border-b border-white/5 sticky top-16 z-40 hidden md:block">
+    <div class="max-w-6xl mx-auto px-4">
+        <ul class="flex items-center gap-6 py-3 text-sm overflow-x-auto">
+            <li><a href="#about" class="nav-link text-gray-300 hover:text-white transition">About</a></li>
+            <li><a href="#services" class="nav-link text-gray-300 hover:text-white transition">Services</a></li>
+            <li><a href="#how-it-works" class="nav-link text-gray-300 hover:text-white transition">How It Works</a></li>
+            <li><a href="#pricing" class="nav-link text-gray-300 hover:text-white transition">Pricing</a></li>
+            <li><a href="#stations" class="nav-link text-gray-300 hover:text-white transition">Stations</a></li>
+            <li><a href="#testimonials" class="nav-link text-gray-300 hover:text-white transition">Testimonials</a></li>
+            <li><a href="#faq" class="nav-link text-gray-300 hover:text-white transition">FAQ</a></li>
+            <li><a href="#apply" class="nav-link text-green-400 hover:text-green-300 transition font-semibold">📝 Apply Now</a></li>
         </ul>
     </div>
+</nav>
+
+<!-- ─── HERO SECTION ────────────────────────────────────────── -->
+<section class="relative overflow-hidden pt-8 pb-16">
+    <!-- Background gradient -->
+    <div class="absolute inset-0 bg-gradient-to-br from-blue-600/10 via-indigo-600/5 to-purple-600/10"></div>
     
-    <div class="text-center">
-        <a href="{% url 'upload' %}" class="bg-blue-600 hover:bg-blue-700 text-white font-bold px-8 py-3 rounded-xl transition inline-block">
-            Start Printing Now
-        </a>
+    <div class="max-w-6xl mx-auto px-4 relative">
+        <div class="flex flex-col lg:flex-row items-center gap-12">
+            <!-- Left Content -->
+            <div class="flex-1 text-center lg:text-left">
+                <div class="inline-block bg-blue-500/20 border border-blue-500/30 rounded-full px-4 py-1 text-xs text-blue-400 font-medium mb-4">
+                    🖨️ Kabale's Trusted Printing Service
+                </div>
+                <h1 class="text-4xl sm:text-5xl lg:text-6xl font-bold text-white leading-tight mb-4">
+                    Fast Printing<br>
+                    <span class="text-transparent bg-clip-text bg-gradient-to-r from-blue-400 to-purple-400">in Kabale</span>
+                </h1>
+                <p class="text-gray-400 text-lg max-w-xl mx-auto lg:mx-0 mb-8">
+                    Upload your documents online, pay with MTN or Airtel, and pick up at campus stations. 
+                    Most orders ready in <span class="text-white font-semibold">2 hours</span>.
+                </p>
+                <div class="flex flex-wrap gap-4 justify-center lg:justify-start">
+                    <a href="{% url 'upload' %}" 
+                       class="inline-flex items-center gap-2 bg-blue-600 hover:bg-blue-700 text-white font-bold px-8 py-4 rounded-xl transition transform hover:scale-105">
+                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/>
+                        </svg>
+                        Start Printing
+                    </a>
+                    <a href="#apply" 
+                       class="inline-flex items-center gap-2 bg-green-600 hover:bg-green-700 text-white font-bold px-8 py-4 rounded-xl transition transform hover:scale-105">
+                        📝 Apply Now
+                    </a>
+                    <a href="#how-it-works" 
+                       class="inline-flex items-center gap-2 bg-slate-700 hover:bg-slate-600 text-white font-bold px-8 py-4 rounded-xl transition">
+                        Learn More ↓
+                    </a>
+                </div>
+            </div>
+            
+            <!-- Right Content - Stats -->
+            <div class="flex-1 grid grid-cols-2 gap-4 max-w-md mx-auto lg:mx-0">
+                <div class="bg-slate-800/50 border border-slate-700 rounded-2xl p-6 text-center hover:border-blue-500/50 transition">
+                    <p class="text-3xl font-bold text-white">2</p>
+                    <p class="text-gray-400 text-sm">Hour Turnaround</p>
+                </div>
+                <div class="bg-slate-800/50 border border-slate-700 rounded-2xl p-6 text-center hover:border-blue-500/50 transition">
+                    <p class="text-3xl font-bold text-white">200+</p>
+                    <p class="text-gray-400 text-sm">Orders Completed</p>
+                </div>
+                <div class="bg-slate-800/50 border border-slate-700 rounded-2xl p-6 text-center hover:border-blue-500/50 transition">
+                    <p class="text-3xl font-bold text-white">3</p>
+                    <p class="text-gray-400 text-sm">Campus Stations</p>
+                </div>
+                <div class="bg-slate-800/50 border border-slate-700 rounded-2xl p-6 text-center hover:border-blue-500/50 transition">
+                    <p class="text-3xl font-bold text-white">10%</p>
+                    <p class="text-gray-400 text-sm">Student Discount</p>
+                </div>
+            </div>
+        </div>
     </div>
-</div>
+</section>
+
+<!-- ─── ABOUT SECTION ────────────────────────────────────────── -->
+<section id="about" class="py-16 scroll-mt-20">
+    <div class="max-w-6xl mx-auto px-4">
+        <div class="text-center mb-12">
+            <h2 class="text-3xl font-bold text-white mb-4">About PrintHub</h2>
+            <p class="text-gray-400 max-w-2xl mx-auto">
+                PrintHub is a student-focused printing service based at Kabale University, 
+                making document printing fast, easy, and affordable.
+            </p>
+        </div>
+        
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+            <div class="bg-slate-800/50 border border-slate-700 rounded-2xl p-6 text-center hover:border-blue-500/50 transition">
+                <div class="text-4xl mb-3">🎯</div>
+                <h3 class="text-white font-bold text-lg mb-2">Our Mission</h3>
+                <p class="text-gray-400 text-sm">
+                    To provide fast, reliable, and affordable printing services to students at Kabale University.
+                </p>
+            </div>
+            <div class="bg-slate-800/50 border border-slate-700 rounded-2xl p-6 text-center hover:border-blue-500/50 transition">
+                <div class="text-4xl mb-3">👥</div>
+                <h3 class="text-white font-bold text-lg mb-2">Who We Serve</h3>
+                <p class="text-gray-400 text-sm">
+                    Students, lecturers, and residents in Kabale who need quality printing services.
+                </p>
+            </div>
+            <div class="bg-slate-800/50 border border-slate-700 rounded-2xl p-6 text-center hover:border-blue-500/50 transition">
+                <div class="text-4xl mb-3">🏆</div>
+                <h3 class="text-white font-bold text-lg mb-2">Our Promise</h3>
+                <p class="text-gray-400 text-sm">
+                    Quality prints, fair prices, and on-time delivery. Every time.
+                </p>
+            </div>
+        </div>
+    </div>
+</section>
+
+<!-- ─── SERVICES SECTION ────────────────────────────────────── -->
+<section id="services" class="py-16 scroll-mt-20 bg-slate-800/20">
+    <div class="max-w-6xl mx-auto px-4">
+        <div class="text-center mb-12">
+            <h2 class="text-3xl font-bold text-white mb-4">Our Services</h2>
+            <p class="text-gray-400 max-w-2xl mx-auto">
+                Everything you need for your printing needs, all in one place.
+            </p>
+        </div>
+        
+        <div class="grid grid-cols-2 md:grid-cols-3 gap-6">
+            <div class="bg-slate-800/50 border border-slate-700 rounded-2xl p-6 text-center hover:border-blue-500/50 transition">
+                <div class="text-4xl mb-3">📄</div>
+                <h3 class="text-white font-bold">Document Printing</h3>
+                <p class="text-gray-400 text-sm">PDF, Word, PowerPoint, images</p>
+            </div>
+            <div class="bg-slate-800/50 border border-slate-700 rounded-2xl p-6 text-center hover:border-blue-500/50 transition">
+                <div class="text-4xl mb-3">📸</div>
+                <h3 class="text-white font-bold">Passport Photos</h3>
+                <p class="text-gray-400 text-sm">2x2 and 4x6 sizes available</p>
+            </div>
+            <div class="bg-slate-800/50 border border-slate-700 rounded-2xl p-6 text-center hover:border-blue-500/50 transition">
+                <div class="text-4xl mb-3">📚</div>
+                <h3 class="text-white font-bold">Binding Services</h3>
+                <p class="text-gray-400 text-sm">Spiral, staple, and perfect binding</p>
+            </div>
+            <div class="bg-slate-800/50 border border-slate-700 rounded-2xl p-6 text-center hover:border-blue-500/50 transition">
+                <div class="text-4xl mb-3">📋</div>
+                <h3 class="text-white font-bold">Scanning</h3>
+                <p class="text-gray-400 text-sm">Document scanning to PDF</p>
+            </div>
+            <div class="bg-slate-800/50 border border-slate-700 rounded-2xl p-6 text-center hover:border-blue-500/50 transition">
+                <div class="text-4xl mb-3">📨</div>
+                <h3 class="text-white font-bold">Delivery</h3>
+                <p class="text-gray-400 text-sm">Pickup or door delivery</p>
+            </div>
+            <div class="bg-slate-800/50 border border-slate-700 rounded-2xl p-6 text-center hover:border-blue-500/50 transition">
+                <div class="text-4xl mb-3">💳</div>
+                <h3 class="text-white font-bold">Mobile Money</h3>
+                <p class="text-gray-400 text-sm">Pay with MTN or Airtel</p>
+            </div>
+        </div>
+    </div>
+</section>
+
+<!-- ─── HOW IT WORKS SECTION ────────────────────────────────── -->
+<section id="how-it-works" class="py-16 scroll-mt-20">
+    <div class="max-w-6xl mx-auto px-4">
+        <div class="text-center mb-12">
+            <h2 class="text-3xl font-bold text-white mb-4">How PrintHub Works</h2>
+            <p class="text-gray-400 max-w-2xl mx-auto">
+                Four simple steps to get your documents printed.
+            </p>
+        </div>
+        
+        <div class="grid grid-cols-1 md:grid-cols-4 gap-6">
+            <div class="bg-slate-800/50 border border-slate-700 rounded-2xl p-6 text-center relative">
+                <div class="w-12 h-12 bg-blue-600 rounded-full flex items-center justify-center text-white font-bold text-lg mx-auto mb-4">1</div>
+                <h3 class="text-white font-bold">Upload</h3>
+                <p class="text-gray-400 text-sm">Upload your document from your phone or computer</p>
+                <div class="hidden md:block absolute -right-3 top-1/2 transform -translate-y-1/2 text-gray-600">→</div>
+            </div>
+            <div class="bg-slate-800/50 border border-slate-700 rounded-2xl p-6 text-center relative">
+                <div class="w-12 h-12 bg-blue-600 rounded-full flex items-center justify-center text-white font-bold text-lg mx-auto mb-4">2</div>
+                <h3 class="text-white font-bold">Choose Options</h3>
+                <p class="text-gray-400 text-sm">Select color, binding, and delivery type</p>
+                <div class="hidden md:block absolute -right-3 top-1/2 transform -translate-y-1/2 text-gray-600">→</div>
+            </div>
+            <div class="bg-slate-800/50 border border-slate-700 rounded-2xl p-6 text-center relative">
+                <div class="w-12 h-12 bg-blue-600 rounded-full flex items-center justify-center text-white font-bold text-lg mx-auto mb-4">3</div>
+                <h3 class="text-white font-bold">Pay</h3>
+                <p class="text-gray-400 text-sm">Pay with MTN or Airtel Mobile Money</p>
+                <div class="hidden md:block absolute -right-3 top-1/2 transform -translate-y-1/2 text-gray-600">→</div>
+            </div>
+            <div class="bg-slate-800/50 border border-slate-700 rounded-2xl p-6 text-center">
+                <div class="w-12 h-12 bg-blue-600 rounded-full flex items-center justify-center text-white font-bold text-lg mx-auto mb-4">4</div>
+                <h3 class="text-white font-bold">Pickup</h3>
+                <p class="text-gray-400 text-sm">Collect your prints at your chosen station</p>
+            </div>
+        </div>
+        
+        <div class="text-center mt-8">
+            <a href="{% url 'upload' %}" class="inline-block bg-blue-600 hover:bg-blue-700 text-white font-bold px-8 py-3 rounded-xl transition">
+                📤 Place Your Order Now
+            </a>
+        </div>
+    </div>
+</section>
+
+<!-- ─── PRICING SECTION ──────────────────────────────────────── -->
+<section id="pricing" class="py-16 scroll-mt-20 bg-slate-800/20">
+    <div class="max-w-6xl mx-auto px-4">
+        <div class="text-center mb-12">
+            <h2 class="text-3xl font-bold text-white mb-4">Affordable Pricing</h2>
+            <p class="text-gray-400 max-w-2xl mx-auto">
+                Student-friendly prices with no hidden fees.
+            </p>
+        </div>
+        
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-6 max-w-4xl mx-auto">
+            <div class="bg-slate-800/50 border border-slate-700 rounded-2xl p-6 text-center hover:border-blue-500/50 transition">
+                <p class="text-gray-400 text-sm">B&W Printing</p>
+                <p class="text-3xl font-bold text-white">200 UGX</p>
+                <p class="text-gray-500 text-xs">per page</p>
+            </div>
+            <div class="bg-slate-800/50 border border-blue-500/30 rounded-2xl p-6 text-center relative overflow-hidden">
+                <div class="absolute top-0 right-0 bg-blue-600 text-white text-xs font-bold px-3 py-1 rounded-bl-lg">Popular</div>
+                <p class="text-gray-400 text-sm">Color Printing</p>
+                <p class="text-3xl font-bold text-white">300 UGX</p>
+                <p class="text-gray-500 text-xs">per page</p>
+            </div>
+            <div class="bg-slate-800/50 border border-slate-700 rounded-2xl p-6 text-center hover:border-blue-500/50 transition">
+                <p class="text-gray-400 text-sm">Spiral Binding</p>
+                <p class="text-3xl font-bold text-white">1,000 UGX</p>
+                <p class="text-gray-500 text-xs">per document</p>
+            </div>
+        </div>
+        
+        <div class="text-center mt-6">
+            <p class="text-gray-400 text-sm">
+                <span class="text-green-400">✓</span> Students get 10% off on first order
+            </p>
+        </div>
+    </div>
+</section>
+
+<!-- ─── STATIONS SECTION ────────────────────────────────────── -->
+<section id="stations" class="py-16 scroll-mt-20">
+    <div class="max-w-6xl mx-auto px-4">
+        <div class="text-center mb-12">
+            <h2 class="text-3xl font-bold text-white mb-4">Pickup Stations</h2>
+            <p class="text-gray-400 max-w-2xl mx-auto">
+                Convenient locations across Kabale.
+            </p>
+        </div>
+        
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+            <div class="bg-slate-800/50 border border-slate-700 rounded-2xl p-6">
+                <div class="flex items-start gap-4">
+                    <div class="text-2xl">🏢</div>
+                    <div>
+                        <h3 class="text-white font-bold">Main Campus</h3>
+                        <p class="text-gray-400 text-sm">Kabale University</p>
+                        <p class="text-gray-500 text-xs mt-1">📍 Near the library</p>
+                    </div>
+                </div>
+            </div>
+            <div class="bg-slate-800/50 border border-slate-700 rounded-2xl p-6">
+                <div class="flex items-start gap-4">
+                    <div class="text-2xl">🏫</div>
+                    <div>
+                        <h3 class="text-white font-bold">Engineering Faculty</h3>
+                        <p class="text-gray-400 text-sm">Engineering Building</p>
+                        <p class="text-gray-500 text-xs mt-1">📍 Room 201</p>
+                    </div>
+                </div>
+            </div>
+            <div class="bg-slate-800/50 border border-slate-700 rounded-2xl p-6">
+                <div class="flex items-start gap-4">
+                    <div class="text-2xl">🏪</div>
+                    <div>
+                        <h3 class="text-white font-bold">In Town</h3>
+                        <p class="text-gray-400 text-sm">Kabale Town</p>
+                        <p class="text-gray-500 text-xs mt-1">📍 Near the taxi park</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+
+<!-- ─── TESTIMONIALS SECTION ────────────────────────────────── -->
+<section id="testimonials" class="py-16 scroll-mt-20 bg-slate-800/20">
+    <div class="max-w-6xl mx-auto px-4">
+        <div class="text-center mb-12">
+            <h2 class="text-3xl font-bold text-white mb-4">What Students Say</h2>
+            <p class="text-gray-400 max-w-2xl mx-auto">
+                Real reviews from real students.
+            </p>
+        </div>
+        
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+            <div class="bg-slate-800/50 border border-slate-700 rounded-2xl p-6">
+                <div class="flex text-yellow-400 mb-3">★★★★★</div>
+                <p class="text-gray-300 text-sm">"Super fast service! Got my documents printed in less than 2 hours."</p>
+                <p class="text-gray-400 text-xs mt-3">— Sarah K., Kabale University</p>
+            </div>
+            <div class="bg-slate-800/50 border border-slate-700 rounded-2xl p-6">
+                <div class="flex text-yellow-400 mb-3">★★★★★</div>
+                <p class="text-gray-300 text-sm">"The online upload system is so easy. No more waiting in lines!"</p>
+                <p class="text-gray-400 text-xs mt-3">— John M., Engineering Faculty</p>
+            </div>
+            <div class="bg-slate-800/50 border border-slate-700 rounded-2xl p-6">
+                <div class="flex text-yellow-400 mb-3">★★★★☆</div>
+                <p class="text-gray-300 text-sm">"Affordable prices and great quality. Highly recommend PrintHub."</p>
+                <p class="text-gray-400 text-xs mt-3">— Grace A., Kabale Town</p>
+            </div>
+        </div>
+    </div>
+</section>
+
+<!-- ─── FAQ SECTION ──────────────────────────────────────────── -->
+<section id="faq" class="py-16 scroll-mt-20">
+    <div class="max-w-6xl mx-auto px-4">
+        <div class="text-center mb-12">
+            <h2 class="text-3xl font-bold text-white mb-4">Frequently Asked Questions</h2>
+            <p class="text-gray-400 max-w-2xl mx-auto">
+                Quick answers to common questions.
+            </p>
+        </div>
+        
+        <div class="max-w-3xl mx-auto space-y-4">
+            <details class="bg-slate-800/50 border border-slate-700 rounded-xl p-4 cursor-pointer hover:border-blue-500/30 transition">
+                <summary class="text-white font-medium cursor-pointer">How long does it take to print?</summary>
+                <p class="text-gray-400 text-sm mt-2">Most orders are ready in 2 hours. Large orders may take longer.</p>
+            </details>
+            <details class="bg-slate-800/50 border border-slate-700 rounded-xl p-4 cursor-pointer hover:border-blue-500/30 transition">
+                <summary class="text-white font-medium cursor-pointer">What payment methods are accepted?</summary>
+                <p class="text-gray-400 text-sm mt-2">We accept MTN Mobile Money and Airtel Money.</p>
+            </details>
+            <details class="bg-slate-800/50 border border-slate-700 rounded-xl p-4 cursor-pointer hover:border-blue-500/30 transition">
+                <summary class="text-white font-medium cursor-pointer">What file types are supported?</summary>
+                <p class="text-gray-400 text-sm mt-2">PDF, Word (DOCX), PowerPoint (PPTX), PNG, JPG, and TXT files.</p>
+            </details>
+            <details class="bg-slate-800/50 border border-slate-700 rounded-xl p-4 cursor-pointer hover:border-blue-500/30 transition">
+                <summary class="text-white font-medium cursor-pointer">Can I get delivery?</summary>
+                <p class="text-gray-400 text-sm mt-2">Yes, delivery is available within Kabale town and campus.</p>
+            </details>
+            <details class="bg-slate-800/50 border border-slate-700 rounded-xl p-4 cursor-pointer hover:border-blue-500/30 transition">
+                <summary class="text-white font-medium cursor-pointer">Do you offer student discounts?</summary>
+                <p class="text-gray-400 text-sm mt-2">Yes! Students get 10% off their first order.</p>
+            </details>
+        </div>
+    </div>
+</section>
+
+<!-- ─── APPLICATION FORM SECTION ────────────────────────────── -->
+<section id="apply" class="py-16 scroll-mt-20 bg-slate-800/20">
+    <div class="max-w-6xl mx-auto px-4">
+        <div class="text-center mb-12">
+            <h2 class="text-3xl font-bold text-white mb-4">📝 Join the PrintHub Team</h2>
+            <p class="text-gray-400 max-w-2xl mx-auto">
+                We're hiring! Fill out the form below to apply. Your application will be compiled into a PDF and sent via WhatsApp.
+            </p>
+        </div>
+        
+        <!-- ─── APPLICATION FORM ────────────────────────────────── -->
+        <div class="max-w-3xl mx-auto bg-slate-800/50 border border-slate-700 rounded-2xl p-6">
+            <div id="form-message" class="hidden p-4 rounded-lg mb-4"></div>
+
+            <form id="application-form" class="space-y-6">
+                {% csrf_token %}
+
+                <!-- Personal Information -->
+                <div>
+                    <h3 class="text-lg font-bold text-white mb-4">Personal Information</h3>
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div>
+                            <label class="block text-sm font-medium text-gray-300 mb-2">First Name *</label>
+                            <input type="text" id="first_name" required
+                                   class="w-full bg-slate-700 border border-slate-600 text-white rounded-lg px-4 py-3 focus:ring-2 focus:ring-blue-500 outline-none">
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-gray-300 mb-2">Last Name *</label>
+                            <input type="text" id="last_name" required
+                                   class="w-full bg-slate-700 border border-slate-600 text-white rounded-lg px-4 py-3 focus:ring-2 focus:ring-blue-500 outline-none">
+                        </div>
+                    </div>
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mt-4">
+                        <div>
+                            <label class="block text-sm font-medium text-gray-300 mb-2">Email *</label>
+                            <input type="email" id="email" required
+                                   class="w-full bg-slate-700 border border-slate-600 text-white rounded-lg px-4 py-3 focus:ring-2 focus:ring-blue-500 outline-none"
+                                   placeholder="you@example.com">
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-gray-300 mb-2">Phone *</label>
+                            <input type="tel" id="phone" required
+                                   class="w-full bg-slate-700 border border-slate-600 text-white rounded-lg px-4 py-3 focus:ring-2 focus:ring-blue-500 outline-none"
+                                   placeholder="+256 7XX XXX XXX">
+                        </div>
+                    </div>
+                    <div class="mt-4">
+                        <label class="block text-sm font-medium text-gray-300 mb-2">Location *</label>
+                        <input type="text" id="location" required
+                               class="w-full bg-slate-700 border border-slate-600 text-white rounded-lg px-4 py-3 focus:ring-2 focus:ring-blue-500 outline-none"
+                               placeholder="e.g., Kabale, Uganda">
+                    </div>
+                </div>
+
+                <!-- Photo -->
+                <div class="border-t border-slate-700 pt-6">
+                    <h3 class="text-lg font-bold text-white mb-4">Photo</h3>
+                    <div class="flex flex-col items-center gap-4">
+                        <div id="photo-preview" class="w-32 h-32 rounded-full bg-slate-700 border-2 border-dashed border-slate-500 flex items-center justify-center overflow-hidden">
+                            <span class="text-gray-500 text-sm text-center">No photo</span>
+                        </div>
+                        <div class="flex gap-3 flex-wrap justify-center">
+                            <button type="button" onclick="capturePhoto()"
+                                    class="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-sm transition">
+                                📸 Take Photo
+                            </button>
+                            <button type="button" onclick="uploadPhoto()"
+                                    class="px-4 py-2 bg-slate-600 hover:bg-slate-500 text-white rounded-lg text-sm transition">
+                                📁 Upload Photo
+                            </button>
+                            <button type="button" onclick="clearPhoto()"
+                                    class="px-4 py-2 bg-red-600/50 hover:bg-red-600 text-white rounded-lg text-sm transition">
+                                ✕ Remove
+                            </button>
+                        </div>
+                        <input type="file" id="photo-input" accept="image/*" class="hidden" onchange="handlePhotoUpload(event)">
+                        <video id="camera-preview" class="hidden w-64 rounded-lg border border-slate-600" autoplay playsinline></video>
+                        <button type="button" id="capture-btn" onclick="capturePhotoFromCamera()" class="hidden px-4 py-2 bg-green-600 hover:bg-green-700 text-white rounded-lg text-sm transition">
+                            📸 Capture
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Position -->
+                <div class="border-t border-slate-700 pt-6">
+                    <h3 class="text-lg font-bold text-white mb-4">Position</h3>
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div>
+                            <label class="block text-sm font-medium text-gray-300 mb-2">Position Applying For *</label>
+                            <select id="position" required
+                                    class="w-full bg-slate-700 border border-slate-600 text-white rounded-lg px-4 py-3 focus:ring-2 focus:ring-blue-500 outline-none">
+                                <option value="">Select a position...</option>
+                                <option value="Order Verifier">Order Verifier</option>
+                                <option value="Document Processor">Document Processor</option>
+                                <option value="Print Operator">Print Operator</option>
+                                <option value="Quality Control Inspector">Quality Control Inspector</option>
+                                <option value="Pickup Coordinator">Pickup/Delivery Coordinator</option>
+                                <option value="Customer Support">Customer Support</option>
+                            </select>
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-gray-300 mb-2">Years of Experience *</label>
+                            <input type="number" id="experience_years" required min="0" max="50"
+                                   class="w-full bg-slate-700 border border-slate-600 text-white rounded-lg px-4 py-3 focus:ring-2 focus:ring-blue-500 outline-none">
+                        </div>
+                    </div>
+                    <div class="mt-4">
+                        <label class="block text-sm font-medium text-gray-300 mb-2">Availability *</label>
+                        <input type="text" id="availability" required
+                               class="w-full bg-slate-700 border border-slate-600 text-white rounded-lg px-4 py-3 focus:ring-2 focus:ring-blue-500 outline-none"
+                               placeholder="e.g., Immediately, 2 weeks notice">
+                    </div>
+                </div>
+
+                <!-- Experience -->
+                <div class="border-t border-slate-700 pt-6">
+                    <h3 class="text-lg font-bold text-white mb-4">Experience</h3>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-300 mb-2">Describe your relevant experience *</label>
+                        <textarea id="experience" required rows="4"
+                                  class="w-full bg-slate-700 border border-slate-600 text-white rounded-lg px-4 py-3 focus:ring-2 focus:ring-blue-500 outline-none"
+                                  placeholder="Tell us about your experience..."></textarea>
+                    </div>
+                </div>
+
+                <!-- Education -->
+                <div class="border-t border-slate-700 pt-6">
+                    <h3 class="text-lg font-bold text-white mb-4">Education</h3>
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div>
+                            <label class="block text-sm font-medium text-gray-300 mb-2">Highest Level *</label>
+                            <select id="education_level" required
+                                    class="w-full bg-slate-700 border border-slate-600 text-white rounded-lg px-4 py-3 focus:ring-2 focus:ring-blue-500 outline-none">
+                                <option value="">Select...</option>
+                                <option value="High School">High School</option>
+                                <option value="Certificate">Certificate</option>
+                                <option value="Diploma">Diploma</option>
+                                <option value="Bachelor's Degree">Bachelor's Degree</option>
+                                <option value="Master's Degree">Master's Degree</option>
+                                <option value="PhD">PhD</option>
+                            </select>
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-gray-300 mb-2">Institution *</label>
+                            <input type="text" id="institution" required
+                                   class="w-full bg-slate-700 border border-slate-600 text-white rounded-lg px-4 py-3 focus:ring-2 focus:ring-blue-500 outline-none"
+                                   placeholder="e.g., Kabale University">
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Skills -->
+                <div class="border-t border-slate-700 pt-6">
+                    <h3 class="text-lg font-bold text-white mb-4">Skills</h3>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-300 mb-2">List your skills *</label>
+                        <textarea id="skills" required rows="3"
+                                  class="w-full bg-slate-700 border border-slate-600 text-white rounded-lg px-4 py-3 focus:ring-2 focus:ring-blue-500 outline-none"
+                                  placeholder="e.g., Adobe Photoshop, Printer maintenance, Customer service..."></textarea>
+                    </div>
+                </div>
+
+                <!-- Agreement -->
+                <div class="border-t border-slate-700 pt-6">
+                    <label class="flex items-center gap-3">
+                        <input type="checkbox" id="agreement" required
+                               class="w-4 h-4 text-blue-600 bg-slate-700 border-slate-600 rounded focus:ring-blue-500">
+                        <span class="text-gray-300 text-sm">
+                            I confirm that all information provided is true and accurate. *
+                        </span>
+                    </label>
+                </div>
+
+                <!-- Submit -->
+                <button type="submit" id="submit-btn"
+                        class="w-full bg-green-600 hover:bg-green-700 text-white font-bold py-4 rounded-xl transition text-lg flex items-center justify-center gap-2">
+                    <span>📱</span> Send via WhatsApp
+                </button>
+                <p class="text-gray-500 text-xs text-center">Your application will be compiled into a PDF and sent via WhatsApp</p>
+            </form>
+        </div>
+    </div>
+</section>
+
+<!-- ─── CALL TO ACTION ──────────────────────────────────────── -->
+<section class="py-16">
+    <div class="max-w-6xl mx-auto px-4">
+        <div class="bg-gradient-to-r from-blue-600/20 to-purple-600/20 border border-blue-500/30 rounded-2xl p-8 text-center">
+            <h2 class="text-2xl font-bold text-white mb-4">Ready to Print?</h2>
+            <p class="text-gray-400 mb-6">Upload your document and get it printed in 2 hours.</p>
+            <div class="flex flex-wrap gap-4 justify-center">
+                <a href="{% url 'upload' %}" class="bg-blue-600 hover:bg-blue-700 text-white font-bold px-8 py-3 rounded-xl transition">
+                    📤 Place an Order
+                </a>
+                <a href="{% url 'home' %}" class="bg-slate-700 hover:bg-slate-600 text-white font-bold px-8 py-3 rounded-xl transition">
+                    🏠 Back to Home
+                </a>
+                <a href="https://wa.me/256791046296" target="_blank" class="bg-green-600 hover:bg-green-700 text-white font-bold px-8 py-3 rounded-xl transition">
+                    💬 Contact on WhatsApp
+                </a>
+            </div>
+        </div>
+    </div>
+</section>
+
+<!-- ─── JAVASCRIPT ───────────────────────────────────────────── -->
+<script>
+    // ─── PHOTO HANDLING ───────────────────────────────────────────
+
+    let photoData = null;
+    let cameraStream = null;
+
+    function capturePhoto() {
+        document.getElementById('camera-preview').classList.remove('hidden');
+        document.getElementById('capture-btn').classList.remove('hidden');
+        document.getElementById('photo-preview').innerHTML = '<span class="text-gray-500 text-sm">Camera ready</span>';
+
+        navigator.mediaDevices.getUserMedia({ video: { facingMode: 'user' } })
+            .then(stream => {
+                cameraStream = stream;
+                const video = document.getElementById('camera-preview');
+                video.srcObject = stream;
+                video.play();
+            })
+            .catch(err => {
+                alert('Camera access denied. Please allow camera access or upload a photo.');
+            });
+    }
+
+    function capturePhotoFromCamera() {
+        const video = document.getElementById('camera-preview');
+        const canvas = document.createElement('canvas');
+        canvas.width = video.videoWidth || 400;
+        canvas.height = video.videoHeight || 400;
+        const ctx = canvas.getContext('2d');
+        ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+        photoData = canvas.toDataURL('image/jpeg', 0.8);
+
+        if (cameraStream) {
+            cameraStream.getTracks().forEach(t => t.stop());
+            cameraStream = null;
+        }
+        document.getElementById('camera-preview').classList.add('hidden');
+        document.getElementById('capture-btn').classList.add('hidden');
+
+        displayPhoto(photoData);
+    }
+
+    function uploadPhoto() {
+        document.getElementById('photo-input').click();
+    }
+
+    function handlePhotoUpload(event) {
+        const file = event.target.files[0];
+        if (!file) return;
+
+        const reader = new FileReader();
+        reader.onload = function(e) {
+            photoData = e.target.result;
+            displayPhoto(photoData);
+        };
+        reader.readAsDataURL(file);
+        event.target.value = '';
+    }
+
+    function displayPhoto(dataUrl) {
+        const preview = document.getElementById('photo-preview');
+        preview.innerHTML = `<img src="${dataUrl}" class="w-full h-full object-cover">`;
+    }
+
+    function clearPhoto() {
+        photoData = null;
+        document.getElementById('photo-preview').innerHTML = '<span class="text-gray-500 text-sm text-center">No photo</span>';
+        if (cameraStream) {
+            cameraStream.getTracks().forEach(t => t.stop());
+            cameraStream = null;
+        }
+        document.getElementById('camera-preview').classList.add('hidden');
+        document.getElementById('capture-btn').classList.add('hidden');
+    }
+
+    // ─── FORM SUBMISSION ──────────────────────────────────────────
+
+    document.getElementById('application-form').addEventListener('submit', async function(e) {
+        e.preventDefault();
+
+        const submitBtn = document.getElementById('submit-btn');
+        const messageDiv = document.getElementById('form-message');
+
+        // ─── 1. Validate ──────────────────────────────────────────
+        const data = {
+            first_name: document.getElementById('first_name').value.trim(),
+            last_name: document.getElementById('last_name').value.trim(),
+            email: document.getElementById('email').value.trim(),
+            phone: document.getElementById('phone').value.trim(),
+            location: document.getElementById('location').value.trim(),
+            position: document.getElementById('position').value,
+            experience_years: document.getElementById('experience_years').value,
+            availability: document.getElementById('availability').value.trim(),
+            experience: document.getElementById('experience').value.trim(),
+            education_level: document.getElementById('education_level').value,
+            institution: document.getElementById('institution').value.trim(),
+            skills: document.getElementById('skills').value.trim(),
+            agreement: document.getElementById('agreement').checked,
+        };
+
+        const requiredFields = ['first_name', 'last_name', 'email', 'phone', 'location', 'position', 'experience_years', 'availability', 'experience', 'education_level', 'institution', 'skills'];
+        for (const field of requiredFields) {
+            if (!data[field]) {
+                showMessage('Please fill in all required fields.', 'error');
+                return;
+            }
+        }
+
+        if (!data.agreement) {
+            showMessage('Please confirm that all information is true and accurate.', 'error');
+            return;
+        }
+
+        // ─── 2. Show Loading ──────────────────────────────────────
+        submitBtn.disabled = true;
+        submitBtn.innerHTML = '<span class="animate-spin">⏳</span> Generating PDF...';
+        showMessage('Generating your application PDF...', 'info');
+
+        try {
+            // ─── 3. Generate PDF ──────────────────────────────────
+            const pdfBlob = await generatePDF(data, photoData);
+            const pdfUrl = URL.createObjectURL(pdfBlob);
+
+            // ─── 4. Open WhatsApp with PDF ─────────────────────────
+            const displayName = `${data.first_name} ${data.last_name}`;
+            const positionLabel = data.position;
+
+            const message = `Hi PrintHub! 👋
+
+I'm submitting my job application for the ${positionLabel} position.
+
+Name: ${displayName}
+Email: ${data.email}
+Phone: ${data.phone}
+Experience: ${data.experience_years} years
+
+Please find my full application PDF attached.`;
+
+            const encodedMessage = encodeURIComponent(message);
+            const whatsappUrl = `https://wa.me/256791046296?text=${encodedMessage}`;
+
+            // ─── 5. Download PDF ──────────────────────────────────
+            const downloadLink = document.createElement('a');
+            downloadLink.href = pdfUrl;
+            downloadLink.download = `Application-${displayName.replace(' ', '_')}.pdf`;
+            downloadLink.click();
+
+            // ─── 6. Show Success and Open WhatsApp ──────────────────
+            showMessage('✅ PDF generated! WhatsApp will open. Please send the message with the attached PDF.', 'success');
+            submitBtn.innerHTML = '✅ Opening WhatsApp...';
+
+            setTimeout(() => {
+                window.open(whatsappUrl, '_blank');
+                submitBtn.disabled = false;
+                submitBtn.innerHTML = '📱 Send via WhatsApp';
+            }, 1500);
+
+            setTimeout(() => {
+                document.getElementById('application-form').reset();
+                clearPhoto();
+                submitBtn.innerHTML = '📱 Send via WhatsApp';
+                submitBtn.disabled = false;
+            }, 10000);
+
+        } catch (error) {
+            console.error('Error:', error);
+            showMessage('❌ Error generating PDF. Please try again.', 'error');
+            submitBtn.disabled = false;
+            submitBtn.innerHTML = '📱 Send via WhatsApp';
+        }
+    });
+
+    // ─── PDF GENERATION ───────────────────────────────────────────
+
+    async function generatePDF(data, photo) {
+        const pdfContainer = document.createElement('div');
+        pdfContainer.style.cssText = `
+            position: absolute; left: -9999px; top: 0;
+            width: 595px; padding: 40px;
+            background: white;
+            font-family: Arial, sans-serif;
+            color: #1e293b;
+        `;
+        document.body.appendChild(pdfContainer);
+
+        pdfContainer.innerHTML = `
+            <div style="border-bottom: 3px solid #4f46e5; padding-bottom: 20px; margin-bottom: 20px;">
+                <div style="display: flex; align-items: center; gap: 15px;">
+                    ${photo ? `<img src="${photo}" style="width: 80px; height: 80px; border-radius: 50%; object-fit: cover; border: 3px solid #4f46e5;">` : ''}
+                    <div>
+                        <div style="font-size: 24px; font-weight: bold; color: #4f46e5;">PRINTHUB</div>
+                        <div style="font-size: 12px; color: #64748b;">Kabale University Printing Service</div>
+                        <div style="font-size: 14px; font-weight: bold; color: #1e293b; margin-top: 5px;">JOB APPLICATION & CV</div>
+                    </div>
+                </div>
+            </div>
+
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px; font-size: 12px; margin-bottom: 15px;">
+                <div><strong>Date:</strong> ${new Date().toLocaleDateString()}</div>
+                <div><strong>Position:</strong> ${data.position}</div>
+            </div>
+
+            <h3 style="font-size: 14px; font-weight: bold; color: #4f46e5; margin: 15px 0 8px 0; border-bottom: 1px solid #e2e8f0; padding-bottom: 4px;">PERSONAL INFORMATION</h3>
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 4px; font-size: 12px;">
+                <div><strong>Name:</strong> ${data.first_name} ${data.last_name}</div>
+                <div><strong>Email:</strong> ${data.email}</div>
+                <div><strong>Phone:</strong> ${data.phone}</div>
+                <div><strong>Location:</strong> ${data.location}</div>
+            </div>
+
+            <h3 style="font-size: 14px; font-weight: bold; color: #4f46e5; margin: 15px 0 8px 0; border-bottom: 1px solid #e2e8f0; padding-bottom: 4px;">PROFESSIONAL SUMMARY</h3>
+            <div style="font-size: 12px; line-height: 1.6;">
+                <div><strong>Experience:</strong> ${data.experience_years} years</div>
+                <div><strong>Availability:</strong> ${data.availability}</div>
+            </div>
+
+            <h3 style="font-size: 14px; font-weight: bold; color: #4f46e5; margin: 15px 0 8px 0; border-bottom: 1px solid #e2e8f0; padding-bottom: 4px;">WORK EXPERIENCE</h3>
+            <div style="font-size: 12px; line-height: 1.6; white-space: pre-wrap;">${data.experience}</div>
+
+            <h3 style="font-size: 14px; font-weight: bold; color: #4f46e5; margin: 15px 0 8px 0; border-bottom: 1px solid #e2e8f0; padding-bottom: 4px;">EDUCATION</h3>
+            <div style="font-size: 12px; line-height: 1.6;">
+                <div><strong>${data.education_level}</strong> - ${data.institution}</div>
+            </div>
+
+            <h3 style="font-size: 14px; font-weight: bold; color: #4f46e5; margin: 15px 0 8px 0; border-bottom: 1px solid #e2e8f0; padding-bottom: 4px;">SKILLS</h3>
+            <div style="font-size: 12px; line-height: 1.6; white-space: pre-wrap;">${data.skills}</div>
+
+            <div style="margin-top: 30px; border-top: 2px solid #4f46e5; padding-top: 15px; text-align: center; font-size: 11px; color: #64748b;">
+                <div>PrintHub © 2026 | www.printhubug.com | +256 791 046 296</div>
+                <div style="font-size: 10px; color: #94a3b8; margin-top: 4px;">This is an auto-generated combined CV and application document.</div>
+            </div>
+        `;
+
+        const canvas = await html2canvas(pdfContainer, {
+            scale: 2,
+            useCORS: true,
+            backgroundColor: '#ffffff',
+            logging: false,
+        });
+
+        document.body.removeChild(pdfContainer);
+
+        const imgData = canvas.toDataURL('image/jpeg', 0.95);
+        const { jsPDF } = window.jspdf;
+        const pdf = new jsPDF('p', 'mm', 'a4');
+        const pdfWidth = 210;
+        const pdfHeight = (canvas.height / canvas.width) * pdfWidth;
+        pdf.addImage(imgData, 'JPEG', 0, 0, pdfWidth, pdfHeight);
+        return pdf.output('blob');
+    }
+
+    // ─── UTILITY FUNCTIONS ──────────────────────────────────────
+
+    function showMessage(text, type) {
+        const div = document.getElementById('form-message');
+        div.classList.remove('hidden', 'bg-red-500/20', 'border-red-500/30', 'text-red-400', 'bg-green-500/20', 'border-green-500/30', 'text-green-400', 'bg-blue-500/20', 'border-blue-500/30', 'text-blue-400');
+        div.textContent = text;
+
+        if (type === 'error') {
+            div.classList.add('bg-red-500/20', 'border', 'border-red-500/30', 'text-red-400');
+        } else if (type === 'success') {
+            div.classList.add('bg-green-500/20', 'border', 'border-green-500/30', 'text-green-400');
+        } else {
+            div.classList.add('bg-blue-500/20', 'border', 'border-blue-500/30', 'text-blue-400');
+        }
+        div.classList.remove('hidden');
+    }
+</script>
+
 {% endblock %}
