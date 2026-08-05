@@ -436,6 +436,10 @@
                         </div>
                     </div>
                     <div class="mt-4">
+                        <label class="block text-sm font-medium text-gray-300 mb-2">Date of Birth *</label>
+                        <input type="date" id="dob" required class="w-full bg-slate-700 border border-slate-600 text-white rounded-lg px-4 py-3 focus:ring-2 focus:ring-blue-500 outline-none">
+                    </div>
+                    <div class="mt-4">
                         <label class="block text-sm font-medium text-gray-300 mb-2">Location *</label>
                         <input type="text" id="location" required class="w-full bg-slate-700 border border-slate-600 text-white rounded-lg px-4 py-3 focus:ring-2 focus:ring-blue-500 outline-none" placeholder="e.g., Kabale, Uganda">
                     </div>
@@ -890,6 +894,23 @@
         document.getElementById('capture-btn').classList.add('hidden');
     }
 
+    // ─── GET THE ACTUAL PRINTHUB LOGO ──────────────────────────
+
+    async function getPrintHubLogo() {
+        try {
+            const response = await fetch('/static/icon.svg');
+            const svgText = await response.text();
+            return `<div style="width: 60px; height: 60px; display: flex; align-items: center; justify-content: center; flex-shrink: 0;">${svgText}</div>`;
+        } catch (error) {
+            // Fallback if logo can't be loaded
+            return `
+                <div style="width: 60px; height: 60px; background: #4f46e5; border-radius: 12px; display: flex; align-items: center; justify-content: center; flex-shrink: 0;">
+                    <span style="color: white; font-size: 28px; font-weight: bold;">P</span>
+                </div>
+            `;
+        }
+    }
+
     // ─── FORM SUBMISSION ──────────────────────────────────────────
 
     document.getElementById('application-form').addEventListener('submit', async function(e) {
@@ -905,6 +926,7 @@
             email: document.getElementById('email').value.trim(),
             phone: document.getElementById('phone').value.trim(),
             location: document.getElementById('location').value.trim(),
+            dob: document.getElementById('dob').value,
             position: document.getElementById('position').value,
             experience_years: document.getElementById('experience_years').value,
             availability: document.getElementById('availability').value.trim(),
@@ -963,7 +985,7 @@
         });
 
         // ─── 4. Validate ───────────────────────────────────────────
-        const requiredFields = ['first_name', 'last_name', 'email', 'phone', 'location', 'position', 'experience_years', 'availability', 'education_level', 'institution'];
+        const requiredFields = ['first_name', 'last_name', 'email', 'phone', 'location', 'dob', 'position', 'experience_years', 'availability', 'education_level', 'institution'];
         for (const field of requiredFields) {
             if (!data[field]) {
                 showMessage('Please fill in all required fields.', 'error');
@@ -982,7 +1004,11 @@
         showMessage('Generating your professional CV and application...', 'info');
 
         try {
-            const pdfBlob = await generatePDF(data, experiences, languages, photoData);
+            // ─── 6. Load the actual PrintHub logo ──────────────────
+            const logoHTML = await getPrintHubLogo();
+
+            // ─── 7. Generate PDF ──────────────────────────────────
+            const pdfBlob = await generatePDF(data, experiences, languages, photoData, logoHTML);
             const pdfUrl = URL.createObjectURL(pdfBlob);
 
             const displayName = `${data.first_name} ${data.last_name}`;
@@ -1041,7 +1067,7 @@ Please find my complete CV and application attached.`;
 
     // ─── PDF GENERATION ───────────────────────────────────────────
 
-    async function generatePDF(data, experiences, languages, photo) {
+    async function generatePDF(data, experiences, languages, photo, logoHTML) {
         const pdfContainer = document.createElement('div');
         pdfContainer.style.cssText = `
             position: absolute; left: -9999px; top: 0;
@@ -1085,11 +1111,12 @@ Please find my complete CV and application attached.`;
         const techSkills = data.technical_skills ? data.technical_skills.split(',').map(s => s.trim()).filter(s => s) : [];
         const softSkills = data.soft_skills ? data.soft_skills.split(',').map(s => s.trim()).filter(s => s) : [];
 
+        // Format date of birth
+        const dobFormatted = data.dob ? new Date(data.dob).toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' }) : '';
+
         pdfContainer.innerHTML = `
             <div style="border-bottom: 3px solid #4f46e5; padding-bottom: 15px; margin-bottom: 20px; display: flex; align-items: center; gap: 15px;">
-                <div style="width: 60px; height: 60px; background: #4f46e5; border-radius: 12px; display: flex; align-items: center; justify-content: center; flex-shrink: 0;">
-                    <span style="color: white; font-size: 28px; font-weight: bold;">P</span>
-                </div>
+                ${logoHTML}
                 <div>
                     <div style="font-size: 22px; font-weight: bold; color: #4f46e5; letter-spacing: 1px;">PRINTHUB</div>
                     <div style="font-size: 10px; color: #64748b; letter-spacing: 2px;">KABALE UNIVERSITY PRINTING SERVICE</div>
@@ -1107,6 +1134,7 @@ Please find my complete CV and application attached.`;
                         <div><strong style="color: #1e293b;">Phone:</strong> ${data.phone}</div>
                         <div><strong style="color: #1e293b;">Email:</strong> ${data.email}</div>
                         <div><strong style="color: #1e293b;">Location:</strong> ${data.location}</div>
+                        <div><strong style="color: #1e293b;">Date of Birth:</strong> ${dobFormatted}</div>
                         ${data.linkedin ? `<div><strong style="color: #1e293b;">LinkedIn:</strong> <a href="${data.linkedin}" style="color: #4f46e5; text-decoration: none;">View Profile</a></div>` : ''}
                     </div>
                 </div>
