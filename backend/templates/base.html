@@ -47,16 +47,26 @@
    }
    </script>
    
-   <!-- ─── PWA ────────────────────────────────────────────────── -->
+   <!-- ─── FAVICON & APP ICONS ────────────────────────────────── -->
+   <!-- Primary SVG favicon (modern browsers) -->
+   <link rel="icon" type="image/svg+xml" href="{% static 'icon.svg' %}">
+   
+   <!-- Fallback ICO format (older browsers) -->
+   <link rel="shortcut icon" href="{% static 'icon.svg' %}">
+   
+   <!-- PNG fallback sizes -->
+   <link rel="icon" type="image/png" sizes="32x32" href="{% static 'icon.svg' %}">
+   <link rel="icon" type="image/png" sizes="16x16" href="{% static 'icon.svg' %}">
+   
+   <!-- Apple Touch Icon (iOS home screen) -->
+   <link rel="apple-touch-icon" sizes="180x180" href="{% static 'icon.svg' %}">
+   
+   <!-- Android Chrome -->
    <link rel="manifest" href="/static/manifest.json">
    <meta name="theme-color" content="#0f172a" id="meta-theme-color">
    <meta name="apple-mobile-web-app-capable" content="yes">
    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
    <meta name="apple-mobile-web-app-title" content="PrintHub">
-   
-   <!-- ─── ICONS ──────────────────────────────────────────────── -->
-   <link rel="icon" type="image/svg+xml" href="{% static 'icon.svg' %}">
-   <link rel="apple-touch-icon" href="{% static 'icon.svg' %}">
    
    <!-- ─── Tailwind ───────────────────────────────────────────── -->
    <script src="https://cdn.tailwindcss.com"></script>
