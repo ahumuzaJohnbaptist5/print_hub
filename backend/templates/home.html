@@ -18,10 +18,6 @@
 
 {% block twitter_description %}Upload documents, pay with MTN or Airtel, and pick up prints at campus. Fast, reliable printing for students.{% endblock %}
 
-
-
-
-
 {% block content %}
 <div class="max-w-7xl mx-auto px-2 sm:px-6 lg:px-8 py-4 sm:py-8">
     
@@ -141,6 +137,26 @@
     <!-- Mobile Cards -->
     <div id="mobile-board-body" class="md:hidden space-y-4">
         <div class="text-center text-gray-500 py-8">Loading orders...</div>
+    </div>
+
+    <!-- ─── PRINTING SERVICES IN KABALE SECTION ─────────────── -->
+    <div class="mt-8 p-6 bg-blue-500/10 border border-blue-500/30 rounded-xl">
+        <h2 class="text-xl font-bold text-white mb-2">Printing Services in Kabale</h2>
+        <p class="text-gray-300 text-sm">
+            PrintHub provides fast, reliable printing services for students and residents in Kabale, Uganda.
+            Upload your documents online, pay with MTN or Airtel Mobile Money, and pick up your prints at campus stations.
+        </p>
+        <div class="mt-4 flex flex-wrap gap-3">
+            <span class="px-3 py-1 bg-blue-500/20 text-blue-300 text-xs rounded-full">Kabale University</span>
+            <span class="px-3 py-1 bg-blue-500/20 text-blue-300 text-xs rounded-full">Student Printing</span>
+            <span class="px-3 py-1 bg-blue-500/20 text-blue-300 text-xs rounded-full">Campus Printing</span>
+            <span class="px-3 py-1 bg-blue-500/20 text-blue-300 text-xs rounded-full">Kabale</span>
+        </div>
+        <div class="mt-4">
+            <a href="{% url 'kabale' %}" class="text-blue-400 hover:text-blue-300 text-sm underline font-medium">
+                Learn more about our printing services in Kabale →
+            </a>
+        </div>
     </div>
 
     <!-- Call to Action -->
