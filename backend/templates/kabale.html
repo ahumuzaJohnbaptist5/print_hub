@@ -1,0 +1,61 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Printing Services in Kabale - PrintHub{% endblock %}
+
+{% block description %}Looking for printing services in Kabale? PrintHub offers fast, reliable printing for students and residents. Upload documents online, pay with MTN, and pick up on campus.{% endblock %}
+
+{% block keywords %}printing services Kabale, Kabale printing, student printing Kabale, document printing Kabale, passport photos Kabale{% endblock %}
+
+{% block content %}
+<div class="max-w-4xl mx-auto px-4 py-12">
+    <h1 class="text-3xl font-bold text-white mb-4">Printing Services in Kabale</h1>
+    <p class="text-gray-300 text-lg mb-8">Fast, reliable printing for Kabale University students and residents.</p>
+    
+    <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+        <div class="bg-slate-800/50 border border-slate-700 rounded-xl p-6 text-center">
+            <div class="text-3xl mb-3">📤</div>
+            <h3 class="text-white font-bold">Upload Online</h3>
+            <p class="text-gray-400 text-sm">Upload documents from anywhere</p>
+        </div>
+        <div class="bg-slate-800/50 border border-slate-700 rounded-xl p-6 text-center">
+            <div class="text-3xl mb-3">💳</div>
+            <h3 class="text-white font-bold">Pay with MTN/Airtel</h3>
+            <p class="text-gray-400 text-sm">Mobile money payments accepted</p>
+        </div>
+        <div class="bg-slate-800/50 border border-slate-700 rounded-xl p-6 text-center">
+            <div class="text-3xl mb-3">📦</div>
+            <h3 class="text-white font-bold">Pickup on Campus</h3>
+            <p class="text-gray-400 text-sm">Convenient locations at Kabale University</p>
+        </div>
+    </div>
+    
+    <div class="bg-slate-800/50 border border-slate-700 rounded-xl p-6 mb-8">
+        <h2 class="text-lg font-bold text-white mb-4">Why Choose PrintHub in Kabale?</h2>
+        <ul class="space-y-3 text-gray-300">
+            <li class="flex items-start gap-3">
+                <span class="text-green-400">✓</span>
+                <span>Fast turnaround - most orders ready in 2 hours</span>
+            </li>
+            <li class="flex items-start gap-3">
+                <span class="text-green-400">✓</span>
+                <span>Affordable pricing for students</span>
+            </li>
+            <li class="flex items-start gap-3">
+                <span class="text-green-400">✓</span>
+                <span>Convenient pickup at campus stations</span>
+            </li>
+            <li class="flex items-start gap-3">
+                <span class="text-green-400">✓</span>
+                <span>Pay with MTN or Airtel Mobile Money</span>
+            </li>
+        </ul>
+    </div>
+    
+    <div class="text-center">
+        <a href="{% url 'upload' %}" class="bg-blue-600 hover:bg-blue-700 text-white font-bold px-8 py-3 rounded-xl transition inline-block">
+            Start Printing Now
+        </a>
+    </div>
+</div>
+{% endblock %}
