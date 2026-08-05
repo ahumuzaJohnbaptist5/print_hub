@@ -107,6 +107,9 @@ urlpatterns = [
     path('orders/api/process-passport/', login_required(api_views.api_process_passport), name='process_passport'),
     path('orders/api/process-scan/', login_required(api_views.api_process_scan), name='process_scan'),
     path('orders/api/validate-discount/', api_views.validate_discount_code, name='validate_discount_code'),
+
+        # Kabale landing page
+    path('kabale/', TemplateView.as_view(template_name='kabale.html'), name='kabale'),
     
     # Assistant
     path('api/assistant/', include('assistant.urls')),
